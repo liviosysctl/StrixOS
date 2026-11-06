@@ -102,9 +102,36 @@ in
       default = true;
       description = "Stündliche Snapper-Snapshots von /home mit automatischer Bereinigung.";
     };
+
+    hibernation = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Ruhezustand (Suspend-to-Disk) in das Swapfile erlauben.
+        swapSize muss dafür mindestens so gross wie das RAM sein.
+
+        Ein resume_offset ist nicht nötig: systemd schreibt beim Ruhezustand
+        die Lage des Swapfiles in eine EFI-Variable (HibernateLocation), und
+        die initrd liest sie beim nächsten Start. NixOS verwendet immer die
+        systemd-initrd, dafür ist also nichts weiter einzustellen. Das funktioniert
+        auch mit LUKS, weil die initrd zuerst entschlüsselt und dann aufwacht.
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
+    assertions = [
+      {
+        assertion = cfg.hibernation -> cfg.swapSize != null;
+        message = "${branding.id}.storage.hibernation braucht ein Swapfile: swapSize darf nicht null sein.";
+      }
+      {
+        # Mit diesem Schutz verweigert der Kernel den Ruhezustand.
+        assertion = cfg.hibernation -> !config.security.protectKernelImage;
+        message = "${branding.id}.storage.hibernation geht nicht zusammen mit security.protectKernelImage.";
+      }
+    ];
+
     disko.devices.disk.main = {
       type = "disk";
       inherit (cfg) device;
