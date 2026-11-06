@@ -1,0 +1,61 @@
+# git-cliff configuration: one changelog format for every app repository.
+# Commits follow Conventional Commits, versions follow SemVer. See CONTRIBUTING.md.
+# Preview: git-cliff --unreleased --bump      Next version: git-cliff --bumped-version
+
+[changelog]
+header = """
+# Changelog
+
+All notable changes to this project. Versions follow [Semantic Versioning](https://semver.org); \
+entries are generated from [Conventional Commits](https://www.conventionalcommits.org) with git-cliff.
+"""
+body = """
+{%- if version %}
+## {{ version }} — {{ timestamp | date(format="%Y-%m-%d") }}
+{%- else %}
+## Unreleased
+{%- endif %}
+{% if message %}
+{{ message | trim }}
+{% endif -%}
+{%- for group, group_commits in commits | filter(attribute="breaking", value=false) | group_by(attribute="group") %}
+### {{ group | striptags | trim }}
+{% for commit in group_commits -%}
+- {{ commit.message | trim | upper_first }}
+{% endfor -%}
+{%- endfor -%}
+{%- set breaking = commits | filter(attribute="breaking", value=true) -%}
+{%- if breaking | length > 0 %}
+### Breaking
+{% for commit in breaking -%}
+- {{ commit.message | trim | upper_first }}{% if commit.breaking_description and commit.breaking_description != commit.message %} — {{ commit.breaking_description | trim }}{% endif %}
+{% endfor -%}
+{%- endif %}
+"""
+footer = ""
+trim = true
+
+[git]
+conventional_commits = true
+filter_unconventional = true
+split_commits = false
+protect_breaking_commits = true
+filter_commits = false
+tag_pattern = "v[0-9]+\\.[0-9]+\\.[0-9]+"
+topo_order = false
+sort_commits = "oldest"
+commit_parsers = [
+  { message = "^chore\\(release\\)", skip = true },
+  # A feat that changes existing behaviour is listed under "Changed"
+  { message = "^feat(\\([^)]*\\))?!?: (change|update|improve|rename|remove|replace|increase|decrease|make|switch|move|drop|deprecate|simplify)\\b", group = "<!-- 1 -->Changed" },
+  { message = "^feat", group = "<!-- 0 -->Added" },
+  { message = "^perf", group = "<!-- 1 -->Changed" },
+  { message = "^revert", group = "<!-- 1 -->Changed" },
+  { message = "^fix", group = "<!-- 2 -->Fixed" },
+  { message = "^(refactor|docs|style|test|build|ci|chore)", skip = true },
+]
+
+[bump]
+features_always_bump_minor = true
+breaking_always_bump_major = false   # in 0.x a breaking change bumps the minor; 1.0.0 is a deliberate step
+initial_tag = "v0.1.0"

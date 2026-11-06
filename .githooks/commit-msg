@@ -1,0 +1,33 @@
+#!/bin/sh
+# Rejects commit messages that don't follow the convention in CONTRIBUTING.md:
+#   <type>(<scope>)!: <description>     scope and ! are optional
+# Activate once per clone:  git config core.hooksPath .githooks
+
+file="$1"
+first=$(grep -v '^#' "$file" | sed -n '/[^[:space:]]/{p;q;}')
+second=$(grep -v '^#' "$file" | sed -n '2p')
+
+# Messages git writes itself
+case "$first" in
+  "Merge "*|"Revert \""*|"fixup! "*|"squash! "*|"amend! "*) exit 0 ;;
+esac
+
+fail() {
+  printf '\n  Commit message rejected: %s\n\n' "$1" >&2
+  printf '  Got:      %s\n\n' "$first" >&2
+  printf '  Format:   <type>(<scope>): <description>\n' >&2
+  printf '  Types:    feat fix perf refactor docs test build ci chore revert style\n' >&2
+  printf '  Examples: feat(instances): add bulk start action\n' >&2
+  printf '            fix(ui): stop list flicker on refresh\n' >&2
+  printf '            feat(config)!: rename PORT to KENOS_PORT\n\n' >&2
+  exit 1
+}
+
+types='feat|fix|perf|refactor|docs|test|build|ci|chore|revert|style'
+printf '%s' "$first" | grep -Eq "^($types)(\([a-z0-9][a-z0-9./-]*\))?!?: " \
+  || fail "it must start with a type, an optional lowercase (scope) and \": \""
+printf '%s' "$first" | grep -Eq ': [^ ]' || fail "the description is missing"
+printf '%s' "$first" | grep -Eq '[.]$' && fail "no full stop at the end of the first line"
+[ "${#first}" -le 72 ] || fail "the first line has ${#first} characters (max. 72)"
+[ -z "$second" ] || [ -z "$(printf '%s' "$second" | tr -d '[:space:]')" ] || fail "leave the second line empty"
+exit 0
