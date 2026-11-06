@@ -25,6 +25,10 @@ in
     appendToMenuLabel = " Installer";
   };
 
+  # Schweizerdeutsche Tastatur auf der Konsole. Der Installer fragt später
+  # nach dem Layout, bis dahin ist das der passende Standard.
+  console.keyMap = "sg";
+
   # Im Bootmenü die Distro-Version statt der nixpkgs-Version zeigen
   system.nixos.label = version;
 
