@@ -58,6 +58,8 @@
         default = self.packages.${system}.iso;
       };
 
+      checks.${system} = import ./tests/eval.nix { inherit self pkgs; };
+
       devShells.${system}.default = pkgs.mkShell {
         packages = [ pkgs.git-cliff ];
         shellHook = ''
