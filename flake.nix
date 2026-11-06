@@ -12,19 +12,16 @@
   outputs =
     { nixpkgs, disko, ... }:
     let
-      branding = import ./branding.nix;
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
     in
     {
-      # Distro-Module. Der Name kommt aus branding.nix und wird jedem Modul
-      # als Argument mitgegeben.
+      # Distro-Module. Jedes Modul liest den Namen selbst aus branding.nix.
       nixosModules.storage = {
         imports = [
           disko.nixosModules.disko
           ./modules/storage/btrfs.nix
         ];
-        _module.args = { inherit branding; };
       };
 
       devShells.${system}.default = pkgs.mkShell {

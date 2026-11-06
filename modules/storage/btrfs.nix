@@ -7,9 +7,12 @@
 # Kein Snapshot von "/": Das System selbst ist über NixOS-Generationen
 # rücksetzbar, und /nix gehört nie in einen Snapshot. Gesichert wird nur
 # /home, wo die Daten liegen, die Nix nicht neu bauen kann.
-{ branding, config, lib, ... }:
+{ config, lib, ... }:
 
 let
+  # Direkt importiert statt als Modul-Argument: Die Optionsnamen hängen vom
+  # Namen ab, und Modul-Argumente sind erst nach den Optionen bekannt.
+  branding = import ../../branding.nix;
   cfg = config.${branding.id}.storage;
 
   # zstd:1 ist auf NVMe praktisch gratis und spart bei /nix viel Platz.
