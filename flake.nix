@@ -53,6 +53,8 @@
             modules = [ { isoImage.squashfsCompression = "zstd -Xcompression-level 3"; } ];
           }).config.system.build.isoImage;
 
+        installer = pkgs.callPackage ./installer/package.nix { inherit version; };
+
         default = self.packages.${system}.iso;
       };
 

@@ -28,6 +28,16 @@ in
   # Im Bootmenü die Distro-Version statt der nixpkgs-Version zeigen
   system.nixos.label = version;
 
+  environment.systemPackages = [
+    (pkgs.callPackage ../installer/package.nix { inherit version; })
+  ];
+
+  # Hinweis auf der Konsole nach dem Autologin
+  services.getty.helpLine = lib.mkAfter ''
+
+    ${branding.name} ${version}: start the installation with  sudo ${branding.id}-install
+  '';
+
   # Explizit aus: Gast-Tools gehören nur in die Testmaschine.
   virtualisation.vmware.guest.enable = false;
   virtualisation.virtualbox.guest.enable = false;
