@@ -10,13 +10,16 @@
   };
 
   outputs =
-    { nixpkgs, disko, ... }:
+    { self, nixpkgs, disko, ... }:
     let
       # Einzige Stelle mit der Versionsnummer. bump_version.py ersetzt genau diese Zeile.
       version = "0.1.0";
 
+      branding = import ./branding.nix;
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
+
+      iso = self.nixosConfigurations."${branding.id}-iso";
     in
     {
       lib = { inherit version; };
@@ -27,6 +30,30 @@
           disko.nixosModules.disko
           ./modules/storage/btrfs.nix
         ];
+      };
+
+      nixosConfigurations = {
+        # Installationsmedium
+        "${branding.id}-iso" = nixpkgs.lib.nixosSystem {
+          specialArgs = { inherit version; };
+          modules = [
+            ./iso
+            { nixpkgs.hostPlatform = system; }
+          ];
+        };
+      };
+
+      packages.${system} = {
+        # nix build .#iso
+        iso = iso.config.system.build.isoImage;
+
+        # Schnellere Kompression für Testbuilds, das ISO wird etwas grösser
+        iso-dev =
+          (iso.extendModules {
+            modules = [ { isoImage.squashfsCompression = "zstd -Xcompression-level 3"; } ];
+          }).config.system.build.isoImage;
+
+        default = self.packages.${system}.iso;
       };
 
       devShells.${system}.default = pkgs.mkShell {
