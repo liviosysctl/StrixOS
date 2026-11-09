@@ -26,6 +26,7 @@
       branding = import ./branding.nix;
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
+      lib = nixpkgs.lib;
 
       mkSystem = import ./lib/mk-system.nix { inherit self nixpkgs version; };
 
@@ -98,6 +99,49 @@
         '';
 
         default = self.packages.${system}.iso;
+      }
+      # A finished flake.lock for /etc/nixos that points at exactly this commit,
+      # so the installed system matches the ISO and needs no download to lock.
+      # Only possible from a clean, committed tree with a flake.lock. Otherwise
+      # the installer runs nix flake lock itself, which needs a network.
+      // lib.optionalAttrs (builtins.pathExists ./flake.lock && self ? rev) {
+        machine-lock =
+          let
+            own = builtins.fromJSON (builtins.readFile ./flake.lock);
+            github = {
+              type = "github";
+              inherit (upstream) owner repo;
+            };
+            prefixFollows =
+              node:
+              node
+              // lib.optionalAttrs (node ? inputs) {
+                inputs = lib.mapAttrs (
+                  _: target: if builtins.isList target then [ branding.id ] ++ target else target
+                ) node.inputs;
+              };
+          in
+          pkgs.writeText "flake.lock" (
+            builtins.toJSON {
+              inherit (own) version;
+              root = "root";
+              # "follows" entries are paths from the root of the lock file.
+              # Here the distro is no longer the root but one input below it,
+              # so every such path gets its name in front.
+              nodes = (lib.mapAttrs (_: prefixFollows) (removeAttrs own.nodes [ "root" ])) // {
+                root.inputs.${branding.id} = branding.id;
+                ${branding.id} = {
+                  inputs = own.nodes.root.inputs;
+                  locked = github // {
+                    inherit (self) rev narHash lastModified;
+                  };
+                  original = github // {
+                    inherit (upstream) ref;
+                  };
+                };
+              };
+            }
+          );
       };
 
       checks.${system} = import ./tests/eval.nix { inherit self pkgs; };
