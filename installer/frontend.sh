@@ -5,14 +5,14 @@
 # The language comes first and switches the installer to it. Each language
 # is named in itself, the rest of the screen is in the default language.
 languages=(
+  en_US.UTF-8 "English (US)"
+  en_GB.UTF-8 "English (UK)"
   de_CH.UTF-8 "Deutsch (Schweiz)"
+  de_DE.UTF-8 "Deutsch (Deutschland)"
   fr_CH.UTF-8 "Français (Suisse)"
   it_CH.UTF-8 "Italiano (Svizzera)"
-  de_DE.UTF-8 "Deutsch (Deutschland)"
-  en_GB.UTF-8 "English (UK)"
-  en_US.UTF-8 "English (US)"
 )
-default_locale=de_CH.UTF-8
+default_locale=en_US.UTF-8
 
 # pick DEFAULT KEY LABEL KEY LABEL ... shows the labels and prints the key of
 # the chosen one
