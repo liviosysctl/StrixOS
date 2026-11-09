@@ -65,6 +65,13 @@
 
         installer = pkgs.callPackage ./installer/package.nix { inherit version; };
 
+        # Vorlage für /etc/nixos mit eingesetztem Distro-Namen, für den Installer
+        machine-template = pkgs.runCommand "${branding.id}-machine-template" { } ''
+          cp -r ${./templates/machine} $out
+          chmod -R u+w $out
+          substituteInPlace $out/flake.nix $out/machine.nix --replace-fail @distroId@ ${branding.id}
+        '';
+
         default = self.packages.${system}.iso;
       };
 
