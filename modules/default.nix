@@ -9,5 +9,6 @@
     ./tools.nix
     ./apps.nix
     ./storage/btrfs.nix
+    ./vmware-guest.nix
   ];
 }

@@ -97,6 +97,18 @@ in
     configs."${branding.id}-vmware".config.system.build.toplevel.drvPath
     (ok "eval-vmware");
 
+  # VMware guests unload VMCI around hibernation, other machines don't have the unit
+  vmware-hibernate =
+    let
+      unit = "${branding.id}-vmware-hibernate";
+      vmware = configs."${branding.id}-vmware".config.systemd.services;
+    in
+    assert vmware ? ${unit};
+    assert lib.elem "vmware.service" vmware.${unit}.conflicts;
+    assert lib.elem "hibernate.target" vmware.${unit}.wantedBy;
+    assert !(reference.config.systemd.services ? ${unit});
+    ok "vmware-hibernate";
+
   # Hibernation without a swap file must be refused
   storage-hibernation-needs-swap = mustFail "storage-hibernation-needs-swap" (toplevelWith {
     ${branding.id}.storage.swapSize = lib.mkForce null;
