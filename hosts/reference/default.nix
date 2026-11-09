@@ -36,4 +36,12 @@ in
   };
 
   system.stateVersion = lib.trivial.release;
+
+  # Nur für die schnelle Test-VM (nix run .#nixosConfigurations.<name>.config.system.build.vm).
+  # Die echte Installation setzt das Passwort mit chpasswd, hier gibt es keinen Installer.
+  virtualisation.vmVariant = {
+    users.users.${branding.id}.initialPassword = branding.id;
+    virtualisation.memorySize = 4096;
+    virtualisation.cores = 4;
+  };
 }
