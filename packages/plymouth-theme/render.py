@@ -36,6 +36,7 @@ Image.new("RGBA", (1, 1), rgb(accent) + (255,)).save(out / "accent.png")
 values = {
     "BG": plymouth_floats(background),
     "FG": plymouth_floats(foreground),
+    "ACC": plymouth_floats(accent),
 }
 script = Path(script_in).read_text()
 for key, (r, g, b) in values.items():

@@ -79,8 +79,24 @@ field_sprite = Sprite(accent.Scale(line_w, Math.Max(1, Math.Int(line_h / 2))));
 field_sprite.SetPosition(left, prompt_y + Math.Int(text_size * 4), 10);
 field_sprite.SetOpacity(0);
 
+# Shown when the same prompt comes back: systemd-cryptsetup asks again
+# after a wrong passphrase, it does not send a message of its own.
+error_sprite = Sprite(Image.Text("Wrong passphrase. Try again.", @ACC_R@, @ACC_G@, @ACC_B@, 1, font));
+error_sprite.SetPosition(left, prompt_y + Math.Int(text_size * 5), 10);
+error_sprite.SetOpacity(0);
+
+answered_prompt = "";
+current_prompt = "";
+
 fun password_callback(prompt, bullets) {
-  global.waiting_for_passphrase = 1;
+  # A new prompt starts (not just another keystroke)
+  if (!global.waiting_for_passphrase) {
+    global.waiting_for_passphrase = 1;
+    if (prompt == global.answered_prompt) {
+      error_sprite.SetOpacity(1);
+    }
+    global.current_prompt = prompt;
+  }
 
   label_sprite.SetImage(Image.Text("Passphrase", @FG_R@, @FG_G@, @FG_B@, 0.7, font));
   label_sprite.SetOpacity(1);
@@ -101,8 +117,13 @@ fun password_callback(prompt, bullets) {
 Plymouth.SetDisplayPasswordFunction(password_callback);
 
 fun normal_callback() {
+  # Enter was pressed: remember which prompt was answered
+  if (global.waiting_for_passphrase) {
+    global.answered_prompt = global.current_prompt;
+  }
   global.waiting_for_passphrase = 0;
 
+  error_sprite.SetOpacity(0);
   label_sprite.SetOpacity(0);
   bullets_sprite.SetOpacity(0);
   field_sprite.SetOpacity(0);
