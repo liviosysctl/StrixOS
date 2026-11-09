@@ -1,6 +1,6 @@
-# Alle Distro-Module. Braucht die specialArgs aus lib/mk-system.nix
-# (distroFlake, version), darum nur über mkSystem verwenden.
-# disko wird in flake.nix dazugenommen, weil es ein Flake-Input ist.
+# All distro modules. They need the specialArgs from lib/mk-system.nix
+# (distroFlake, version), so only use them through mkSystem.
+# disko is added in flake.nix because it is a flake input.
 {
   imports = [
     ./os-release.nix

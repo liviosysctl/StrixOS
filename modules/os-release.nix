@@ -1,25 +1,25 @@
-# Name und Version der Distro in /etc/os-release.
-# Wird vom Installations-ISO und von jedem installierten System verwendet.
-# Braucht `version` als specialArg (aus flake.nix).
+# Name and version of the distro in /etc/os-release.
+# Used by the installer ISO and by every installed system.
+# Needs `version` as a specialArg (from flake.nix).
 { version, ... }:
 
 let
   branding = import ../branding.nix;
 in
 {
-  # NAME= und PRETTY_NAME=
+  # NAME= and PRETTY_NAME=
   system.nixos.distroName = branding.name;
 
-  # ID=. Ist die ID nicht "nixos", setzt nixpkgs automatisch ID_LIKE=nixos
-  # und lässt die nixos.org-Links weg.
+  # ID=. If the ID is not "nixos", nixpkgs adds ID_LIKE=nixos by itself
+  # and leaves out the nixos.org links.
   system.nixos.distroId = branding.id;
 
-  # IMAGE_VERSION=, darüber lesen Store und Einstellungen die Distro-Version.
-  # VERSION_ID bleibt die NixOS-Version.
+  # IMAGE_VERSION=, the Store and the settings read the distro version from it.
+  # VERSION_ID stays the NixOS version.
   system.image.version = version;
 
-  # Sonst zeigt PRETTY_NAME die NixOS-Version ("Strix 26.11 (Zokor)"),
-  # und das sieht man im Login, in fastfetch und in den Einstellungen.
+  # Otherwise PRETTY_NAME shows the NixOS version ("Strix 26.11 (Zokor)"),
+  # which appears at login, in fastfetch and in the settings.
   system.nixos.extraOSReleaseArgs = {
     PRETTY_NAME = "${branding.name} ${version}";
     HOME_URL = "https://github.com/liviosysctl/strixos";

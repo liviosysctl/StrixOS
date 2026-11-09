@@ -1,5 +1,5 @@
-# <name>-update: neue Version der Distro holen und aktivieren.
-# Schlägt der Neubau fehl, bleibt die alte flake.lock und damit die alte Version.
+# <name>-update: fetch the new version of the distro and switch to it.
+# If the build fails, the old flake.lock stays, and with it the old version.
 if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
   echo "Usage: $(basename "$0")"
   exit 0
@@ -10,7 +10,7 @@ take_lock
 
 lock="$config_dir/flake.lock"
 
-# Ein abgebrochener Lauf hat flake.lock.prev hinterlassen: Dann gilt der Stand davor.
+# An interrupted run left flake.lock.prev behind: the state before it counts.
 if [ -e "$lock.prev" ]; then
   mv -f "$lock.prev" "$lock"
   echo "Restored $lock from an interrupted update." >&2

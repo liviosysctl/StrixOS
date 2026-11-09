@@ -1,4 +1,4 @@
-# strix.lib.mkSystem: baut ein System aus den Dateien in /etc/nixos.
+# strix.lib.mkSystem: builds a system from the files in /etc/nixos.
 #
 #   nixosConfigurations.strix = strix.lib.mkSystem {
 #     modules = [ ./hardware.nix ./machine.nix ];
@@ -15,7 +15,7 @@ let
   branding = import ../branding.nix;
 in
 nixpkgs.lib.nixosSystem {
-  # Kein system-Argument: hardware.nix setzt nixpkgs.hostPlatform.
+  # No system argument: hardware.nix sets nixpkgs.hostPlatform.
   specialArgs = {
     distroFlake = self;
     inherit version;

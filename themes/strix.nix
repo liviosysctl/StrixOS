@@ -1,5 +1,5 @@
-# Das neutrale Grund-Theme: schlicht, schwarz und rot.
-# Später liest die Theme-Engine solche Daten aus theme.toml.
+# The neutral base theme: plain, black and red.
+# Later the theme engine reads data like this from theme.toml.
 {
   colors = {
     background = "000000";

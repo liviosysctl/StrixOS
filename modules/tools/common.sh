@@ -1,7 +1,7 @@
-# Gemeinsamer Anfang aller Werkzeuge (rebuild, update, apps).
-# DEFAULT_CONFIG_DIR, CONFIG_ATTR und LOCK_FILE kommen aus runtimeEnv.
+# Shared start of all tools (rebuild, update, apps).
+# DEFAULT_CONFIG_DIR, CONFIG_ATTR and LOCK_FILE come from runtimeEnv.
 
-# DISTRO_CONFIG_DIR nur für Tests, normal ist es immer /etc/nixos.
+# DISTRO_CONFIG_DIR is only for tests, normally it is always /etc/nixos.
 config_dir="${DISTRO_CONFIG_DIR:-$DEFAULT_CONFIG_DIR}"
 
 require_root() {
@@ -11,8 +11,8 @@ require_root() {
   fi
 }
 
-# Nur ein Neubau gleichzeitig. Wer die Sperre schon hält (update und apps
-# rufen rebuild auf), gibt das über DISTRO_LOCK_HELD weiter.
+# Only one rebuild at a time. A caller that already holds the lock (update and
+# apps call rebuild) passes that on through DISTRO_LOCK_HELD.
 take_lock() {
   if [ -n "${DISTRO_LOCK_HELD:-}" ]; then
     return 0

@@ -1,4 +1,4 @@
-# Plymouth-Theme aus Theme-Daten (Farben) und dem Distro-Namen.
+# Plymouth theme from theme data (colors) and the distro name.
 { lib, runCommand, python3, inter }:
 
 { theme }:

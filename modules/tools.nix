@@ -1,5 +1,5 @@
-# Die drei Werkzeuge rund um /etc/nixos: rebuild, update, apps.
-# Die Namen kommen aus branding.nix (z. B. strix-rebuild).
+# The three tools around /etc/nixos: rebuild, update, apps.
+# The names come from branding.nix (e.g. strix-rebuild).
 { config, lib, pkgs, ... }:
 
 let
@@ -40,6 +40,6 @@ in
 {
   environment.systemPackages = [ rebuild update apps ];
 
-  # Für Tests erreichbar: nix build .#nixosConfigurations.<name>.config.system.build.distroTools.apps
+  # Reachable for tests: nix build .#nixosConfigurations.<name>.config.system.build.distroTools.apps
   system.build.distroTools = { inherit rebuild update apps; };
 }

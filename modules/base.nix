@@ -1,4 +1,4 @@
-# Was jede installierte Maschine bekommt, unabhängig von den Antworten im Installer.
+# What every installed machine gets, whatever was answered in the installer.
 { config, lib, distroFlake, ... }:
 
 let
@@ -10,24 +10,24 @@ in
     name = lib.mkOption {
       type = lib.types.strMatching "^[a-z_][a-z0-9_-]{0,31}$";
       example = "livio";
-      description = "Login-Name des Hauptbenutzers.";
+      description = "Login name of the main user.";
     };
 
     description = lib.mkOption {
       type = lib.types.str;
       default = "";
       example = "Livio";
-      description = "Anzeigename, erscheint beim Login.";
+      description = "Display name, shown at login.";
     };
   };
 
   config = {
-    # Bootloader
+    # Boot loader
     boot.loader.systemd-boot.enable = true;
-    boot.loader.systemd-boot.configurationLimit = 10; # 1 GiB ESP reicht dafür locker
+    boot.loader.systemd-boot.configurationLimit = 10; # a 1 GiB ESP easily holds that many
     boot.loader.efi.canTouchEfiVariables = true;
 
-    # Nix. Die Registry für nixpkgs setzt nixosSystem schon selbst.
+    # Nix. nixosSystem already sets the registry entry for nixpkgs.
     nix.settings.experimental-features = [ "nix-command" "flakes" ];
     nix.settings.auto-optimise-store = true;
     nix.gc = {
@@ -36,15 +36,15 @@ in
       options = "--delete-older-than 30d";
     };
 
-    # Quellen der Distro und ihrer Inputs bleiben im Store, damit /etc/nixos
-    # ohne Netz neu gebaut werden kann.
+    # Keep the sources of the distro and its inputs in the store, so /etc/nixos
+    # can be rebuilt without a network.
     system.extraDependencies = [ distroFlake.outPath ]
       ++ map (input: input.outPath) (lib.attrValues distroFlake.inputs);
 
     networking.networkmanager.enable = true;
 
-    # Das Passwort steht nicht in der Config (es landete sonst lesbar im Store).
-    # Der Installer setzt es einmal mit chpasswd, danach liegt es in /etc/shadow.
+    # The password is not in the config (it would end up readable in the store).
+    # The installer sets it once with chpasswd, after that it lives in /etc/shadow.
     users.mutableUsers = lib.mkDefault true;
     users.users.${cfg.user.name} = {
       isNormalUser = true;

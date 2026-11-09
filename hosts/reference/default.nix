@@ -1,6 +1,6 @@
-# Erfundene Maschine. CI baut sie, und später landet ihr System im Store
-# des ISOs, damit eine echte Installation fast nichts herunterladen muss.
-# Darum mit Verschlüsselung und Ruhezustand: so sind cryptsetup und Co. schon dabei.
+# Made-up machine. CI builds it, and later its system goes into the ISO's
+# store, so a real installation has almost nothing left to download.
+# Encryption and hibernation are on so cryptsetup and friends are already included.
 { lib, ... }:
 
 let
@@ -37,8 +37,8 @@ in
 
   system.stateVersion = lib.trivial.release;
 
-  # Nur für die schnelle Test-VM (nix run .#nixosConfigurations.<name>.config.system.build.vm).
-  # Die echte Installation setzt das Passwort mit chpasswd, hier gibt es keinen Installer.
+  # Only for the quick test VM (nix run .#nixosConfigurations.<name>.config.system.build.vm).
+  # A real installation sets the password with chpasswd, there is no installer here.
   virtualisation.vmVariant = {
     users.users.${branding.id}.initialPassword = branding.id;
     virtualisation.memorySize = 4096;

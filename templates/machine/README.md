@@ -1,8 +1,8 @@
-# Vorlage für /etc/nixos
+# Template for /etc/nixos
 
-Der Installer kopiert diese Dateien nach `/etc/nixos`. Platzhalter:
+The installer copies these files to `/etc/nixos`. Placeholders:
 
-- `@distroId@` ersetzt der Build (`packages.machine-template`), damit der Name nur in `branding.nix` steht.
-- Alle anderen `@...@` füllt der Installer mit den Antworten aus.
+- `@distroId@` is filled in by the build (`packages.machine-template`), so the name only lives in `branding.nix`.
+- The installer fills in every other `@...@` with the answers.
 
-`hardware.nix` und `flake.lock` sind nicht hier: Die erste erzeugt `nixos-generate-config` auf der Maschine, die zweite der ISO-Build.
+`hardware.nix` and `flake.lock` are not here: `nixos-generate-config` creates the first on the machine, the ISO build creates the second.

@@ -1,5 +1,5 @@
-# Apps aus dem Store. Der Store schreibt nur /etc/nixos/apps.json,
-# dieses Modul macht daraus Pakete.
+# Apps from the Store. The Store only writes /etc/nixos/apps.json,
+# this module turns it into packages.
 { config, lib, pkgs, ... }:
 
 let
@@ -12,8 +12,8 @@ let
     else
       lib.importJSON cfg.file;
 
-  # Ein Paket, das es in nixpkgs nicht mehr gibt, bricht das Update nicht ab,
-  # sondern gibt eine Warnung aus. Der Store kann es dann als "nicht mehr verfügbar" zeigen.
+  # A package that no longer exists in nixpkgs does not break the update,
+  # it only warns. The Store can then show it as "no longer available".
   lookup =
     entry:
     let
@@ -22,24 +22,24 @@ let
     if lib.hasAttrByPath path pkgs then
       [ (lib.getAttrFromPath path pkgs) ]
     else
-      lib.warn "apps.json: ${entry.attr} gibt es in nixpkgs nicht mehr" [ ];
+      lib.warn "apps.json: ${entry.attr} no longer exists in nixpkgs" [ ];
 
-  # Aus der JSON-Datei, nicht aus pkgs: pkgs hängt von nixpkgs.config ab,
-  # ein Blick in pkgs hier wäre eine Endlosschleife.
+  # From the JSON file, not from pkgs: pkgs depends on nixpkgs.config,
+  # looking into pkgs here would be an infinite recursion.
   unfreeNames = map (entry: entry.unfree) (lib.filter (entry: entry ? unfree) data.packages);
 in
 {
   options.${branding.id}.apps.file = lib.mkOption {
     type = lib.types.nullOr lib.types.path;
     default = null;
-    description = "apps.json aus /etc/nixos.";
+    description = "apps.json from /etc/nixos.";
   };
 
   config = {
     assertions = [
       {
         assertion = (data.version or 0) == 1;
-        message = "apps.json hat Format ${toString (data.version or "?")}, dieses ${branding.name} kennt nur 1.";
+        message = "apps.json has format ${toString (data.version or "?")}, this ${branding.name} only knows format 1.";
       }
     ];
 

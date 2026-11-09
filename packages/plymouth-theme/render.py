@@ -1,8 +1,8 @@
-"""Erzeugt ein Plymouth-Theme aus Theme-Daten.
+"""Generate a Plymouth theme from theme data.
 
-Aufruf: render.py <out> <id> <name> <font> <background> <foreground> <accent> <script.in>
-Schreibt die Wortmarke als PNG (Inter ExtraBold), eine 1x1-Akzentfarbe und
-das fertige Skript mit eingesetzten Farben.
+Usage: render.py <out> <id> <name> <font> <background> <foreground> <accent> <script.in>
+Writes the wordmark as PNG (Inter ExtraBold), a 1x1 accent color and
+the finished script with the colors filled in.
 """
 
 import sys
@@ -23,7 +23,7 @@ def plymouth_floats(hex_color):
     return [f"{channel / 255:.4f}" for channel in rgb(hex_color)]
 
 
-# Wortmarke gross rendern, Plymouth skaliert sie passend zur Bildschirmhöhe
+# Render the wordmark large, Plymouth scales it to the screen height
 font = ImageFont.truetype(font_path, 400)
 font.set_variation_by_name("ExtraBold")
 left, top, right, bottom = font.getbbox(name)

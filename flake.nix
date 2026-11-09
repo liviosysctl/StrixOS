@@ -12,7 +12,7 @@
   outputs =
     { self, nixpkgs, disko, ... }:
     let
-      # Einzige Stelle mit der Versionsnummer. bump_version.py ersetzt genau diese Zeile.
+      # The only place with the version number. bump_version.py replaces exactly this line.
       version = "0.1.0";
 
       branding = import ./branding.nix;
@@ -26,7 +26,7 @@
     {
       lib = { inherit version mkSystem; };
 
-      # Alle Distro-Module zusammen. Gedacht für lib.mkSystem.
+      # All distro modules together. Meant to be used through lib.mkSystem.
       nixosModules.default = {
         imports = [
           disko.nixosModules.disko
@@ -34,7 +34,7 @@
         ];
       };
 
-      # Distro-Module. Jedes Modul liest den Namen selbst aus branding.nix.
+      # Distro modules. Every module reads the name from branding.nix itself.
       nixosModules.storage = {
         imports = [
           disko.nixosModules.disko
@@ -43,7 +43,7 @@
       };
 
       nixosConfigurations = {
-        # Installationsmedium
+        # Installer medium
         "${branding.id}-iso" = nixpkgs.lib.nixosSystem {
           specialArgs = { inherit version; };
           modules = [
@@ -52,13 +52,13 @@
           ];
         };
 
-        # Erfundene Maschine für CI und den Store des ISOs
+        # Made-up machine for CI and the ISO's store
         "${branding.id}-reference" = mkSystem {
           modules = [ ./hosts/reference ];
           apps = ./templates/machine/apps.json;
         };
 
-        # Testmaschine für VMware Workstation, mit Gast-Tools
+        # Test machine for VMware Workstation, with guest tools
         "${branding.id}-vmware" = mkSystem {
           modules = [ ./hosts/vmware ];
           apps = ./templates/machine/apps.json;
@@ -69,7 +69,7 @@
         # nix build .#iso
         iso = iso.config.system.build.isoImage;
 
-        # Schnellere Kompression für Testbuilds, das ISO wird etwas grösser
+        # Faster compression for test builds, the ISO gets slightly larger
         iso-dev =
           (iso.extendModules {
             modules = [ { isoImage.squashfsCompression = "zstd -Xcompression-level 3"; } ];
@@ -77,7 +77,7 @@
 
         installer = pkgs.callPackage ./installer/package.nix { inherit version; };
 
-        # Vorlage für /etc/nixos mit eingesetztem Distro-Namen, für den Installer
+        # Template for /etc/nixos with the distro name filled in, for the installer
         machine-template = pkgs.runCommand "${branding.id}-machine-template" { } ''
           cp -r ${./templates/machine} $out
           chmod -R u+w $out

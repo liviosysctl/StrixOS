@@ -1,4 +1,4 @@
-# Diese Maschine. Vom Installer geschrieben, Änderungen von Hand sind erlaubt.
+# This machine. Written by the installer, editing it by hand is fine.
 {
   networking.hostName = "@hostName@";
 
@@ -23,6 +23,6 @@
     hibernation = @hibernation@;
   };
 @vmwareLine@
-  # Release, mit dem installiert wurde. Nie ändern, auch nicht nach Updates.
+  # Release the machine was installed with. Never change it, not even after updates.
   system.stateVersion = "@stateVersion@";
 }

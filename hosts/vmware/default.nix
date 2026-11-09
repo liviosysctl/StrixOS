@@ -1,4 +1,4 @@
-# Testmaschine für VMware Workstation. Die einzige Konfiguration mit Gast-Tools.
+# Test machine for VMware Workstation. The only configuration with guest tools.
 { lib, ... }:
 
 let
@@ -9,7 +9,7 @@ in
 
   networking.hostName = lib.mkForce "vmware";
 
-  # Fenstergrösse passt sich an, Zwischenablage geht
+  # Display follows the window size, clipboard works
   virtualisation.vmware.guest.enable = true;
 
   ${branding.id}.storage.device = lib.mkForce "/dev/nvme0n1";

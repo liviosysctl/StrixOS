@@ -1,6 +1,6 @@
-# Startbildschirm. Wird aus theme.script erzeugt, Farben setzt render.py ein.
-# Aufbau wie die Strix-Unterlagen: alles linksbündig, Wortmarke, darunter
-# eine dünne rote Linie. Die Linie füllt sich mit dem Startfortschritt.
+# Boot splash. Generated from theme.script, render.py fills in the colors.
+# Same layout as the Strix documents: everything left-aligned, the wordmark,
+# a thin red line below it. The line fills up with the boot progress.
 
 Window.SetBackgroundTopColor(@BG_R@, @BG_G@, @BG_B@);
 Window.SetBackgroundBottomColor(@BG_R@, @BG_G@, @BG_B@);
@@ -13,7 +13,7 @@ left = Math.Int(screen_w * 0.12);
 text_size = Math.Int(Math.Max(14, unit * 2.2));
 font = "Inter " + text_size;
 
-# Wortmarke
+# Wordmark
 wordmark_image = Image("wordmark.png");
 wordmark_h = Math.Int(unit * 9);
 wordmark_w = Math.Int(wordmark_image.GetWidth() * wordmark_h / wordmark_image.GetHeight());
@@ -21,7 +21,7 @@ wordmark_sprite = Sprite(wordmark_image.Scale(wordmark_w, wordmark_h));
 wordmark_y = Math.Int(screen_h * 0.42 - wordmark_h);
 wordmark_sprite.SetPosition(left, wordmark_y, 10);
 
-# Rote Linie: schwache Spur, darüber der Fortschritt
+# Red line: a faint track with the progress on top
 accent = Image("accent.png");
 line_w = Math.Int(Math.Max(wordmark_w, screen_w * 0.22));
 line_h = Math.Int(Math.Max(2, unit * 0.35));
@@ -47,7 +47,7 @@ fun progress_callback(duration, progress) {
 }
 Plymouth.SetBootProgressFunction(progress_callback);
 
-# Passphrase: Beschriftung, Punkte, rote Linie als Feld
+# Passphrase: label, bullets, a red line as the field
 prompt_y = line_y + Math.Int(unit * 6);
 
 label_sprite = Sprite();
@@ -64,7 +64,7 @@ fun password_callback(prompt, bullets) {
   label_sprite.SetImage(Image.Text("Passphrase", @FG_R@, @FG_G@, @FG_B@, 0.7, font));
   label_sprite.SetOpacity(1);
 
-  # Ohne Punkte ein Leerzeichen, damit Image.Text ein Bild liefert
+  # A space without bullets, so Image.Text returns an image
   dots = "";
   for (i = 0; i < bullets; i++) {
     dots = dots + "•";
@@ -86,7 +86,7 @@ fun normal_callback() {
 }
 Plymouth.SetDisplayNormalFunction(normal_callback);
 
-# Meldungen (z. B. falsche Passphrase) unten links, dezent
+# Messages (e.g. a wrong passphrase) bottom left, subdued
 message_sprite = Sprite();
 message_sprite.SetPosition(left, Math.Int(screen_h * 0.88), 10);
 

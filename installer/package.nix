@@ -1,4 +1,4 @@
-# Der Installer. Vorerst nur ein Platzhalter, der zeigt, dass er im ISO landet.
+# The installer. For now only a placeholder that proves it ends up in the ISO.
 { writeShellApplication, version }:
 
 let

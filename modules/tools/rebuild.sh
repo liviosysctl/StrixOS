@@ -1,4 +1,4 @@
-# <name>-rebuild [switch|boot|test|build|dry-build] [weitere nixos-rebuild-Optionen]
+# <name>-rebuild [switch|boot|test|build|dry-build] [more nixos-rebuild options]
 usage() {
   echo "Usage: $(basename "$0") [switch|boot|test|build|dry-build] [nixos-rebuild options]"
 }
@@ -24,5 +24,5 @@ esac
 require_root
 take_lock
 
-# exec behält die Sperre (Dateideskriptor 9) bis nixos-rebuild fertig ist.
+# exec keeps the lock (file descriptor 9) until nixos-rebuild is done.
 exec nixos-rebuild "$mode" --flake "$config_dir#$CONFIG_ATTR" "$@"

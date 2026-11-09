@@ -1,13 +1,13 @@
-# Die einzige Stelle, an der der Name der Distro steht.
-# Alles andere leitet sich hiervon ab. Umbenennen heisst: nur diese Datei ändern.
+# The only place where the distro name is written down.
+# Everything else derives from it. Renaming means changing this file only.
 rec {
-  # Anzeigename für Menschen: Bootmenü, os-release, Oberfläche.
+  # Display name for people: boot menu, os-release, user interface.
   name = "Strix";
 
-  # Technischer Name: Pakete, Programme, Dienste, NixOS-Optionen, Ordner,
-  # Dateisystem-Label. Nur Kleinbuchstaben, Ziffern und Bindestriche.
+  # Technical name: packages, programs, services, NixOS options, folders,
+  # file system label. Lowercase letters, digits and hyphens only.
   id = "strix";
 
-  # Präfix für D-Bus-Namen (umgekehrte Domain ist bei D-Bus Pflicht).
+  # Prefix for D-Bus names (D-Bus requires a reversed domain).
   dbus = "org.${id}";
 }

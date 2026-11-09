@@ -1,15 +1,15 @@
 {
-  description = "Diese Maschine";
+  description = "This machine";
 
-  # Die Distro ist der einzige Input. nixpkgs kommt aus ihrer flake.lock,
-  # so läuft immer eine Kombination, die schon gebaut und getestet wurde.
-  # "stable" bewegt sich nur bei Releases.
+  # The distro is the only input. nixpkgs comes from its flake.lock, so the
+  # machine always runs a combination that was already built and tested.
+  # "stable" only moves on releases.
   inputs.@distroId@.url = "github:liviosysctl/strixos/stable";
 
   outputs =
     { @distroId@, ... }:
     {
-      # Immer "@distroId@", nicht der Rechnername: so bricht ein neuer Name nichts.
+      # Always "@distroId@", not the host name: renaming the machine breaks nothing.
       nixosConfigurations.@distroId@ = @distroId@.lib.mkSystem {
         modules = [
           ./hardware.nix

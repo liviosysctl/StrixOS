@@ -1,22 +1,22 @@
-# Speicherlayout
+# Disk layout
 #
-# GPT mit ESP und einer Systempartition (optional LUKS), darauf btrfs mit
-# flachen Subvolumes. Braucht disko: Die Flake importiert
-# disko.nixosModules.disko zusammen mit diesem Modul.
+# GPT with an ESP and one system partition (optional LUKS), holding btrfs with
+# flat subvolumes. Needs disko: the flake imports disko.nixosModules.disko
+# together with this module.
 #
-# Kein Snapshot von "/": Das System selbst ist über NixOS-Generationen
-# rücksetzbar, und /nix gehört nie in einen Snapshot. Gesichert wird nur
-# /home, wo die Daten liegen, die Nix nicht neu bauen kann.
+# No snapshots of "/": the system itself can be rolled back through NixOS
+# generations, and /nix never belongs in a snapshot. Only /home is backed up,
+# where the data lives that Nix cannot rebuild.
 { config, lib, ... }:
 
 let
-  # Direkt importiert statt als Modul-Argument: Die Optionsnamen hängen vom
-  # Namen ab, und Modul-Argumente sind erst nach den Optionen bekannt.
+  # Imported directly instead of as a module argument: the option names depend
+  # on the name, and module arguments are only known after the options.
   branding = import ../../branding.nix;
   cfg = config.${branding.id}.storage;
 
-  # zstd:1 ist auf NVMe praktisch gratis und spart bei /nix viel Platz.
-  # noatime verhindert Schreibzugriffe bei jedem Lesen (wichtig mit Snapshots).
+  # zstd:1 is practically free on NVMe and saves a lot of space in /nix.
+  # noatime avoids a write on every read (important with snapshots).
   defaultMountOptions = [
     "compress=zstd:1"
     "noatime"
@@ -32,17 +32,17 @@ let
       "@root" = mkSubvolume "/";
       "@home" = mkSubvolume "/home";
       "@nix" = mkSubvolume "/nix";
-      # Eigene Subvolumes, damit Logs und Caches nicht in Home-Snapshots
-      # oder ein späteres Zurücksetzen von "/" hineingezogen werden.
+      # Own subvolumes, so logs and caches are not pulled into home snapshots
+      # or into a later reset of "/".
       "@log" = mkSubvolume "/var/log";
       "@cache" = mkSubvolume "/var/cache";
     }
     // lib.optionalAttrs cfg.homeSnapshots {
-      # Getrennt von @home, damit ein Restore von @home die Snapshots nicht löscht.
+      # Separate from @home, so restoring @home does not delete the snapshots.
       "@home-snapshots" = mkSubvolume "/home/.snapshots";
     }
     // lib.optionalAttrs (cfg.swapSize != null) {
-      # Ohne Kompression: Swapfiles auf btrfs müssen NOCOW und unkomprimiert sein.
+      # No compression: swap files on btrfs must be NOCOW and uncompressed.
       "@swap" = {
         mountpoint = "/swap";
         mountOptions = [ "noatime" ];
@@ -73,48 +73,48 @@ let
 in
 {
   options.${branding.id}.storage = {
-    enable = lib.mkEnableOption "das Speicherlayout (GPT, ESP, btrfs)";
+    enable = lib.mkEnableOption "the disk layout (GPT, ESP, btrfs)";
 
     device = lib.mkOption {
       type = lib.types.str;
       example = "/dev/disk/by-id/nvme-Samsung_SSD_980_1TB_S64ANS0T123456";
       description = ''
-        Ganze Festplatte, die bei der Installation überschrieben wird.
-        Ein Pfad unter /dev/disk/by-id ist stabiler als /dev/nvme0n1.
+        Whole disk that is overwritten during installation.
+        A path under /dev/disk/by-id is more stable than /dev/nvme0n1.
       '';
     };
 
     encrypt = lib.mkOption {
       type = lib.types.bool;
       default = false;
-      description = "Systempartition mit LUKS2 verschlüsseln.";
+      description = "Encrypt the system partition with LUKS2.";
     };
 
     swapSize = lib.mkOption {
       type = lib.types.nullOr lib.types.str;
       default = "8G";
       example = "16G";
-      description = "Grösse des Swapfiles in @swap, null für keinen Swap.";
+      description = "Size of the swap file in @swap, null for no swap.";
     };
 
     homeSnapshots = lib.mkOption {
       type = lib.types.bool;
       default = true;
-      description = "Stündliche Snapper-Snapshots von /home mit automatischer Bereinigung.";
+      description = "Hourly Snapper snapshots of /home with automatic cleanup.";
     };
 
     hibernation = lib.mkOption {
       type = lib.types.bool;
       default = false;
       description = ''
-        Ruhezustand (Suspend-to-Disk) in das Swapfile erlauben.
-        swapSize muss dafür mindestens so gross wie das RAM sein.
+        Allow hibernation (suspend to disk) into the swap file.
+        swapSize must be at least as large as the RAM for that.
 
-        Ein resume_offset ist nicht nötig: systemd schreibt beim Ruhezustand
-        die Lage des Swapfiles in eine EFI-Variable (HibernateLocation), und
-        die initrd liest sie beim nächsten Start. NixOS verwendet immer die
-        systemd-initrd, dafür ist also nichts weiter einzustellen. Das funktioniert
-        auch mit LUKS, weil die initrd zuerst entschlüsselt und dann aufwacht.
+        No resume_offset is needed: when hibernating, systemd writes the
+        location of the swap file into an EFI variable (HibernateLocation), and
+        the initrd reads it on the next boot. NixOS always uses the systemd
+        initrd, so nothing else needs to be set. This also works with LUKS,
+        because the initrd unlocks first and resumes after.
       '';
     };
   };
@@ -123,12 +123,12 @@ in
     assertions = [
       {
         assertion = cfg.hibernation -> cfg.swapSize != null;
-        message = "${branding.id}.storage.hibernation braucht ein Swapfile: swapSize darf nicht null sein.";
+        message = "${branding.id}.storage.hibernation needs a swap file: swapSize must not be null.";
       }
       {
-        # Mit diesem Schutz verweigert der Kernel den Ruhezustand.
+        # With this protection the kernel refuses to hibernate.
         assertion = cfg.hibernation -> !config.security.protectKernelImage;
-        message = "${branding.id}.storage.hibernation geht nicht zusammen mit security.protectKernelImage.";
+        message = "${branding.id}.storage.hibernation does not work together with security.protectKernelImage.";
       }
     ];
 
@@ -139,7 +139,7 @@ in
         type = "gpt";
         partitions = {
           ESP = {
-            # 1 GiB reicht für viele Kernel-Generationen in systemd-boot.
+            # 1 GiB holds many kernel generations for systemd-boot.
             size = "1G";
             type = "EF00";
             content = {
@@ -157,7 +157,7 @@ in
       };
     };
 
-    # journald soll schon in der frühen Bootphase auf die Platte schreiben.
+    # journald should write to disk from early boot on.
     fileSystems."/var/log".neededForBoot = true;
 
     services.btrfs.autoScrub = {
