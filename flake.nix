@@ -51,6 +51,18 @@
             { nixpkgs.hostPlatform = system; }
           ];
         };
+
+        # Erfundene Maschine für CI und den Store des ISOs
+        "${branding.id}-reference" = mkSystem {
+          modules = [ ./hosts/reference ];
+          apps = ./templates/machine/apps.json;
+        };
+
+        # Testmaschine für VMware Workstation, mit Gast-Tools
+        "${branding.id}-vmware" = mkSystem {
+          modules = [ ./hosts/vmware ];
+          apps = ./templates/machine/apps.json;
+        };
       };
 
       packages.${system} = {
