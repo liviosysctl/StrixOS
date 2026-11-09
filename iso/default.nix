@@ -53,6 +53,9 @@ in
   # The installer works with flakes (nix eval, disko --flake, nixos-install --flake)
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
+  # Same as on installed machines: SSH in from any common terminal works.
+  environment.enableAllTerminfo = true;
+
   # Swiss German keyboard on the console. The installer will ask for the
   # layout later, until then this is the right default.
   console.keyMap = "sg";

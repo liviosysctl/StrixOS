@@ -64,6 +64,21 @@ in
     assert iso.services.openssh.enable;
     ok "ssh-on";
 
+  # Over SSH from Ghostty or kitty, TERM must be known on both systems
+  terminfo-ghostty-kitty =
+    let
+      has =
+        cfg: name:
+        lib.any (
+          p: (p.outputName or "") == "terminfo" && lib.hasPrefix name (p.name or "")
+        ) cfg.environment.systemPackages;
+    in
+    assert has reference.config "ghostty";
+    assert has reference.config "kitty";
+    assert has iso "ghostty";
+    assert has iso "kitty";
+    ok "terminfo-ghostty-kitty";
+
   # Both test machines go through mkSystem like a real installation
   eval-reference = builtins.seq reference.config.system.build.toplevel.drvPath (ok "eval-reference");
   eval-vmware = builtins.seq

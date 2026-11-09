@@ -56,6 +56,11 @@ in
       };
     };
 
+    # Know every common terminal (Ghostty, kitty, Alacritty, WezTerm, foot, ...).
+    # Over SSH the client's TERM comes along; without its terminfo, clear,
+    # nano and less fail with "unknown terminal type".
+    environment.enableAllTerminfo = true;
+
     # The password is not in the config (it would end up readable in the store).
     # The installer sets it once with chpasswd, after that it lives in /etc/shadow.
     users.mutableUsers = lib.mkDefault true;
