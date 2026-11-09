@@ -79,6 +79,8 @@ keyboard_settings() {
     ch-fr) echo "fr_CH ch fr" ;;
     de) echo "de de " ;;
     fr) echo "fr fr " ;;
+    it) echo "it it " ;;
+    gb) echo "uk gb " ;;
     us) echo "us us " ;;
     *) return 1 ;;
   esac
@@ -193,17 +195,17 @@ is_laptop() {
 }
 
 check_root() {
-  [ "$(id -u)" -eq 0 ] || die "Run the installer with sudo: sudo ${DISTRO_ID}-install"
+  [ "$(id -u)" -eq 0 ] || die "$(tf e_root "$DISTRO_ID")"
 }
 
 check_uefi() {
   [ -d /sys/firmware/efi/efivars ] ||
-    die "${DISTRO_NAME} needs UEFI. Switch the firmware from Legacy/CSM to UEFI. In VMware: VM Settings, Options, Advanced, Firmware type UEFI."
+    die "$(tf e_uefi "$DISTRO_NAME")"
 }
 
 check_ram() {
   [ "$(ram_kib)" -ge "$min_ram_kib" ] ||
-    die "${DISTRO_NAME} needs at least 4 GiB of RAM to install."
+    die "$(tf e_ram "$DISTRO_NAME")"
 }
 
 network_ok() {

@@ -19,17 +19,20 @@ install_steps=(
 )
 total_steps=${#install_steps[@]}
 
-# Shown next to the spinner while a step runs
+# The log keeps these English titles, the console installer shows st1 to st9
+# from i18n.sh in the chosen language.
+
+# Shown next to the spinner while a step runs, keys in i18n.sh
 step_hints=(
-  "A few seconds"
-  "A few seconds"
-  "Up to a minute"
-  "Up to a minute"
-  "A few seconds"
-  "This can take a few minutes. Details: Alt+F2, then tail -f $log_file"
-  "A few seconds"
-  "A few seconds"
-  "A few seconds"
+  hint_seconds
+  hint_seconds
+  hint_minute
+  hint_minute
+  hint_seconds
+  hint_minutes
+  hint_seconds
+  hint_seconds
+  hint_seconds
 )
 current_step=0
 mounted=0
@@ -48,7 +51,7 @@ step() {
 # only in the log, otherwise with the output shown and logged
 run() {
   if [ "$ui_fancy" -eq 1 ]; then
-    spin "${step_hints[$current_step - 1]}" "$@"
+    spin "$(tf "${step_hints[$current_step - 1]}" "$log_file")" "$@"
   else
     "$@" 2>&1 | tee -a "$log_file"
   fi

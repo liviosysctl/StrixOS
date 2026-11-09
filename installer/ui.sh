@@ -5,15 +5,20 @@
 # The colors depend on the terminal: the console of the live system knows 16
 # colors, an SSH session from Windows Terminal knows 256 or true color.
 #
-# Only characters that both Linux console fonts (the kernel's default8x16 and
-# Lat2-Terminus16) contain: █ ▒ ─ ■ » · and ASCII. Anything else shows up as a
-# placeholder box on the console of the live system.
+# Only characters the console font of the live system (ter-v16n, set in
+# iso/default.nix) contains: █ ▒ ─ ■ » ·, ASCII and the accented letters of
+# the four languages. Anything else shows up as a placeholder box.
+# tests/installer.sh checks the texts against the font.
 
 ui_fancy=0
 
 ui_setup() {
   ui_fancy=1
   local accent="#C8102E"
+
+  # Umlauts and accents count as one character when padding columns.
+  # C.UTF-8 is built into glibc, it needs no locale archive.
+  export LC_ALL=C.UTF-8
 
   if [[ ${COLORTERM:-} == truecolor || ${COLORTERM:-} == 24bit ]]; then
     c_red=$'\e[38;2;200;16;46m'
@@ -77,6 +82,13 @@ ui_setup() {
   export GUM_SPIN_PADDING="0 0 0 2"
 }
 
+# Pads text with spaces to a width in characters. printf counts bytes, so
+# "Verschlüsselung" would come out one column short.
+pad() {
+  local text=$1 width=$2
+  printf '%s%s' "$text" "$(repeat " " $((width - ${#text})))"
+}
+
 repeat() {
   local text=$1 count=$2 out=""
   while [ "$count" -gt 0 ]; do
@@ -132,7 +144,7 @@ draw_header() {
   printf '  %s%s%s%s%s\n' "$c_red" "$(repeat ─ "$filled")" "$c_faint" "$(repeat ─ $((width - filled)))" "$c_reset"
 
   left="$done/$total  $title"
-  right="Installer $DISTRO_VERSION"
+  right="$(t installer) $DISTRO_VERSION"
   gap=$((width - ${#left} - ${#right}))
   [ "$gap" -ge 2 ] || gap=2
   printf '  %s%s/%s%s  %s%s%s%s\n\n' "$c_faint" "$done" "$total" "$c_reset" "$title" \
@@ -160,10 +172,10 @@ draw_question() {
 # The install steps as a list: ■ done, » running, · still to come
 draw_install() {
   local current=$1 i title
-  draw_header $((current - 1)) "$total_steps" "Installing"
+  draw_header $((current - 1)) "$total_steps" "$(t s_installing)"
   printf '\n'
   for i in "${!install_steps[@]}"; do
-    title=${install_steps[$i]}
+    title=$(t "st$((i + 1))")
     if [ $((i + 1)) -lt "$current" ]; then
       printf '  %s■%s %s%s%s\n' "$c_red" "$c_reset" "$c_faint" "$title" "$c_reset"
     elif [ $((i + 1)) -eq "$current" ]; then
@@ -185,18 +197,18 @@ spin() {
 }
 
 draw_failure() {
-  printf '\n  %s%sInstallation failed.%s\n' "$c_red" "$c_bold" "$c_reset"
-  printf '  %sThe disk may be partly written. Nothing is lost by starting the installer again.%s\n\n' "$c_faint" "$c_reset"
+  printf '\n  %s%s%s%s\n' "$c_red" "$c_bold" "$(t f_title)" "$c_reset"
+  printf '  %s%s%s\n\n' "$c_faint" "$(t f_text)" "$c_reset"
   tail -n 12 "$log_file" | sed "s/^/    ${c_faint}/; s/\$/${c_reset}/"
-  printf '\n  %sFull log: %s%s\n\n' "$c_faint" "$log_file" "$c_reset"
+  printf '\n  %s%s%s\n\n' "$c_faint" "$(tf f_log "$log_file")" "$c_reset"
 }
 
 draw_done() {
-  draw_header "$total_steps" "$total_steps" "Done"
-  printf '\n  %s■%s %s%s is installed.%s\n' "$c_red" "$c_reset" "$c_bold" "$DISTRO_NAME" "$c_reset"
-  printf '  %sRemove the USB stick, then restart.%s\n' "$c_faint" "$c_reset"
+  draw_header "$total_steps" "$total_steps" "$(t s_done)"
+  printf '\n  %s■%s %s%s%s\n' "$c_red" "$c_reset" "$c_bold" "$(tf d_title "$DISTRO_NAME")" "$c_reset"
+  printf '  %s%s%s\n' "$c_faint" "$(t d_remove)" "$c_reset"
   if [ "${encrypt:-false}" = true ]; then
-    printf '  %sAt every start you type the disk passphrase first.%s\n' "$c_faint" "$c_reset"
+    printf '  %s%s%s\n' "$c_faint" "$(t d_passphrase)" "$c_reset"
   fi
   printf '\n'
 }

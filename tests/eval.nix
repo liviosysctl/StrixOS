@@ -34,13 +34,15 @@ in
   installer-functions =
     pkgs.runCommand "check-installer-functions"
       {
-        nativeBuildInputs = with pkgs; [ bash coreutils gawk gnugrep gnused jq util-linux ];
+        nativeBuildInputs = with pkgs; [ bash coreutils gawk gnugrep gnused jq python3 util-linux ];
       }
       ''
         bash ${./installer.sh} \
           ${self.packages.${pkgs.stdenv.hostPlatform.system}.machine-template} \
           ${pkgs.callPackage ../installer/logo.nix { }} \
-          ${../installer} | tee $out
+          ${../installer} \
+          ${./glyphs.py} \
+          ${pkgs.terminus_font}/share/consolefonts/${iso.console.font}.psf.gz | tee $out
       '';
 
   # Guest tools must never end up on the installer medium

@@ -5,14 +5,18 @@ set -euo pipefail
 
 export DISTRO_ID=strix DISTRO_NAME=Strix DISTRO_VERSION=0.0.0 STATE_VERSION=26.11
 export TEMPLATE_DIR=$1 LOGO_FILE=$2 MACHINE_LOCK=""
-installer=$3
+installer=$3 glyphs=$4 console_font=$5
 
 # shellcheck source=/dev/null
 source "$installer/lib.sh"
 # shellcheck source=/dev/null
+source "$installer/i18n.sh"
+# shellcheck source=/dev/null
 source "$installer/ui.sh"
 # shellcheck source=/dev/null
 source "$installer/core.sh"
+# shellcheck source=/dev/null
+source "$installer/frontend.sh"
 
 work=$(mktemp -d)
 log_file=$work/install.log
@@ -129,6 +133,64 @@ check "keyboard filled in" 'grep -q "console.keyMap = \"sg\";" <<<"$out" && grep
 check "state version" 'grep -q "system.stateVersion = \"26.11\";" <<<"$out"'
 virtualization=none
 check "no VMware line on real hardware" '! grep -q vmware <<<"$(render_machine_nix "$TEMPLATE_DIR/machine.nix")"'
+
+# Translations: every language has the same keys and the same number of %s
+same_keys() {
+  local lang=$1 key
+  local -n table="tr_$lang"
+  [ "${#table[@]}" -eq "${#tr_en[@]}" ] || return 1
+  for key in "${!tr_en[@]}"; do
+    [ -n "${table[$key]+set}" ] || return 1
+    [ "$(grep -o "%s" <<<"${table[$key]}" | wc -l)" = "$(grep -o "%s" <<<"${tr_en[$key]}" | wc -l)" ] || return 1
+  done
+}
+for lang in de fr it; do
+  check "translation $lang complete" "same_keys $lang"
+done
+
+# Every key the installer asks for exists. Most appear as t KEY or tf KEY,
+# the rest are listed in code (step hints, summary rows, step titles).
+used_keys=$(
+  {
+    grep -ohE '\$\(tf? [a-z][a-z0-9_]*' "$installer"/*.sh | awk '{ print $2 }'
+    grep -ohE 'summary_row l_[a-z]+' "$installer"/frontend.sh | awk '{ print $2 }'
+    printf '%s\n' "${step_hints[@]}"
+    for i in $(seq 1 "$total_steps"); do echo "st$i"; done
+  } | sort -u
+)
+missing_keys=""
+for key in $used_keys; do
+  [ -n "${tr_en[$key]+set}" ] || missing_keys+=" $key"
+done
+check "every used text exists${missing_keys:+:$missing_keys}" '[ -z "$missing_keys" ]'
+
+check "language from the locale" '[ "$(ui_lang_for_locale fr_CH.UTF-8)" = fr ] && [ "$(ui_lang_for_locale en_GB.UTF-8)" = en ]'
+check "text in the chosen language" 'ui_lang=it; [ "$(t b_no)" = No ] && [ "$(t s_disk)" = Disco ]'
+check "text with a value" 'ui_lang=de; [ "$(tf d_title Strix)" = "Strix ist installiert." ]'
+ui_lang=en
+check "padding counts characters" 'LC_ALL=C.UTF-8; [ "$(pad "Verschlüsselung" 16)" = "Verschlüsselung " ]'
+check "console font has every character" 'python3 "$glyphs" "$console_font" "$installer"/*.sh'
+
+# Every language on the first screen is supported and brings a keyboard
+# the core knows
+locales_ok() {
+  local i
+  for ((i = 0; i < ${#languages[@]}; i += 2)); do
+    valid_locale "${languages[$i]}" || return 1
+    keyboard_settings "$(default_keyboard "${languages[$i]}")" >/dev/null || return 1
+  done
+}
+check "languages and their keyboards" 'locales_ok'
+keyboards_ok() {
+  local -a list
+  local i
+  mapfile -t list < <(keyboards)
+  for ((i = 0; i < ${#list[@]}; i += 2)); do
+    keyboard_settings "${list[$i]}" >/dev/null || return 1
+  done
+}
+check "every keyboard on the screen is known" 'keyboards_ok'
+check "label of a key" '[ "$(label_of fr_CH.UTF-8 "${languages[@]}")" = "Français (Suisse)" ]'
 
 # The logo: only letter, shadow and empty pixels
 check "logo characters" '! grep -q "[^#s.]" "$LOGO_FILE"'

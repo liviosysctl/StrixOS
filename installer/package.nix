@@ -1,5 +1,5 @@
 # The installer: sudo strix-install on the ISO.
-# lib.sh, ui.sh, core.sh and frontend.sh only define functions, main.sh runs them.
+# lib.sh, i18n.sh, ui.sh, core.sh and frontend.sh only define functions, main.sh runs them.
 {
   lib,
   writeShellApplication,
@@ -64,6 +64,7 @@ writeShellApplication {
 
   text = lib.concatMapStringsSep "\n" builtins.readFile [
     ./lib.sh
+    ./i18n.sh
     ./ui.sh
     ./core.sh
     ./frontend.sh

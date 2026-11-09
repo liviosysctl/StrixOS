@@ -70,7 +70,7 @@ Boot the ISO, then:
 sudo strix-install
 ```
 
-It asks for keyboard, language, time zone, name, user, password, computer name, disk, encryption and hibernation, shows a summary and only starts after you type the disk's name. The whole disk is used. The log ends up in `/var/log/strix-install.log` on the installed system.
+It asks for the language first, and every screen after that is in German, French, Italian or English. Then keyboard, time zone, name, user, password, computer name, disk, encryption and hibernation, a summary, and it only starts after you type the disk's name. The whole disk is used. The log ends up in `/var/log/strix-install.log` on the installed system.
 
 ## Development
 
