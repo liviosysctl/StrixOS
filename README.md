@@ -4,6 +4,15 @@ Strix is a NixOS-based Linux distribution for people coming from Windows. The go
 
 This is an early work in progress. Nothing here builds a usable system yet.
 
+## Branches
+
+| Branch | Content |
+|---|---|
+| `main` | The proof of concept for the school module M245: Windows bootstick app, app store, signed ISO. |
+| `personal` | The distribution as I use it myself, without the store and the beginner parts. |
+
+Changes that matter for both go into both branches. When M245 is over, `personal` becomes `main` and the proof of concept moves to its own branch.
+
 ## What is in the repository
 
 | Path | Content |
