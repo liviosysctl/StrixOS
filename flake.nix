@@ -19,10 +19,20 @@
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
 
+      mkSystem = import ./lib/mk-system.nix { inherit self nixpkgs version; };
+
       iso = self.nixosConfigurations."${branding.id}-iso";
     in
     {
-      lib = { inherit version; };
+      lib = { inherit version mkSystem; };
+
+      # Alle Distro-Module zusammen. Gedacht für lib.mkSystem.
+      nixosModules.default = {
+        imports = [
+          disko.nixosModules.disko
+          ./modules
+        ];
+      };
 
       # Distro-Module. Jedes Modul liest den Namen selbst aus branding.nix.
       nixosModules.storage = {
