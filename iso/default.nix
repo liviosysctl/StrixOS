@@ -25,6 +25,9 @@ in
     appendToMenuLabel = " Installer";
   };
 
+  # Der Installer arbeitet mit Flakes (nix eval, disko --flake, nixos-install --flake)
+  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+
   # Schweizerdeutsche Tastatur auf der Konsole. Der Installer fragt später
   # nach dem Layout, bis dahin ist das der passende Standard.
   console.keyMap = "sg";
