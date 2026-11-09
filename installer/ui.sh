@@ -6,7 +6,7 @@
 # colors, an SSH session from Windows Terminal knows 256 or true color.
 #
 # Only characters that both Linux console fonts (the kernel's default8x16 and
-# Lat2-Terminus16) contain: █ ─ ■ » · and ASCII. Anything else shows up as a
+# Lat2-Terminus16) contain: █ ▒ ─ ■ » · and ASCII. Anything else shows up as a
 # placeholder box on the console of the live system.
 
 ui_fancy=0
@@ -17,12 +17,20 @@ ui_setup() {
 
   if [[ ${COLORTERM:-} == truecolor || ${COLORTERM:-} == 24bit ]]; then
     c_red=$'\e[38;2;200;16;46m'
+    c_shadow=$'\e[38;2;84;8;20m'
+    shadow_cells="██"
     c_faint=$'\e[38;2;128;128;128m'
   elif [[ ${TERM:-} == *256color* ]]; then
     c_red=$'\e[38;5;160m'
+    c_shadow=$'\e[38;5;52m'
+    shadow_cells="██"
     c_faint=$'\e[38;5;244m'
   else
     c_red=$'\e[31m'
+    # The console has no darker red, and dim turns it grey. A shaded block
+    # in the same red reads as a shadow.
+    c_shadow=$'\e[31m'
+    shadow_cells="▒▒"
     c_faint=$'\e[2m'
     # Same red as the logo, not the bright red gum would pick for the hex value
     accent=1
@@ -81,13 +89,13 @@ repeat() {
 draw_logo() {
   local line out i
   while IFS= read -r line; do
-    out="  ${c_red}"
+    out="  "
     for ((i = 0; i < ${#line}; i++)); do
-      if [ "${line:i:1}" = "#" ]; then
-        out+="██"
-      else
-        out+="  "
-      fi
+      case ${line:i:1} in
+        "#") out+="${c_red}██" ;;
+        s) out+="${c_shadow}${shadow_cells}" ;;
+        *) out+="  " ;;
+      esac
     done
     printf '%s%s\n' "$out" "$c_reset"
   done <"$LOGO_FILE"
