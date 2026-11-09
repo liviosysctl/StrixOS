@@ -336,8 +336,18 @@ fn apply_tokens(config: &Config, theme: &Theme, variant: &Variant) -> Outcome {
 }
 
 fn apply_console(config: &Config, variant: &Variant) -> Outcome {
-    match system::set_console_palette(&config.console_device, &adapters::console_palette(variant)) {
-        Ok(()) => Outcome::Done("palette set".to_string()),
+    let device = &config.console_device;
+    match system::set_console_palette(device, &adapters::console_palette(variant)) {
+        Ok(()) => match system::redraw_console(device) {
+            Ok(true) => Outcome::Done("palette set, screen redrawn".to_string()),
+            Ok(false) => Outcome::Done(
+                "palette set (the visible console is in graphics mode, the others redraw when switched to)"
+                    .to_string(),
+            ),
+            Err(error) => Outcome::Failed(format!(
+                "palette set, but the screen could not be redrawn: {error}"
+            )),
+        },
         Err(error) if error.kind() == io::ErrorKind::NotFound => Outcome::Skipped(format!(
             "no virtual console ({} is missing)",
             config.console_device.display()

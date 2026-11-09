@@ -101,6 +101,52 @@ pub fn set_console_palette(device: &Path, palette: &[u8; 48]) -> io::Result<()> 
     Ok(())
 }
 
+// Console modes, from linux/kd.h
+const KDSETMODE: libc::c_ulong = 0x4B3A;
+const KDGETMODE: libc::c_ulong = 0x4B3B;
+const KD_TEXT: libc::c_int = 0;
+const KD_GRAPHICS: libc::c_int = 1;
+
+/// Draws the visible console again, so a new palette shows on the whole
+/// screen. On a framebuffer console the palette only applies to what is
+/// drawn after it changed; the text already on screen keeps its old colors.
+///
+/// Switching the console to graphics mode and back makes the kernel redraw
+/// everything, the same as leaving a graphical session. A console that is
+/// already in graphics mode belongs to a compositor and is left alone; the
+/// other consoles are redrawn by the kernel anyway when they are switched to.
+/// Returns whether the screen was redrawn.
+pub fn redraw_console(device: &Path) -> io::Result<bool> {
+    let file = OpenOptions::new()
+        .write(true)
+        .custom_flags(libc::O_NOCTTY)
+        .open(device)?;
+    let fd = file.as_raw_fd();
+    let mut mode: libc::c_int = -1;
+    // Safety: KDGETMODE writes one int
+    if unsafe { libc::ioctl(fd, KDGETMODE as _, &mut mode) } != 0 {
+        return Err(io::Error::last_os_error());
+    }
+    if mode != KD_TEXT {
+        return Ok(false);
+    }
+    // Safety: KDSETMODE takes the mode as its value
+    if unsafe { libc::ioctl(fd, KDSETMODE as _, KD_GRAPHICS as libc::c_ulong) } != 0 {
+        return Err(io::Error::last_os_error());
+    }
+    // Back to text in any case, a console left in graphics mode shows nothing.
+    // Safety: as above
+    if unsafe { libc::ioctl(fd, KDSETMODE as _, KD_TEXT as libc::c_ulong) } != 0 {
+        let error = io::Error::last_os_error();
+        // One more try before giving up
+        // Safety: as above
+        if unsafe { libc::ioctl(fd, KDSETMODE as _, KD_TEXT as libc::c_ulong) } != 0 {
+            return Err(error);
+        }
+    }
+    Ok(true)
+}
+
 /// Reads the palette of the virtual consoles.
 pub fn console_palette(device: &Path) -> io::Result<[u8; 48]> {
     let file = OpenOptions::new()
