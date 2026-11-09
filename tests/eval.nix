@@ -2,6 +2,7 @@
 # Run with: nix flake check
 { self, pkgs }:
 
+
 let
   inherit (pkgs) lib;
   branding = import ../branding.nix;
@@ -28,6 +29,19 @@ in
 {
   # The ISO evaluates (it is not built here)
   eval-iso = builtins.seq iso.system.build.isoImage.drvPath (ok "eval-iso");
+
+  # The installer functions, without disks, root or network
+  installer-functions =
+    pkgs.runCommand "check-installer-functions"
+      {
+        nativeBuildInputs = with pkgs; [ bash coreutils gawk gnugrep gnused jq util-linux ];
+      }
+      ''
+        bash ${./installer.sh} \
+          ${self.packages.${pkgs.stdenv.hostPlatform.system}.machine-template} \
+          ${pkgs.callPackage ../installer/logo.nix { }} \
+          ${../installer} | tee $out
+      '';
 
   # Guest tools must never end up on the installer medium
   iso-clean =

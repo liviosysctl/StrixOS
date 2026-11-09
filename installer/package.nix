@@ -17,8 +17,7 @@
   nix,
   ncurses,
   nixos-install-tools,
-  python3,
-  runCommand,
+  callPackage,
   systemd,
   util-linux,
   version,
@@ -29,10 +28,7 @@
 let
   branding = import ../branding.nix;
 
-  # The distro name in block letters, drawn once at build time
-  logo = runCommand "${branding.id}-installer-logo" { } ''
-    ${lib.getExe python3} ${./logo.py} ${lib.escapeShellArg branding.name} > $out
-  '';
+  logo = callPackage ./logo.nix { };
 in
 writeShellApplication {
   name = "${branding.id}-install";
