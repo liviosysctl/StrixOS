@@ -9,12 +9,25 @@ This is an early work in progress. Nothing here builds a usable system yet.
 | Path | Content |
 |---|---|
 | `branding.nix` | The only place the distro name appears. Everything else derives from it. |
-| `modules/storage/btrfs.nix` | Disk layout with disko: GPT, ESP, optional LUKS, btrfs with flat subvolumes, Snapper for `/home`. |
-| `modules/os-release.nix` | Name and version in `/etc/os-release`, shared by the ISO and installed systems. |
+| `lib/mk-system.nix` | `lib.mkSystem`: builds a machine from the files in `/etc/nixos`. |
+| `modules/` | The distro modules: os-release, base system, the three tools, apps from `apps.json`, disk layout. |
+| `modules/storage/btrfs.nix` | Disk layout with disko: GPT, ESP, optional LUKS, btrfs with flat subvolumes, Snapper for `/home`, hibernation. |
+| `templates/machine/` | Template for `/etc/nixos` that the installer fills in. |
+| `hosts/` | Made-up machines for CI and testing: `reference` and `vmware`. |
 | `iso/default.nix` | The installer ISO, built on the minimal NixOS installer. |
 | `installer/` | `strix-install`, for now a placeholder. |
-| `tests/eval.nix` | Checks for `nix flake check`, e.g. no VM guest tools in the ISO. |
-| `flake.nix` | Version, modules, the ISO, checks and a dev shell. |
+| `tests/` | Checks for `nix flake check`. |
+| `flake.nix` | Version, modules, machines, the ISO, checks and a dev shell. |
+
+## On an installed machine
+
+`/etc/nixos` holds `flake.nix`, `flake.lock`, `hardware.nix`, `machine.nix` and `apps.json`. Three commands work with it:
+
+| Command | Does |
+|---|---|
+| `sudo strix-rebuild [switch\|boot\|test\|build]` | Rebuilds from `/etc/nixos` |
+| `sudo strix-update` | Fetches the newest release and switches to it, keeps the old version if the build fails |
+| `sudo strix-apps add\|remove <package>`, `strix-apps list` | Installs or removes a package from nixpkgs. This is what the Store calls. |
 
 ## Planned
 
