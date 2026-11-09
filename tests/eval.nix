@@ -79,6 +79,18 @@ in
     assert has iso "kitty";
     ok "terminfo-ghostty-kitty";
 
+  # systemd tools print no emoji, also under sudo
+  no-emoji =
+    let
+      off =
+        cfg:
+        (cfg.environment.variables.SYSTEMD_EMOJI or null) == "0"
+        && lib.hasInfix ''env_keep += "SYSTEMD_EMOJI"'' cfg.security.sudo.extraConfig;
+    in
+    assert off reference.config;
+    assert off iso;
+    ok "no-emoji";
+
   # Both test machines go through mkSystem like a real installation
   eval-reference = builtins.seq reference.config.system.build.toplevel.drvPath (ok "eval-reference");
   eval-vmware = builtins.seq

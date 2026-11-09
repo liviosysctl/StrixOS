@@ -56,6 +56,12 @@ in
   # Same as on installed machines: SSH in from any common terminal works.
   environment.enableAllTerminfo = true;
 
+  # No emoji in the output of systemd tools, same as on installed machines
+  environment.variables.SYSTEMD_EMOJI = "0";
+  security.sudo.extraConfig = ''
+    Defaults env_keep += "SYSTEMD_EMOJI"
+  '';
+
   # Swiss German keyboard on the console. The installer will ask for the
   # layout later, until then this is the right default.
   console.keyMap = "sg";
