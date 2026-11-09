@@ -87,7 +87,12 @@
             modules = [ { isoImage.squashfsCompression = "zstd -Xcompression-level 3"; } ];
           }).config.system.build.isoImage;
 
-        installer = pkgs.callPackage ./installer/package.nix { inherit version; };
+        installer = pkgs.callPackage ./installer/package.nix {
+          inherit version;
+          inherit (disko.packages.${system}) disko;
+          machineTemplate = self.packages.${system}.machine-template;
+          machineLock = self.packages.${system}.machine-lock or null;
+        };
 
         # Template for /etc/nixos with the distro name filled in, for the installer
         machine-template = pkgs.runCommand "${branding.id}-machine-template" { } ''

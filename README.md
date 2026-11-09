@@ -27,7 +27,7 @@ Changes that matter for both go into both branches. When M245 is over, `personal
 | `templates/machine/` | Template for `/etc/nixos` that the installer fills in. |
 | `hosts/` | Made-up machines for CI and testing: `reference` and `vmware`. |
 | `iso/default.nix` | The installer ISO, built on the minimal NixOS installer. |
-| `installer/` | `strix-install`, for now a placeholder. |
+| `installer/` | `strix-install`: asks a few questions in the console, then partitions, encrypts and installs. `--core --answers FILE` installs without asking. |
 | `tests/` | Checks for `nix flake check`. |
 | `flake.nix` | Version, modules, machines, the ISO, checks and a dev shell. |
 
@@ -59,6 +59,18 @@ ls -lh result/iso/
 ```
 
 The ISO boots on UEFI with Secure Boot off. Write it to a USB stick as a raw image, not by copying files onto a FAT32 stick.
+
+Commit and push before building a release ISO. Only an ISO from a clean tree with a `flake.lock` pins the installed system to its own commit; from a dirty tree the installer locks during the install and needs the network for it.
+
+## Installing
+
+Boot the ISO, then:
+
+```sh
+sudo strix-install
+```
+
+It asks for keyboard, language, time zone, name, user, password, computer name, disk, encryption and hibernation, shows a summary and only starts after you type the disk's name. The whole disk is used. The log ends up in `/var/log/strix-install.log` on the installed system.
 
 ## Development
 
