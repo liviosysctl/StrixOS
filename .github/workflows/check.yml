@@ -1,6 +1,10 @@
-# Runs the fast checks (L0) on every push and pull request: every machine,
-# the ISO and the installer functions evaluate, plus the assertions in
-# tests/eval.nix. Nothing big is built, so this takes a few minutes.
+# On every push and pull request: the fast checks (L0). Every machine, the ISO
+# and the installer functions evaluate, plus the assertions in tests/eval.nix.
+#
+# On every push to main, once the checks pass: build the ISO (iso-dev, the
+# faster compression) and attach it to the run as a download. Find it under
+# Actions, the run, "Artifacts". The ISO comes from a clean checkout with
+# flake.lock, so machines installed from it are pinned to that commit.
 name: Check
 
 on:
@@ -30,3 +34,50 @@ jobs:
 
       - name: nix flake check
         run: nix flake check -L --show-trace
+
+  iso:
+    needs: flake
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      # The runner has about 14 GB free, the ISO build needs more. Removing
+      # these toolchains takes seconds and frees about 30 GB.
+      - uses: jlumbroso/free-disk-space@v2
+        with:
+          android: true
+          dotnet: true
+          haskell: true
+          docker-images: true
+          large-packages: false
+
+      - uses: actions/checkout@v7
+
+      - uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Build the ISO
+        run: nix build .#iso-dev -L
+
+      - name: Name the file after the commit
+        id: name
+        run: |
+          src=$(ls result/iso/*.iso)
+          base=$(basename "$src" .iso)
+          name="$base-${GITHUB_SHA::7}"
+          mkdir out
+          cp "$src" "out/$name.iso"
+          (cd out && sha256sum "$name.iso" > "$name.iso.sha256")
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          ls -lh out
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.name.outputs.name }}
+          path: out/
+          retention-days: 14
+          # The ISO is already compressed
+          compression-level: 0
+          if-no-files-found: error
