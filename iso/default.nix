@@ -57,6 +57,12 @@ in
   # layout later, until then this is the right default.
   console.keyMap = "sg";
 
+  # The installer speaks German, French and Italian. Lat2-Terminus16, the
+  # default, has no ê, û, ì, ò or ù, Terminus in the same size has them all
+  # plus the block characters of the logo.
+  console.packages = [ pkgs.terminus_font ];
+  console.font = "ter-v16n";
+
   # Show the distro version in the boot menu instead of the nixpkgs version
   system.nixos.label = version;
 
