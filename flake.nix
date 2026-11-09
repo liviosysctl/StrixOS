@@ -15,6 +15,14 @@
       # The only place with the version number. bump_version.py replaces exactly this line.
       version = "0.1.0";
 
+      # Where installed machines get updates from. The branch differs between
+      # main (school proof of concept) and personal.
+      upstream = {
+        owner = "liviosysctl";
+        repo = "strixos";
+        ref = "main";
+      };
+
       branding = import ./branding.nix;
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
@@ -82,6 +90,8 @@
           cp -r ${./templates/machine} $out
           chmod -R u+w $out
           substituteInPlace $out/flake.nix $out/machine.nix --replace-fail @distroId@ ${branding.id}
+          substituteInPlace $out/flake.nix \
+            --replace-fail @distroUrl@ github:${upstream.owner}/${upstream.repo}/${upstream.ref}
         '';
 
         default = self.packages.${system}.iso;
