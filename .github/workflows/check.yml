@@ -1,0 +1,32 @@
+# Runs the fast checks (L0) on every push and pull request: every machine,
+# the ISO and the installer functions evaluate, plus the assertions in
+# tests/eval.nix. Nothing big is built, so this takes a few minutes.
+name: Check
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+# A newer push to the same branch makes the older run pointless
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  flake:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: nix flake check
+        run: nix flake check -L --show-trace
