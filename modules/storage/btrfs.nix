@@ -65,6 +65,9 @@ let
       {
         type = "luks";
         name = "cryptsystem";
+        # Only read while formatting. The installer writes the passphrase here
+        # and removes the file right after. At boot, systemd-cryptsetup asks.
+        passwordFile = "/tmp/${branding.id}-luks.key";
         settings.allowDiscards = true;
         content = btrfsFilesystem;
       }
