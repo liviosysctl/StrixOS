@@ -1,0 +1,96 @@
+# Startbildschirm. Wird aus theme.script erzeugt, Farben setzt render.py ein.
+# Aufbau wie die Strix-Unterlagen: alles linksbündig, Wortmarke, darunter
+# eine dünne rote Linie. Die Linie füllt sich mit dem Startfortschritt.
+
+Window.SetBackgroundTopColor(@BG_R@, @BG_G@, @BG_B@);
+Window.SetBackgroundBottomColor(@BG_R@, @BG_G@, @BG_B@);
+
+screen_w = Window.GetWidth();
+screen_h = Window.GetHeight();
+unit = screen_h / 100;
+left = Math.Int(screen_w * 0.12);
+
+text_size = Math.Int(Math.Max(14, unit * 2.2));
+font = "Inter " + text_size;
+
+# Wortmarke
+wordmark_image = Image("wordmark.png");
+wordmark_h = Math.Int(unit * 9);
+wordmark_w = Math.Int(wordmark_image.GetWidth() * wordmark_h / wordmark_image.GetHeight());
+wordmark_sprite = Sprite(wordmark_image.Scale(wordmark_w, wordmark_h));
+wordmark_y = Math.Int(screen_h * 0.42 - wordmark_h);
+wordmark_sprite.SetPosition(left, wordmark_y, 10);
+
+# Rote Linie: schwache Spur, darüber der Fortschritt
+accent = Image("accent.png");
+line_w = Math.Int(Math.Max(wordmark_w, screen_w * 0.22));
+line_h = Math.Int(Math.Max(2, unit * 0.35));
+line_y = wordmark_y + wordmark_h + Math.Int(unit * 2.5);
+
+track_sprite = Sprite(accent.Scale(line_w, line_h));
+track_sprite.SetPosition(left, line_y, 10);
+track_sprite.SetOpacity(0.25);
+
+progress_sprite = Sprite();
+progress_sprite.SetPosition(left, line_y, 11);
+progress_w = 0;
+
+fun progress_callback(duration, progress) {
+  w = Math.Int(line_w * progress);
+  if (w < 1) {
+    w = 1;
+  }
+  if (w != global.progress_w) {
+    global.progress_w = w;
+    progress_sprite.SetImage(accent.Scale(w, line_h));
+  }
+}
+Plymouth.SetBootProgressFunction(progress_callback);
+
+# Passphrase: Beschriftung, Punkte, rote Linie als Feld
+prompt_y = line_y + Math.Int(unit * 6);
+
+label_sprite = Sprite();
+label_sprite.SetPosition(left, prompt_y, 10);
+
+bullets_sprite = Sprite();
+bullets_sprite.SetPosition(left, prompt_y + Math.Int(text_size * 2), 10);
+
+field_sprite = Sprite(accent.Scale(line_w, Math.Max(1, Math.Int(line_h / 2))));
+field_sprite.SetPosition(left, prompt_y + Math.Int(text_size * 4), 10);
+field_sprite.SetOpacity(0);
+
+fun password_callback(prompt, bullets) {
+  label_sprite.SetImage(Image.Text("Passphrase", @FG_R@, @FG_G@, @FG_B@, 0.7, font));
+  label_sprite.SetOpacity(1);
+
+  # Ohne Punkte ein Leerzeichen, damit Image.Text ein Bild liefert
+  dots = "";
+  for (i = 0; i < bullets; i++) {
+    dots = dots + "•";
+  }
+  if (bullets == 0) {
+    dots = " ";
+  }
+  bullets_sprite.SetImage(Image.Text(dots, @FG_R@, @FG_G@, @FG_B@, 1, font));
+  bullets_sprite.SetOpacity(1);
+
+  field_sprite.SetOpacity(1);
+}
+Plymouth.SetDisplayPasswordFunction(password_callback);
+
+fun normal_callback() {
+  label_sprite.SetOpacity(0);
+  bullets_sprite.SetOpacity(0);
+  field_sprite.SetOpacity(0);
+}
+Plymouth.SetDisplayNormalFunction(normal_callback);
+
+# Meldungen (z. B. falsche Passphrase) unten links, dezent
+message_sprite = Sprite();
+message_sprite.SetPosition(left, Math.Int(screen_h * 0.88), 10);
+
+fun message_callback(text) {
+  message_sprite.SetImage(Image.Text(text, @FG_R@, @FG_G@, @FG_B@, 0.6, font));
+}
+Plymouth.SetMessageFunction(message_callback);

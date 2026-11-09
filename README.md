@@ -21,6 +21,9 @@ Changes that matter for both go into both branches. When M245 is over, `personal
 | `lib/mk-system.nix` | `lib.mkSystem`: builds a machine from the files in `/etc/nixos`. |
 | `modules/` | The distro modules: os-release, base system, the three tools, apps from `apps.json`, disk layout. |
 | `modules/storage/btrfs.nix` | Disk layout with disko: GPT, ESP, optional LUKS, btrfs with flat subvolumes, Snapper for `/home`, hibernation. |
+| `modules/boot-splash.nix` | Graphical boot with Plymouth: wordmark, progress line, a styled passphrase field. |
+| `packages/plymouth-theme/` | Builds the Plymouth theme from theme data. |
+| `themes/` | Theme data. For now only the neutral base theme in black and red. |
 | `templates/machine/` | Template for `/etc/nixos` that the installer fills in. |
 | `hosts/` | Made-up machines for CI and testing: `reference` and `vmware`. |
 | `iso/default.nix` | The installer ISO, built on the minimal NixOS installer. |

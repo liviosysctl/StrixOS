@@ -5,6 +5,7 @@
   imports = [
     ./os-release.nix
     ./base.nix
+    ./boot-splash.nix
     ./tools.nix
     ./apps.nix
     ./storage/btrfs.nix
