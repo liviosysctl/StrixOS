@@ -1,6 +1,8 @@
 # Boot splash. Generated from theme.script, render.py fills in the colors.
 # Same layout as the Strix documents: everything left-aligned, the wordmark,
-# a thin red line below it. The line fills up with the boot progress.
+# a thin red line below it. A short red segment runs along the line while
+# the system boots. It is an activity indicator, not a progress bar: Plymouth
+# can only guess how long a boot takes, and the guess was visibly wrong.
 
 Window.SetBackgroundTopColor(@BG_R@, @BG_G@, @BG_B@);
 Window.SetBackgroundBottomColor(@BG_R@, @BG_G@, @BG_B@);
@@ -21,7 +23,7 @@ wordmark_sprite = Sprite(wordmark_image.Scale(wordmark_w, wordmark_h));
 wordmark_y = Math.Int(screen_h * 0.42 - wordmark_h);
 wordmark_sprite.SetPosition(left, wordmark_y, 10);
 
-# Red line: a faint track with the progress on top
+# Red line: a faint track with a moving segment on top
 accent = Image("accent.png");
 line_w = Math.Int(Math.Max(wordmark_w, screen_w * 0.22));
 line_h = Math.Int(Math.Max(2, unit * 0.35));
@@ -31,21 +33,38 @@ track_sprite = Sprite(accent.Scale(line_w, line_h));
 track_sprite.SetPosition(left, line_y, 10);
 track_sprite.SetOpacity(0.25);
 
-progress_sprite = Sprite();
-progress_sprite.SetPosition(left, line_y, 11);
-progress_w = 0;
+segment_w = Math.Int(line_w * 0.25);
+segment_sprite = Sprite();
+segment_sprite.SetPosition(left, line_y, 11);
 
-fun progress_callback(duration, progress) {
-  w = Math.Int(line_w * progress);
-  if (w < 1) {
-    w = 1;
+# One pass along the line takes about 1.6 s at Plymouth's 50 refreshes per second
+segment_step = (line_w + segment_w) / 80;
+segment_pos = 0 - segment_w;
+waiting_for_passphrase = 0;
+
+fun refresh_callback() {
+  if (global.waiting_for_passphrase) {
+    segment_sprite.SetOpacity(0);
+    return;
   }
-  if (w != global.progress_w) {
-    global.progress_w = w;
-    progress_sprite.SetImage(accent.Scale(w, line_h));
+
+  global.segment_pos = global.segment_pos + segment_step;
+  if (global.segment_pos > line_w) {
+    global.segment_pos = 0 - segment_w;
   }
+
+  # Only draw the part of the segment that lies on the line
+  start = Math.Max(0, global.segment_pos);
+  end = Math.Min(line_w, global.segment_pos + segment_w);
+  if (end - start < 1) {
+    segment_sprite.SetOpacity(0);
+    return;
+  }
+  segment_sprite.SetImage(accent.Scale(Math.Int(end - start), line_h));
+  segment_sprite.SetX(left + Math.Int(start));
+  segment_sprite.SetOpacity(1);
 }
-Plymouth.SetBootProgressFunction(progress_callback);
+Plymouth.SetRefreshFunction(refresh_callback);
 
 # Passphrase: label, bullets, a red line as the field
 prompt_y = line_y + Math.Int(unit * 6);
@@ -61,6 +80,8 @@ field_sprite.SetPosition(left, prompt_y + Math.Int(text_size * 4), 10);
 field_sprite.SetOpacity(0);
 
 fun password_callback(prompt, bullets) {
+  global.waiting_for_passphrase = 1;
+
   label_sprite.SetImage(Image.Text("Passphrase", @FG_R@, @FG_G@, @FG_B@, 0.7, font));
   label_sprite.SetOpacity(1);
 
@@ -80,6 +101,8 @@ fun password_callback(prompt, bullets) {
 Plymouth.SetDisplayPasswordFunction(password_callback);
 
 fun normal_callback() {
+  global.waiting_for_passphrase = 0;
+
   label_sprite.SetOpacity(0);
   bullets_sprite.SetOpacity(0);
   field_sprite.SetOpacity(0);
