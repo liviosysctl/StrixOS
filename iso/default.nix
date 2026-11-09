@@ -1,9 +1,11 @@
 # Installer medium. Built on the minimal NixOS installer:
 # console with autologin, NetworkManager (nmtui), drivers for every disk controller.
-{ lib, pkgs, modulesPath, version, ... }:
+{ lib, pkgs, modulesPath, distroFlake, version, ... }:
 
 let
   branding = import ../branding.nix;
+  system = pkgs.stdenv.hostPlatform.system;
+  reference = distroFlake.nixosConfigurations."${branding.id}-reference";
 in
 {
   imports = [
@@ -23,6 +25,29 @@ in
 
     # Boot menu: "Strix 0.1.0 Installer"
     appendToMenuLabel = " Installer";
+
+    # Put the installed system and the flake sources into the store up front.
+    # nixos-install copies whatever already exists in the live store instead of
+    # downloading it, so a real installation only builds a few small parts.
+    storeContents = [
+      reference.config.system.build.toplevel
+      # sgdisk, cryptsetup, mkfs.btrfs and friends for formatting
+      reference.config.system.build.diskoScript
+      distroFlake.outPath
+    ]
+    ++ map (input: input.outPath) (lib.attrValues distroFlake.inputs);
+  };
+
+  # The live system keeps everything Nix downloads in a RAM disk. By default it
+  # gets half the RAM, which ran out during a 4 GB test install. The file
+  # system comes from installation-cd-base.nix with mkImageMediaOverride on
+  # all of fileSystems, so it is resized at boot instead of redefined.
+  systemd.services."${branding.id}-grow-store" = {
+    description = "Give the live Nix store 85 % of the memory";
+    wantedBy = [ "multi-user.target" ];
+    path = [ pkgs.util-linux ];
+    script = "mount -o remount,size=85% /nix/.rw-store";
+    serviceConfig.Type = "oneshot";
   };
 
   # The installer works with flakes (nix eval, disko --flake, nixos-install --flake)
@@ -36,7 +61,8 @@ in
   system.nixos.label = version;
 
   environment.systemPackages = [
-    (pkgs.callPackage ../installer/package.nix { inherit version; })
+    distroFlake.packages.${system}.installer
+    distroFlake.inputs.disko.packages.${system}.disko
   ];
 
   # Hint on the console after autologin

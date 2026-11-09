@@ -53,7 +53,10 @@
       nixosConfigurations = {
         # Installer medium
         "${branding.id}-iso" = nixpkgs.lib.nixosSystem {
-          specialArgs = { inherit version; };
+          specialArgs = {
+            distroFlake = self;
+            inherit version;
+          };
           modules = [
             ./iso
             { nixpkgs.hostPlatform = system; }
