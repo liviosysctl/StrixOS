@@ -84,8 +84,13 @@ on_core_exit() {
   fi
 }
 
+# One value from the answers file as text. Not jq -e: that fails on the
+# value false, which is a normal answer here (encryption or hibernation off).
 answer() {
-  jq -er "$1" "$answers_file"
+  local value
+  value=$(jq -r "$1 | if . == null then \"\" else tostring end" "$answers_file")
+  [ -n "$value" ] || die "The answers file has no value for $1"
+  printf '%s' "$value"
 }
 
 # Fills the placeholders of the machine.nix template
@@ -192,6 +197,10 @@ write_config() {
 install_from_answers() {
   local hardware_nix=$1 unmount=$2 stage="$work_dir/etc-nixos"
   trap on_core_exit EXIT
+  # Any command that fails without a message of its own still leaves a line
+  # in the log saying which one it was
+  set -o errtrace
+  trap 'printf "Failed (exit %s): %s\n" "$?" "$BASH_COMMAND" >>"$log_file"' ERR
 
   [ "$ui_fancy" -eq 1 ] || : >"$log_file"
   step 1
