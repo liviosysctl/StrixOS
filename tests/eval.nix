@@ -115,6 +115,18 @@ in
     assert cfg.systemd.services."${branding.id}-theme".environment ? EFI_VARIABLE;
     ok "theme-splash";
 
+  # Tab completion of the theme command in bash, zsh and fish, and bash finds it
+  theme-completion =
+    assert lib.elem "/share/bash-completion" reference.config.environment.pathsToLink;
+    pkgs.runCommand "check-theme-completion"
+      {
+        nativeBuildInputs = with pkgs; [ bash coreutils zsh fish ];
+      }
+      ''
+        export HOME=$TMPDIR
+        bash ${./completion.sh} ${reference.config.${branding.id}.theme.package} ${branding.id}-theme | tee $out
+      '';
+
   # Another default theme changes the splash, its default variant is used
   theme-default =
     let

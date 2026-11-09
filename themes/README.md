@@ -20,7 +20,9 @@ sudo strix-theme set chamber:dark
 strix-theme status               # whether every part shows the current theme
 ```
 
-The command carries the distro's id (`strix-theme`). `set` works at once, without a rebuild:
+The command carries the distro's id (`strix-theme`). Tab completes the commands and, after `set` and `show`, every theme and variant, also behind `sudo`. bash does it out of the box, zsh and fish once they are enabled (`programs.zsh.enable`, `programs.fish.enable`). `strix-theme list --names` prints the same list for scripts.
+
+`set` works at once, without a rebuild:
 
 | Part | When |
 |---|---|

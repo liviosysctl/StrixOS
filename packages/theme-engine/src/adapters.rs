@@ -134,6 +134,25 @@ pub fn plymouth_conf(conf: &str, theme: &str) -> String {
     out.join("\n") + "\n"
 }
 
+/// Everything `set` takes, for shell completion: per theme first the theme
+/// alone (its default variant), then each variant, as "<name>\t<description>".
+/// Shells show the description next to the name.
+pub fn names(themes: &[Theme]) -> Vec<String> {
+    let mut lines = Vec::new();
+    for theme in themes {
+        let default = &theme.variants[&theme.default_variant];
+        lines.push(format!("{}\t{} ({})", theme.id, theme.name, default.name));
+        for variant_id in theme.variant_ids() {
+            let variant = &theme.variants[variant_id];
+            lines.push(format!(
+                "{}:{}\t{} · {}",
+                theme.id, variant.id, theme.name, variant.name
+            ));
+        }
+    }
+    lines
+}
+
 /// Human-readable list of the palette, for `show`.
 pub fn palette_lines(variant: &Variant) -> Vec<String> {
     PALETTE_NAMES
@@ -237,6 +256,15 @@ mod tests {
         assert_eq!(
             plymouth_conf("[Other]\nTheme=x\n", "c"),
             "[Other]\nTheme=x\n[Daemon]\nTheme=c\n"
+        );
+    }
+
+    #[test]
+    fn names_for_completion() {
+        let theme = good();
+        assert_eq!(
+            names(&[theme]),
+            vec!["test\tTest (Dark)", "test:dark\tTest · Dark"]
         );
     }
 

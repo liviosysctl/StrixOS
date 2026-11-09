@@ -19,6 +19,8 @@ const USAGE: &str = "\
 Usage: {name} <command>
 
   list                    Themes and their variants, the current one marked
+  list --names            Everything `set` takes, one per line with a tab and a
+                          description, for shell completion
   current                 The current theme, as <theme>:<variant>
   show [THEME]            Colors of a theme as JSON (default: the current one)
   status                  Whether every part of the system shows the current theme
@@ -145,6 +147,7 @@ fn main() -> ExitCode {
 
     let result = match rest.as_slice() {
         ["list"] => list(&config),
+        ["list", "--names"] => list_names(&config),
         ["current"] => print_current(&config),
         ["show"] => show(&config, None),
         ["show", selection] => show(&config, Some(selection)),
@@ -207,6 +210,14 @@ fn list(config: &Config) -> Result<bool, String> {
     }
     for (id, _) in &catalog.broken {
         println!("  {id:<24} has errors, run the check to see them");
+    }
+    Ok(true)
+}
+
+fn list_names(config: &Config) -> Result<bool, String> {
+    let catalog = config.catalog()?;
+    for line in adapters::names(&catalog.themes) {
+        println!("{line}");
     }
     Ok(true)
 }

@@ -50,16 +50,26 @@ let
     EFI_VARIABLE = efiVariable;
   };
 
-  # The command for people, with the settings of this system
+  # The command for people, with the settings of this system and tab
+  # completion for bash, zsh and fish
   command =
-    pkgs.runCommand "${branding.id}-theme"
+    let
+      name = "${branding.id}-theme";
+      completions = ../packages/theme-engine/completions;
+      fill = ''--subst-var-by command ${name} --subst-var-by function ${lib.replaceStrings [ "-" ] [ "_" ] name}'';
+    in
+    pkgs.runCommand name
       {
         nativeBuildInputs = [ pkgs.makeBinaryWrapper ];
-        meta.mainProgram = "${branding.id}-theme";
+        meta.mainProgram = name;
       }
       ''
-        makeBinaryWrapper ${exe} $out/bin/${branding.id}-theme \
-          ${lib.concatStringsSep " " (lib.mapAttrsToList (name: value: "--set ${name} ${lib.escapeShellArg value}") env)}
+        makeBinaryWrapper ${exe} $out/bin/${name} \
+          ${lib.concatStringsSep " " (lib.mapAttrsToList (n: value: "--set ${n} ${lib.escapeShellArg value}") env)}
+        mkdir -p $out/share/bash-completion/completions $out/share/zsh/site-functions $out/share/fish/vendor_completions.d
+        substitute ${completions}/theme.bash $out/share/bash-completion/completions/${name} ${fill}
+        substitute ${completions}/theme.zsh $out/share/zsh/site-functions/_${name} ${fill}
+        substitute ${completions}/theme.fish $out/share/fish/vendor_completions.d/${name}.fish ${fill}
       '';
 
   # Every variant's Plymouth theme for the initrd. NixOS only copies the one
