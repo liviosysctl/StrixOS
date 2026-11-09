@@ -27,7 +27,7 @@ log() {
 die() {
   printf 'Error: %s\n' "$*" >>"$log_file"
   if [ "${ui_fancy:-0}" -eq 1 ]; then
-    printf '\n  %s%s%s\n\n' "$c_red" "$*" "$c_reset" >&2
+    printf '\n  %s%s%s\n\n' "$c_accent" "$*" "$c_reset" >&2
   else
     printf 'Error: %s\n' "$*" >&2
   fi

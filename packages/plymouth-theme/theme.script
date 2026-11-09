@@ -1,7 +1,7 @@
-# Boot splash. Generated from theme.script, render.py fills in the colors.
-# Same layout as the Strix documents: everything left-aligned, the wordmark,
-# a thin red line below it. A short red segment runs along the line while
-# the system boots. It is an activity indicator, not a progress bar: Plymouth
+# Boot splash. Generated from theme.script, render.py fills in the colors of
+# the theme variant. Same layout as the project documents: everything
+# left-aligned, the wordmark, a thin line in the accent color below it. A
+# short segment runs along the line while the system boots. It is an activity indicator, not a progress bar: Plymouth
 # can only guess how long a boot takes, and the guess was visibly wrong.
 
 Window.SetBackgroundTopColor(@BG_R@, @BG_G@, @BG_B@);
@@ -23,7 +23,7 @@ wordmark_sprite = Sprite(wordmark_image.Scale(wordmark_w, wordmark_h));
 wordmark_y = Math.Int(screen_h * 0.42 - wordmark_h);
 wordmark_sprite.SetPosition(left, wordmark_y, 10);
 
-# Red line: a faint track with a moving segment on top
+# Accent line: a faint track with a moving segment on top
 accent = Image("accent.png");
 line_w = Math.Int(Math.Max(wordmark_w, screen_w * 0.22));
 line_h = Math.Int(Math.Max(2, unit * 0.35));
@@ -66,7 +66,7 @@ fun refresh_callback() {
 }
 Plymouth.SetRefreshFunction(refresh_callback);
 
-# Passphrase: label, bullets, a red line as the field
+# Passphrase: label, bullets, a line in the accent color as the field
 prompt_y = line_y + Math.Int(unit * 6);
 
 label_sprite = Sprite();

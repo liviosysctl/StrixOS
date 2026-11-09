@@ -91,6 +91,56 @@ in
     assert off iso;
     ok "no-emoji";
 
+  # Every theme in themes/ passes the engine's check, and the engine's own
+  # tests pass (they run while it is built)
+  themes = (import ../lib/themes.nix { inherit pkgs; }).dir;
+
+  # The splash follows the theme: one Plymouth theme per variant, the default
+  # one set, the initrd unit that picks the stored one, /etc pointing at /run
+  theme-splash =
+    let
+      cfg = reference.config;
+      names = map (p: p.name) cfg.boot.plymouth.themePackages;
+      unit = "${branding.id}-theme-boot";
+    in
+    assert cfg.boot.plymouth.theme == "${branding.id}-neutral-dark";
+    assert lib.all (name: lib.elem name names) [
+      "${branding.id}-neutral-dark"
+      "${branding.id}-chamber-light"
+      "${branding.id}-chamber-dark"
+    ];
+    assert cfg.boot.initrd.systemd.services ? ${unit};
+    assert lib.elem "plymouth-start.service" cfg.boot.initrd.systemd.services.${unit}.before;
+    assert cfg.environment.etc."plymouth/plymouthd.conf".source == "/run/${branding.id}/theme/plymouthd.conf";
+    assert cfg.systemd.services."${branding.id}-theme".environment ? EFI_VARIABLE;
+    ok "theme-splash";
+
+  # Another default theme changes the splash, its default variant is used
+  theme-default =
+    let
+      with' = default: (reference.extendModules { modules = [ { ${branding.id}.theme.default = default; } ]; }).config;
+    in
+    assert (with' "chamber").boot.plymouth.theme == "${branding.id}-chamber-light";
+    assert (with' "chamber:dark").boot.plymouth.theme == "${branding.id}-chamber-dark";
+    ok "theme-default";
+
+  # A default theme that does not exist stops the build
+  theme-default-unknown = mustFail "theme-default-unknown" (toplevelWith { ${branding.id}.theme.default = "nope"; });
+  theme-default-unknown-variant = mustFail "theme-default-unknown-variant" (
+    toplevelWith { ${branding.id}.theme.default = "chamber:dusk"; }
+  );
+
+  # The ISO: console colors and the command, but no splash and so no EFI variable
+  theme-iso =
+    let
+      service = iso.systemd.services."${branding.id}-theme";
+    in
+    assert service.wantedBy == [ "multi-user.target" ];
+    assert !(service.environment ? EFI_VARIABLE);
+    assert !(iso.boot.initrd.systemd.services ? "${branding.id}-theme-boot");
+    assert lib.elem iso.${branding.id}.theme.package iso.environment.systemPackages;
+    ok "theme-iso";
+
   # Both test machines go through mkSystem like a real installation
   eval-reference = builtins.seq reference.config.system.build.toplevel.drvPath (ok "eval-reference");
   eval-vmware = builtins.seq

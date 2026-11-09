@@ -23,6 +23,8 @@
   version,
   machineTemplate,
   machineLock ? null,
+  # Colors of the default theme, from lib/themes.nix
+  themeFile,
 }:
 
 let
@@ -60,6 +62,7 @@ writeShellApplication {
     TEMPLATE_DIR = machineTemplate;
     LOGO_FILE = logo;
     MACHINE_LOCK = if machineLock == null then "" else machineLock;
+    THEME_FILE = themeFile;
   };
 
   text = lib.concatMapStringsSep "\n" builtins.readFile [

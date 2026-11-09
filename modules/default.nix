@@ -6,6 +6,7 @@
     ./os-release.nix
     ./base.nix
     ./boot-splash.nix
+    ./theme.nix
     ./tools.nix
     ./apps.nix
     ./storage/btrfs.nix

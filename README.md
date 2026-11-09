@@ -22,8 +22,11 @@ Changes that matter for both go into both branches. When M245 is over, `personal
 | `modules/` | The distro modules: os-release, base system, the three tools, apps from `apps.json`, disk layout. |
 | `modules/storage/btrfs.nix` | Disk layout with disko: GPT, ESP, optional LUKS, btrfs with flat subvolumes, Snapper for `/home`, hibernation. |
 | `modules/boot-splash.nix` | Graphical boot with Plymouth: wordmark, progress line, a styled passphrase field. |
-| `packages/plymouth-theme/` | Builds the Plymouth theme from theme data. |
-| `themes/` | Theme data. For now only the neutral base theme in black and red. |
+| `modules/theme.nix` | The theme engine on the system: the `strix-theme` command, the service that applies the theme at boot, the boot splash that follows it. |
+| `themes/` | The themes, one folder with a `theme.toml` each: `neutral` (black and red) and `chamber` (Chamber UI, light and dark). [themes/README.md](themes/README.md) describes the format. |
+| `packages/theme-engine/` | The theme engine in Rust: reads and checks themes, switches them at runtime. |
+| `lib/themes.nix` | Themes at build time: the checked themes folder, a Plymouth theme per variant, the installer's colors. |
+| `packages/plymouth-theme/` | Builds the Plymouth theme of one theme variant. |
 | `templates/machine/` | Template for `/etc/nixos` that the installer fills in. |
 | `hosts/` | Made-up machines for CI and testing: `reference` and `vmware`. |
 | `iso/default.nix` | The installer ISO, built on the minimal NixOS installer. |
@@ -33,20 +36,21 @@ Changes that matter for both go into both branches. When M245 is over, `personal
 
 ## On an installed machine
 
-`/etc/nixos` holds `flake.nix`, `flake.lock`, `hardware.nix`, `machine.nix` and `apps.json`. Three commands work with it:
+`/etc/nixos` holds `flake.nix`, `flake.lock`, `hardware.nix`, `machine.nix` and `apps.json`. These commands work with it:
 
 | Command | Does |
 |---|---|
 | `sudo strix-rebuild [switch\|boot\|test\|build]` | Rebuilds from `/etc/nixos` |
 | `sudo strix-update` | Fetches the newest release and switches to it, keeps the old version if the build fails |
 | `sudo strix-apps add\|remove <package>`, `strix-apps list` | Installs or removes a package from nixpkgs. This is what the Store calls. |
+| `sudo strix-theme set <theme>`, `strix-theme list` | Switches the theme without a rebuild, see [themes/README.md](themes/README.md). |
 
 SSH is on: `ssh <user>@<address>` with the user's password. Root cannot log in. To turn it off, add `services.openssh.enable = false;` to `machine.nix` and rebuild.
 
 ## Planned
 
 - Strix base system with Hyprland and Quickshell
-- Theme engine: switch themes at runtime without a rebuild
+- Theme engine for the desktop: Quickshell, Ghostty, GTK and Qt follow the theme (the engine, the console, the boot splash and `tokens.json` are done)
 - Store: install packages from nixpkgs with one click
 - Bootstick app for Windows (separate repository)
 
@@ -82,4 +86,10 @@ SSH already runs on the live system. To install over SSH, set a password with `p
 nix develop
 ```
 
-The dev shell activates the commit hook. Commit and release rules are in [CONTRIBUTING.md](CONTRIBUTING.md).
+The dev shell activates the commit hook and has the Rust tools for the theme engine. Commit and release rules are in [CONTRIBUTING.md](CONTRIBUTING.md).
+
+```sh
+nix flake check                                       # fast checks, also run by CI on every push
+(cd packages/theme-engine && cargo test && cargo clippy --all-targets -- -D warnings)
+nix build .#tests.theme -L                            # the theme engine in a VM, needs KVM
+```

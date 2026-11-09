@@ -1,8 +1,9 @@
 """Generate a Plymouth theme from theme data.
 
-Usage: render.py <out> <id> <name> <font> <background> <foreground> <accent> <script.in>
+Usage: render.py <out> <theme-name> <wordmark> <font> <background> <foreground> <accent> <script.in>
 Writes the wordmark as PNG (Inter ExtraBold), a 1x1 accent color and
-the finished script with the colors filled in.
+the finished script with the colors filled in. The colors come from the
+theme engine (render plymouth), as rrggbb.
 """
 
 import sys

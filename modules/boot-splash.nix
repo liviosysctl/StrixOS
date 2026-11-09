@@ -1,8 +1,8 @@
-# Graphical boot with Plymouth: wordmark, a red progress line and a styled
+# Graphical boot with Plymouth: wordmark, an activity line and a styled
 # field for the LUKS passphrase instead of lines of text.
 #
-# Plymouth runs in the initrd. A new theme therefore only takes effect after
-# a rebuild with "boot" and a reboot, not right away.
+# The look comes from the theme: modules/theme.nix builds a Plymouth theme
+# per theme variant and picks the one of the selected theme at every boot.
 # Pressing Esc during boot shows the text messages behind it.
 { config, lib, pkgs, ... }:
 
@@ -17,20 +17,11 @@ in
       default = true;
       description = "Graphical boot splash with Plymouth and a quiet boot without text messages.";
     };
-
-    theme = lib.mkOption {
-      type = lib.types.attrs;
-      default = import ../themes/strix.nix;
-      defaultText = lib.literalExpression "import ./themes/strix.nix";
-      description = "Theme data the Plymouth theme is generated from.";
-    };
   };
 
   config = lib.mkIf cfg.enable {
     boot.plymouth = {
       enable = true;
-      theme = branding.id;
-      themePackages = [ (pkgs.callPackage ../packages/plymouth-theme { } { inherit (cfg) theme; }) ];
       # One font file for all text in the initrd
       font = "${pkgs.inter}/share/fonts/truetype/InterVariable.ttf";
     };

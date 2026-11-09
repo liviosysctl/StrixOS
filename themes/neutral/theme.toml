@@ -1,0 +1,45 @@
+# Neutral: plain black and red, no theme. The look of the installer, the boot
+# splash and the documents.
+format = 1
+name = "Neutral"
+description = "Plain black and red."
+default-variant = "dark"
+
+[variants.dark]
+name = "Dark"
+appearance = "dark"
+
+[variants.dark.colors]
+background = "#000000"
+surface = "#111111"
+border = "#2a2a2a"
+text = "#ffffff"
+text-muted = "#808080"
+accent = "#c8102e"
+on-accent = "#ffffff"
+focus = "#c8102e"
+error = "#ff5c6a"
+warning = "#f2c230"
+
+# The console shows the installer in these colors, so red is the accent.
+[variants.dark.terminal]
+background = "#000000"
+foreground = "#ffffff"
+cursor = "#c8102e"
+selection = "#3a3a3a"
+black = "#000000"
+red = "#c8102e"
+green = "#3fa34d"
+yellow = "#e0b000"
+blue = "#3b82f6"
+magenta = "#b0408a"
+cyan = "#2aa198"
+white = "#c8c8c8"
+bright-black = "#6b6b6b"
+bright-red = "#ff4d5e"
+bright-green = "#6fd17a"
+bright-yellow = "#ffd24a"
+bright-blue = "#7aa7ff"
+bright-magenta = "#e07ac0"
+bright-cyan = "#5fd7d0"
+bright-white = "#ffffff"

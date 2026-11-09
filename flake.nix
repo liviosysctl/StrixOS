@@ -31,6 +31,9 @@
       mkSystem = import ./lib/mk-system.nix { inherit self nixpkgs version; };
 
       iso = self.nixosConfigurations."${branding.id}-iso";
+
+      # The themes in themes/ with the default from themes/default.nix
+      themes = import ./lib/themes.nix { inherit pkgs; };
     in
     {
       lib = { inherit version mkSystem; };
@@ -92,7 +95,12 @@
           inherit (disko.packages.${system}) disko;
           machineTemplate = self.packages.${system}.machine-template;
           machineLock = self.packages.${system}.machine-lock or null;
+          themeFile = themes.installer;
         };
+
+        # The theme engine and the checked themes folder
+        theme-engine = themes.engine;
+        themes = themes.dir;
 
         # Template for /etc/nixos with the distro name filled in, for the installer
         machine-template = pkgs.runCommand "${branding.id}-machine-template" { } ''
@@ -151,8 +159,20 @@
 
       checks.${system} = import ./tests/eval.nix { inherit self pkgs; };
 
+      # Tests that boot VMs, too slow for every push: nix build .#tests.theme -L
+      legacyPackages.${system}.tests = {
+        theme = import ./tests/theme-vm.nix { inherit pkgs; };
+      };
+
       devShells.${system}.default = pkgs.mkShell {
-        packages = [ pkgs.git-cliff ];
+        packages = [
+          pkgs.git-cliff
+          # The theme engine
+          pkgs.cargo
+          pkgs.rustc
+          pkgs.clippy
+          pkgs.rustfmt
+        ];
         shellHook = ''
           git config core.hooksPath .githooks
         '';

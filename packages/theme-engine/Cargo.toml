@@ -1,0 +1,22 @@
+[package]
+name = "theme-engine"
+version = "0.1.0"
+edition = "2021"
+description = "Reads, checks and applies desktop themes"
+license = "MIT"
+publish = false
+
+# The binary is installed under the distro's name by packages/theme-engine/default.nix.
+[[bin]]
+name = "theme"
+path = "src/main.rs"
+
+[dependencies]
+libc = "0.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "1"
+
+[profile.release]
+lto = true
+codegen-units = 1

@@ -11,6 +11,9 @@ in
   imports = [
     "${modulesPath}/installer/cd-dvd/installation-cd-minimal.nix"
     ../modules/os-release.nix
+    # The console in the colors of the default theme. No splash on the ISO,
+    # so nothing is written to the EFI variables of the machine.
+    ../modules/theme.nix
   ];
 
   # File name: strix-0.1.0-x86_64.iso. iso-image.nix sets baseName

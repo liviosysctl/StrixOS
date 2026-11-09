@@ -246,7 +246,7 @@ confirm_summary() {
     summary_row l_hibernation "$(on_off "$hibernation")"
     printf '\n'
     lsblk --output NAME,SIZE,FSTYPE,LABEL "$disk_device" | sed "s/^/  ${c_faint}/; s/\$/${c_reset}/"
-    printf '\n  %s%s%s%s\n' "$c_red" "$c_bold" "$(tf w_deleted "$short")" "$c_reset"
+    printf '\n  %s%s%s%s\n' "$c_accent" "$c_bold" "$(tf w_deleted "$short")" "$c_reset"
     printf '  %s%s%s\n\n' "$c_faint" "$(tf h_type "$short")" "$c_reset"
     typed=$(gum input --placeholder "$short")
     [ -n "$typed" ] || die "$(t cancelled)"

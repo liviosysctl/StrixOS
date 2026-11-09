@@ -1,9 +1,12 @@
-# Look of the interactive installer: black, red, and white only where it
-# matters (the question and what the user typed). Everything is left-aligned
-# like the Strix documents.
+# Look of the interactive installer: the background, the accent of the
+# theme, and white only where it matters (the question and what the user
+# typed). Everything is left-aligned like the project documents.
 #
-# The colors depend on the terminal: the console of the live system knows 16
-# colors, an SSH session from Windows Terminal knows 256 or true color.
+# The colors come from the default theme: the theme engine writes them into
+# the file in THEME_FILE while the ISO is built (lib/themes.nix). They depend
+# on the terminal: the console of the live system knows 16 colors (the
+# theme's palette, set by the theme service), an SSH session from Windows
+# Terminal knows 256 or true color.
 #
 # Only characters the console font of the live system (ter-v16n, set in
 # iso/default.nix) contains: █ ▒ ─ ■ » ·, ASCII and the accented letters of
@@ -14,31 +17,38 @@ ui_fancy=0
 
 ui_setup() {
   ui_fancy=1
-  local accent="#C8102E"
+  # shellcheck source=/dev/null
+  source "$THEME_FILE"
+  local accent=$THEME_ACCENT_HEX
 
   # Umlauts and accents count as one character when padding columns.
   # C.UTF-8 is built into glibc, it needs no locale archive.
   export LC_ALL=C.UTF-8
 
   if [[ ${COLORTERM:-} == truecolor || ${COLORTERM:-} == 24bit ]]; then
-    c_red=$'\e[38;2;200;16;46m'
-    c_shadow=$'\e[38;2;84;8;20m'
+    c_accent=$'\e[38;2;'"$THEME_ACCENT_RGB"'m'
+    c_shadow=$'\e[38;2;'"$THEME_SHADOW_RGB"'m'
     shadow_cells="██"
-    c_faint=$'\e[38;2;128;128;128m'
+    c_faint=$'\e[38;2;'"$THEME_FAINT_RGB"'m'
   elif [[ ${TERM:-} == *256color* ]]; then
-    c_red=$'\e[38;5;160m'
-    c_shadow=$'\e[38;5;52m'
+    c_accent=$'\e[38;5;'"$THEME_ACCENT_256"'m'
+    c_shadow=$'\e[38;5;'"$THEME_SHADOW_256"'m'
     shadow_cells="██"
-    c_faint=$'\e[38;5;244m'
+    c_faint=$'\e[38;5;'"$THEME_FAINT_256"'m'
   else
-    c_red=$'\e[31m'
-    # The console has no darker red, and dim turns it grey. A shaded block
-    # in the same red reads as a shadow.
-    c_shadow=$'\e[31m'
+    # The closest of the 16 console colors: 0 to 7 are 30 to 37, 8 to 15 are 90 to 97
+    if [ "$THEME_ACCENT_16" -lt 8 ]; then
+      c_accent=$'\e['"$((30 + THEME_ACCENT_16))"'m'
+    else
+      c_accent=$'\e['"$((90 + THEME_ACCENT_16 - 8))"'m'
+    fi
+    # The console has no darker shade of the accent, and dim turns it grey.
+    # A shaded block in the same color reads as a shadow.
+    c_shadow=$c_accent
     shadow_cells="▒▒"
     c_faint=$'\e[2m'
-    # Same red as the logo, not the bright red gum would pick for the hex value
-    accent=1
+    # The console color of the logo, not the closest one gum would pick for the hex value
+    accent=$THEME_ACCENT_16
   fi
   c_bold=$'\e[1m'
   c_reset=$'\e[0m'
@@ -104,7 +114,7 @@ draw_logo() {
     out="  "
     for ((i = 0; i < ${#line}; i++)); do
       case ${line:i:1} in
-        "#") out+="${c_red}██" ;;
+        "#") out+="${c_accent}██" ;;
         s) out+="${c_shadow}${shadow_cells}" ;;
         *) out+="  " ;;
       esac
@@ -136,12 +146,12 @@ draw_header() {
   if [ "$rows" -ge 30 ]; then
     draw_logo
   else
-    printf '  %s%s%s%s\n' "$c_red" "$c_bold" "${DISTRO_NAME^^}" "$c_reset"
+    printf '  %s%s%s%s\n' "$c_accent" "$c_bold" "${DISTRO_NAME^^}" "$c_reset"
   fi
   printf '\n'
 
   filled=$((width * done / total))
-  printf '  %s%s%s%s%s\n' "$c_red" "$(repeat ─ "$filled")" "$c_faint" "$(repeat ─ $((width - filled)))" "$c_reset"
+  printf '  %s%s%s%s%s\n' "$c_accent" "$(repeat ─ "$filled")" "$c_faint" "$(repeat ─ $((width - filled)))" "$c_reset"
 
   left="$done/$total  $title"
   right="$(t installer) $DISTRO_VERSION"
@@ -164,7 +174,7 @@ draw_question() {
     printf '  %s%s%s\n' "$c_faint" "$line" "$c_reset"
   done
   if [ -n "$error" ]; then
-    printf '  %s%s%s\n' "$c_red" "$error" "$c_reset"
+    printf '  %s%s%s\n' "$c_accent" "$error" "$c_reset"
   fi
   printf '\n'
 }
@@ -177,9 +187,9 @@ draw_install() {
   for i in "${!install_steps[@]}"; do
     title=$(t "st$((i + 1))")
     if [ $((i + 1)) -lt "$current" ]; then
-      printf '  %s■%s %s%s%s\n' "$c_red" "$c_reset" "$c_faint" "$title" "$c_reset"
+      printf '  %s■%s %s%s%s\n' "$c_accent" "$c_reset" "$c_faint" "$title" "$c_reset"
     elif [ $((i + 1)) -eq "$current" ]; then
-      printf '  %s»%s %s%s%s\n' "$c_red" "$c_reset" "$c_bold" "$title" "$c_reset"
+      printf '  %s»%s %s%s%s\n' "$c_accent" "$c_reset" "$c_bold" "$title" "$c_reset"
     else
       printf '  %s· %s%s\n' "$c_faint" "$title" "$c_reset"
     fi
@@ -197,7 +207,7 @@ spin() {
 }
 
 draw_failure() {
-  printf '\n  %s%s%s%s\n' "$c_red" "$c_bold" "$(t f_title)" "$c_reset"
+  printf '\n  %s%s%s%s\n' "$c_accent" "$c_bold" "$(t f_title)" "$c_reset"
   printf '  %s%s%s\n\n' "$c_faint" "$(t f_text)" "$c_reset"
   tail -n 12 "$log_file" | sed "s/^/    ${c_faint}/; s/\$/${c_reset}/"
   printf '\n  %s%s%s\n\n' "$c_faint" "$(tf f_log "$log_file")" "$c_reset"
@@ -205,7 +215,7 @@ draw_failure() {
 
 draw_done() {
   draw_header "$total_steps" "$total_steps" "$(t s_done)"
-  printf '\n  %s■%s %s%s%s\n' "$c_red" "$c_reset" "$c_bold" "$(tf d_title "$DISTRO_NAME")" "$c_reset"
+  printf '\n  %s■%s %s%s%s\n' "$c_accent" "$c_reset" "$c_bold" "$(tf d_title "$DISTRO_NAME")" "$c_reset"
   printf '  %s%s%s\n' "$c_faint" "$(t d_remove)" "$c_reset"
   if [ "${encrypt:-false}" = true ]; then
     printf '  %s%s%s\n' "$c_faint" "$(t d_passphrase)" "$c_reset"
