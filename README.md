@@ -41,6 +41,8 @@ Changes that matter for both go into both branches. When M245 is over, `personal
 | `sudo strix-update` | Fetches the newest release and switches to it, keeps the old version if the build fails |
 | `sudo strix-apps add\|remove <package>`, `strix-apps list` | Installs or removes a package from nixpkgs. This is what the Store calls. |
 
+SSH is on: `ssh <user>@<address>` with the user's password. Root cannot log in. To turn it off, add `services.openssh.enable = false;` to `machine.nix` and rebuild.
+
 ## Planned
 
 - Strix base system with Hyprland and Quickshell
@@ -71,6 +73,8 @@ sudo strix-install
 ```
 
 It asks for the language first, and every screen after that is in German, French, Italian or English. Then keyboard, time zone, name, user, password, computer name, disk, encryption and hibernation, a summary, and it only starts after you type the disk's name. The whole disk is used. The log ends up in `/var/log/strix-install.log` on the installed system.
+
+SSH already runs on the live system. To install over SSH, set a password with `passwd`, look up the address with `ip -4 addr` and connect with `ssh nixos@<address>`.
 
 ## Development
 

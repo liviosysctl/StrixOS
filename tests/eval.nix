@@ -51,6 +51,19 @@ in
     assert !iso.virtualisation.virtualbox.guest.enable;
     ok "iso-clean";
 
+  # SSH is on, with a password but never for root. On the live system it runs
+  # too (nixpkgs installer profile), logging in needs a password set with passwd.
+  ssh-on =
+    let
+      cfg = reference.config.services.openssh;
+    in
+    assert cfg.enable;
+    assert cfg.openFirewall;
+    assert cfg.settings.PermitRootLogin == "no";
+    assert cfg.settings.PasswordAuthentication;
+    assert iso.services.openssh.enable;
+    ok "ssh-on";
+
   # Both test machines go through mkSystem like a real installation
   eval-reference = builtins.seq reference.config.system.build.toplevel.drvPath (ok "eval-reference");
   eval-vmware = builtins.seq

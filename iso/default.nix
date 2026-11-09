@@ -75,6 +75,8 @@ in
   services.getty.helpLine = lib.mkAfter ''
 
     ${branding.name} ${version}: start the installation with  sudo ${branding.id}-install
+    SSH is running. Set a password with  passwd , find the address with  ip -4 addr ,
+    then connect with  ssh nixos@<address>
   '';
 
   # Explicitly off: guest tools only belong in the test machine.

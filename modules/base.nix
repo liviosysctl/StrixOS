@@ -43,6 +43,19 @@ in
 
     networking.networkmanager.enable = true;
 
+    # SSH is on, so the machine can be reached from another computer right
+    # after the install. Logging in needs the user's password, root cannot log
+    # in. NixOS opens port 22 in the firewall for it.
+    # Turn it off in machine.nix with:  services.openssh.enable = false;
+    services.openssh = {
+      enable = lib.mkDefault true;
+      settings = {
+        PermitRootLogin = lib.mkDefault "no";
+        PasswordAuthentication = lib.mkDefault true;
+        KbdInteractiveAuthentication = lib.mkDefault false;
+      };
+    };
+
     # The password is not in the config (it would end up readable in the store).
     # The installer sets it once with chpasswd, after that it lives in /etc/shadow.
     users.mutableUsers = lib.mkDefault true;
