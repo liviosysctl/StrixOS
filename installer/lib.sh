@@ -20,17 +20,18 @@ min_disk_bytes=$((32 * 1024 * 1024 * 1024))
 min_free_gib=48
 
 log() {
-  printf '%s\n' "$*" | tee -a "$log_file" >&2
+  printf '%s\n' "$*" >>"$log_file"
+  [ "${ui_fancy:-0}" -eq 1 ] || printf '%s\n' "$*" >&2
 }
 
 die() {
-  printf 'Error: %s\n' "$*" | tee -a "$log_file" >&2
+  printf 'Error: %s\n' "$*" >>"$log_file"
+  if [ "${ui_fancy:-0}" -eq 1 ]; then
+    printf '\n  %s%s%s\n\n' "$c_red" "$*" "$c_reset" >&2
+  else
+    printf 'Error: %s\n' "$*" >&2
+  fi
   exit 1
-}
-
-# Runs a command, shows its output and keeps it in the log
-run() {
-  "$@" 2>&1 | tee -a "$log_file"
 }
 
 # Escapes free text for a string in a Nix file

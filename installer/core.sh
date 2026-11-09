@@ -6,11 +6,52 @@
 #   $password_file   the user's password, one line
 #   $luks_key_file   the disk passphrase without a newline (only with encryption)
 
-total_steps=9
+install_steps=(
+  "Checking the answers and this computer"
+  "Writing the configuration"
+  "Checking the configuration before touching the disk"
+  "Partitioning, encrypting and formatting the disk"
+  "Copying the configuration onto the disk"
+  "Installing the system"
+  "Setting the password"
+  "Keeping the log"
+  "Finishing"
+)
+total_steps=${#install_steps[@]}
+
+# Shown next to the spinner while a step runs
+step_hints=(
+  "A few seconds"
+  "A few seconds"
+  "Up to a minute"
+  "Up to a minute"
+  "A few seconds"
+  "This can take a few minutes. Details: Alt+F2, then tail -f $log_file"
+  "A few seconds"
+  "A few seconds"
+  "A few seconds"
+)
+current_step=0
 mounted=0
 
 step() {
-  printf '\n[%s/%s] %s\n' "$1" "$total_steps" "$2" | tee -a "$log_file" >&2
+  current_step=$1
+  printf '\n[%s/%s] %s\n' "$1" "$total_steps" "${install_steps[$1 - 1]}" >>"$log_file"
+  if [ "$ui_fancy" -eq 1 ]; then
+    draw_install "$1"
+  else
+    printf '\n[%s/%s] %s\n' "$1" "$total_steps" "${install_steps[$1 - 1]}" >&2
+  fi
+}
+
+# Runs a command: in the console installer behind a spinner with the output
+# only in the log, otherwise with the output shown and logged
+run() {
+  if [ "$ui_fancy" -eq 1 ]; then
+    spin "${step_hints[$current_step - 1]}" "$@"
+  else
+    "$@" 2>&1 | tee -a "$log_file"
+  fi
 }
 
 shred_secrets() {
@@ -35,7 +76,11 @@ on_core_exit() {
     if [ "$mounted" -eq 1 ]; then
       release_disk
     fi
-    printf '\nInstallation failed. The full log is in %s\n' "$log_file" >&2
+    if [ "$ui_fancy" -eq 1 ]; then
+      draw_failure
+    else
+      printf '\nInstallation failed. The full log is in %s\n' "$log_file" >&2
+    fi
   fi
 }
 
@@ -148,8 +193,8 @@ install_from_answers() {
   local hardware_nix=$1 unmount=$2 stage="$work_dir/etc-nixos"
   trap on_core_exit EXIT
 
-  : >"$log_file"
-  step 1 "Checking the answers and this computer"
+  [ "$ui_fancy" -eq 1 ] || : >"$log_file"
+  step 1
   check_root
   check_uefi
   check_ram
@@ -163,40 +208,39 @@ install_from_answers() {
   swap=$(swap_size "$(ram_gib)" "$hibernation")
   log "Installing on $disk, swap $swap, encryption $encrypt, hibernation $hibernation"
 
-  step 2 "Writing the configuration"
+  step 2
   write_config "$stage" "$hardware_nix"
 
-  step 3 "Checking the configuration before touching the disk"
+  step 3
   run nix eval --raw "$stage#nixosConfigurations.${DISTRO_ID}.config.system.build.toplevel.drvPath"
-  echo
 
-  step 4 "Partitioning and formatting $disk"
+  step 4
   mounted=1
   run disko --mode destroy,format,mount --yes-wipe-all-disks --flake "$stage#${DISTRO_ID}"
   shred_secrets_luks_only
 
-  step 5 "Copying the configuration onto the disk"
+  step 5
   install -d -m 0755 /mnt/etc/nixos
   cp -a "$stage/." /mnt/etc/nixos/
   chown -R root:root /mnt/etc/nixos
 
-  step 6 "Installing (this takes a while)"
+  step 6
   run nixos-install --root /mnt --flake "/mnt/etc/nixos#${DISTRO_ID}" --no-root-passwd --no-channel-copy
 
-  step 7 "Setting the password"
+  step 7
   printf '%s:%s\n' "$user_name" "$(<"$password_file")" | nixos-enter --root /mnt -c chpasswd
   shred_secrets
 
-  step 8 "Keeping the log"
+  step 8
   install -D -m 0600 "$log_file" "/mnt/var/log/${DISTRO_ID}-install.log"
 
-  step 9 "Finishing"
+  step 9
   sync
   if [ "$unmount" -eq 1 ]; then
     release_disk
     mounted=0
   fi
-  log "Done."
+  printf '\nDone.\n' >>"$log_file"
 }
 
 # The passphrase is only needed while formatting

@@ -1,18 +1,13 @@
-# The text front end: asks the questions, writes the answers file and the
-# two secret files, then hands over to the core.
-
-heading() {
-  gum style --bold --margin "1 0 0 0" "$1"
-}
-
-hint() {
-  gum style --faint "$1"
-}
+# The console front end: one question per screen, then the install with a
+# step list. Writes the answers file and the two secret files and hands over
+# to the core.
 
 ask_keyboard() {
   local choice
-  heading "Keyboard"
+  draw_question 1 "Keyboard" "Which keyboard do you use?" "" \
+    "Everything you type from here on uses it, the disk passphrase too."
   choice=$(gum choose --selected "Swiss German" "Swiss German" "Swiss French" "German" "French" "English (US)")
+  keyboard_label=$choice
   case $choice in
     "Swiss German") keyboard=ch ;;
     "Swiss French") keyboard=ch-fr ;;
@@ -20,16 +15,17 @@ ask_keyboard() {
     "French") keyboard=fr ;;
     *) keyboard=us ;;
   esac
-  # From here on everything typed uses this layout, the disk passphrase
-  # included. The initrd loads the same layout before it asks at boot.
+  # The initrd loads the same layout before it asks for the passphrase at boot
   loadkeys "$(keyboard_settings "$keyboard" | cut -d ' ' -f 1)" >/dev/null 2>&1 || true
 }
 
 ask_language() {
   local choice
-  heading "Language"
+  draw_question 2 "Language" "Which language should the system use?" "" \
+    "Sets date, number and currency formats."
   choice=$(gum choose --selected "German (Switzerland)" "German (Switzerland)" "French (Switzerland)" \
     "Italian (Switzerland)" "German (Germany)" "English (UK)" "English (US)")
+  locale_label=$choice
   case $choice in
     "German (Switzerland)") locale=de_CH.UTF-8 ;;
     "French (Switzerland)") locale=fr_CH.UTF-8 ;;
@@ -41,85 +37,88 @@ ask_language() {
 }
 
 ask_time_zone() {
-  heading "Time zone"
-  time_zone=$(gum choose --selected "Europe/Zurich" "Europe/Zurich" "Other...")
-  if [ "$time_zone" = "Other..." ]; then
-    time_zone=$(timedatectl list-timezones | gum filter --placeholder "Search for a city")
+  draw_question 3 "Time zone" "Where are you?" ""
+  time_zone=$(gum choose --selected "Europe/Zurich" "Europe/Zurich" "Somewhere else")
+  if [ "$time_zone" = "Somewhere else" ]; then
+    draw_question 3 "Time zone" "Search for a city" "" "Type to filter, Enter to pick."
+    time_zone=$(timedatectl list-timezones | gum filter --placeholder "e.g. Berlin")
   fi
 }
 
-ask_names() {
-  heading "Your name"
-  hint "Shown at login."
+ask_you() {
+  local error=""
   while true; do
+    draw_question 4 "You" "What is your name?" "$error" "Shown at login."
     full_name=$(gum input --placeholder "Livio Muster" --char-limit 64)
     valid_full_name "$full_name" && break
-    hint "Please enter a name."
+    error="Please enter a name."
   done
 
-  heading "User name"
-  hint "Lowercase letters, digits, - and _. Used to log in."
+  error=""
   while true; do
+    draw_question 4 "You" "Pick a user name" "$error" \
+      "Lowercase letters, digits, - and _. You log in with it."
     user_name=$(gum input --value "$(propose_user_name "$full_name")" --char-limit 32)
     valid_user_name "$user_name" && break
-    hint "\"$user_name\" is not possible. Start with a letter, use only a-z, 0-9, - and _."
+    error="\"$user_name\" does not work. Start with a letter and use only a-z, 0-9, - and _."
   done
 
-  heading "Computer name"
-  hint "How this computer appears on the network."
-  while true; do
-    host_name=$(gum input --value "$DISTRO_ID" --char-limit 63)
-    valid_host_name "$host_name" && break
-    hint "Use lowercase letters, digits and - only."
-  done
-}
-
-# Asks twice until both match and are long enough, prints the result
-ask_secret() {
-  local label=$1 first second
-  while true; do
-    first=$(gum input --password --header "$label")
-    if [ "${#first}" -lt 8 ]; then
-      hint "At least 8 characters, please." >&2
-      continue
-    fi
-    second=$(gum input --password --header "$label again")
-    [ "$first" = "$second" ] && break
-    hint "The two entries do not match." >&2
-  done
-  printf '%s' "$first"
-}
-
-ask_password() {
-  local password
-  heading "Password"
-  hint "For logging in and for sudo."
-  password=$(ask_secret "Password")
+  password=$(ask_secret 4 "You" "Choose a password" "For logging in and for sudo.")
   (
     umask 077
     printf '%s\n' "$password" >"$password_file"
   )
+  unset password
+}
+
+# Asks twice until both entries match and are long enough, prints the result
+ask_secret() {
+  local index=$1 section=$2 question=$3 hint=$4 error="" first second
+  while true; do
+    draw_question "$index" "$section" "$question" "$error" "$hint" >&2
+    first=$(gum input --password --placeholder "At least 8 characters")
+    if [ "${#first}" -lt 8 ]; then
+      error="At least 8 characters, please."
+      continue
+    fi
+    draw_question "$index" "$section" "$question" "" "Once more, to rule out a typo." >&2
+    second=$(gum input --password --placeholder "Again")
+    [ "$first" = "$second" ] && break
+    error="The two entries did not match. Try again."
+  done
+  printf '%s' "$first"
+}
+
+ask_computer_name() {
+  local error=""
+  while true; do
+    draw_question 5 "Computer" "Name this computer" "$error" "How it appears on the network."
+    host_name=$(gum input --value "$DISTRO_ID" --char-limit 63)
+    valid_host_name "$host_name" && break
+    error="Use lowercase letters, digits and - only."
+  done
 }
 
 ask_disk() {
-  local lines line path size model tran label choice
+  local lines line path size model choice i
   local -a labels=() paths=()
   mapfile -t lines < <(candidate_disks)
   [ "${#lines[@]}" -gt 0 ] || die "No disk with at least 32 GiB found."
 
   for line in "${lines[@]}"; do
-    IFS=$'\t' read -r path size model tran <<<"$line"
-    label="$model, $((size / 1073741824)) GiB${tran:+, ${tran^^}} (${path##*/})"
-    labels+=("$label")
+    IFS=$'\t' read -r path size model _ <<<"$line"
+    labels+=("$(printf '%-9s %6s GiB   %s' "${path##*/}" "$((size / 1073741824))" "${model:0:34}")")
     paths+=("$path")
   done
 
-  heading "Disk"
-  hint "Everything on the chosen disk will be deleted. Dual boot is not supported."
+  draw_question 6 "Disk" "Where should ${DISTRO_NAME} go?" "" \
+    "The whole disk is used and everything on it is deleted." \
+    "Dual boot next to Windows is not supported."
   choice=$(gum choose "${labels[@]}")
   for i in "${!labels[@]}"; do
     if [ "${labels[$i]}" = "$choice" ]; then
       disk_device=${paths[$i]}
+      disk_label=$(printf '%s, %s GiB, %s' "${paths[$i]##*/}" "$(($(disk_bytes "${paths[$i]}") / 1073741824))" "$(cut -f 3 <<<"${lines[$i]}")")
     fi
   done
   disk=$(stable_disk_path "$disk_device")
@@ -127,16 +126,18 @@ ask_disk() {
 
 ask_encryption() {
   local passphrase
-  heading "Encryption"
-  hint "Protects your files if the computer is stolen. You type a passphrase at every start."
-  if gum confirm --default=true "Encrypt the disk?"; then
+  draw_question 7 "Encryption" "Encrypt the disk?" "" \
+    "Protects your files if the computer is stolen." \
+    "You type a passphrase at every start."
+  if gum confirm --default=true --affirmative "Encrypt" --negative "Don't encrypt" ""; then
     encrypt=true
-    hint "Avoid letters that move between keyboard layouts (y, z, special characters) if you ever change the layout."
-    passphrase=$(ask_secret "Disk passphrase")
+    passphrase=$(ask_secret 7 "Encryption" "Choose a disk passphrase" \
+      "Avoid y, z and special characters if you might change the keyboard later.")
     (
       umask 077
       printf '%s' "$passphrase" >"$luks_key_file"
     )
+    unset passphrase
   else
     encrypt=false
   fi
@@ -150,36 +151,43 @@ ask_hibernation() {
     return
   fi
   is_laptop && default=true
-  heading "Hibernation"
-  hint "Saves the open session to the disk and powers off completely. Needs a swap file as large as the RAM."
-  if gum confirm --default=$default "Allow hibernation?"; then
+  draw_question 8 "Hibernation" "Allow hibernation?" "" \
+    "Saves the open session to the disk and powers off completely." \
+    "Takes a swap file as large as the memory, $(($(ram_gib) + 1)) GiB here."
+  if gum confirm --default=$default --affirmative "Allow" --negative "No" ""; then
     hibernation=true
   else
     hibernation=false
   fi
 }
 
-confirm_summary() {
-  local short typed
-  short=${disk_device##*/}
-  heading "Summary"
-  gum style --border normal --padding "0 1" \
-    "Keyboard        $keyboard" \
-    "Language        $locale" \
-    "Time zone       $time_zone" \
-    "Name            $full_name" \
-    "User name       $user_name" \
-    "Computer name   $host_name" \
-    "Disk            $disk" \
-    "Encryption      $encrypt" \
-    "Hibernation     $hibernation"
+summary_row() {
+  printf '  %s%-15s%s %s\n' "$c_faint" "$1" "$c_reset" "$2"
+}
 
-  echo
-  lsblk --output NAME,SIZE,FSTYPE,LABEL "$disk_device"
-  echo
-  gum style --bold --foreground 1 "Everything on $short will be deleted, including Windows if it is there."
-  typed=$(gum input --header "Type $short to start the installation" --placeholder "$short")
-  [ "$typed" = "$short" ] || die "Cancelled. Nothing was changed."
+confirm_summary() {
+  local short typed error=""
+  short=${disk_device##*/}
+  while true; do
+    draw_question 9 "Summary" "Check everything once more" "$error"
+    summary_row "Keyboard" "$keyboard_label"
+    summary_row "Language" "$locale_label"
+    summary_row "Time zone" "$time_zone"
+    summary_row "Name" "$full_name"
+    summary_row "User name" "$user_name"
+    summary_row "Computer" "$host_name"
+    summary_row "Disk" "$disk_label"
+    summary_row "Encryption" "$([ "$encrypt" = true ] && echo on || echo off)"
+    summary_row "Hibernation" "$([ "$hibernation" = true ] && echo on || echo off)"
+    printf '\n'
+    lsblk --output NAME,SIZE,FSTYPE,LABEL "$disk_device" | sed "s/^/  ${c_faint}/; s/\$/${c_reset}/"
+    printf '\n  %s%sEverything on %s will be deleted.%s\n' "$c_red" "$c_bold" "$short" "$c_reset"
+    printf '  %sType %s to start, or leave it empty to cancel.%s\n\n' "$c_faint" "$short" "$c_reset"
+    typed=$(gum input --placeholder "$short")
+    [ -n "$typed" ] || die "Cancelled. Nothing was changed."
+    [ "$typed" = "$short" ] && break
+    error="That was not $short."
+  done
 }
 
 write_answers() {
@@ -207,28 +215,29 @@ write_answers() {
 
 ensure_network() {
   network_ok && return 0
-  heading "No internet connection"
-  hint "The installation downloads part of the system."
-  if gum confirm "Open the network settings?"; then
+  draw_header 0 "$question_total" "Network"
+  printf '\n  %sNo internet connection%s\n' "$c_bold" "$c_reset"
+  printf '  %sThe installation downloads part of the system.%s\n\n' "$c_faint" "$c_reset"
+  if gum confirm --affirmative "Open network settings" --negative "Cancel" ""; then
     nmtui
   fi
   network_ok || die "Still no internet connection. Connect and start the installer again."
 }
 
 run_frontend() {
-  local answers_file="$work_dir/answers.json"
+  ui_setup
   check_root
   check_uefi
   check_ram
   install -d -m 0700 "$work_dir"
+  : >"$log_file"
 
-  gum style --bold --margin "1 0" "${DISTRO_NAME} ${DISTRO_VERSION} installer"
   ensure_network
   ask_keyboard
   ask_language
   ask_time_zone
-  ask_names
-  ask_password
+  ask_you
+  ask_computer_name
   ask_disk
   ask_encryption
   ask_hibernation
@@ -237,9 +246,8 @@ run_frontend() {
 
   install_from_answers "" 1
 
-  echo
-  gum style --bold "${DISTRO_NAME} is installed. Remove the USB stick, then restart."
-  if gum confirm "Restart now?"; then
+  draw_done
+  if gum confirm --affirmative "Restart" --negative "Stay here" ""; then
     systemctl reboot
   fi
 }
