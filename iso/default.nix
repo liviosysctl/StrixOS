@@ -11,6 +11,8 @@ in
   imports = [
     "${modulesPath}/installer/cd-dvd/installation-cd-minimal.nix"
     ../modules/os-release.nix
+    # No emoji from systemd tools, same as on installed machines
+    ../modules/systemd-tools.nix
     # The console in the colors of the default theme. No splash on the ISO,
     # so nothing is written to the EFI variables of the machine.
     ../modules/theme.nix
@@ -58,12 +60,6 @@ in
 
   # Same as on installed machines: SSH in from any common terminal works.
   environment.enableAllTerminfo = true;
-
-  # No emoji in the output of systemd tools, same as on installed machines
-  environment.variables.SYSTEMD_EMOJI = "0";
-  security.sudo.extraConfig = ''
-    Defaults env_keep += "SYSTEMD_EMOJI"
-  '';
 
   # Swiss German keyboard on the console. The installer will ask for the
   # layout later, until then this is the right default.

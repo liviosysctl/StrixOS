@@ -61,14 +61,6 @@ in
     # nano and less fail with "unknown terminal type".
     environment.enableAllTerminfo = true;
 
-    # No emoji in the output of systemd tools (hostnamectl shows one for the
-    # chassis, systemctl and others use them too). sudo would drop the
-    # variable, so it is kept explicitly.
-    environment.variables.SYSTEMD_EMOJI = "0";
-    security.sudo.extraConfig = ''
-      Defaults env_keep += "SYSTEMD_EMOJI"
-    '';
-
     # The password is not in the config (it would end up readable in the store).
     # The installer sets it once with chpasswd, after that it lives in /etc/shadow.
     users.mutableUsers = lib.mkDefault true;

@@ -91,6 +91,19 @@ in
     assert off iso;
     ok "no-emoji";
 
+  # hostnamectl is wrapped (its chassis emoji ignores SYSTEMD_EMOJI), and
+  # localed can find the keymap, so localectl shows it
+  systemd-tools =
+    let
+      fixed =
+        cfg:
+        lib.any (p: lib.getName p == "hostnamectl") cfg.environment.systemPackages
+        && cfg.systemd.services.systemd-localed.environment ? SYSTEMD_KEYMAP_DIRECTORIES;
+    in
+    assert fixed reference.config;
+    assert fixed iso;
+    ok "systemd-tools";
+
   # Every theme in themes/ passes the engine's check, and the engine's own
   # tests pass (they run while it is built)
   themes = (import ../lib/themes.nix { inherit pkgs; }).dir;

@@ -5,6 +5,7 @@
   imports = [
     ./os-release.nix
     ./base.nix
+    ./systemd-tools.nix
     ./boot-splash.nix
     ./theme.nix
     ./tools.nix
