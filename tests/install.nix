@@ -123,6 +123,8 @@ pkgs.testers.runNixOSTest {
       environment.systemPackages = [
         installer
         self.inputs.disko.packages.${system}.disko
+        # For closing the disk at the end of the test script
+        pkgs.cryptsetup
       ];
       nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
