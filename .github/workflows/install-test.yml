@@ -1,0 +1,59 @@
+# Every night and on demand: the automated install test (L2). The installer
+# core installs on an empty disk in a VM, then the disk boots on its own.
+# Takes 15 to 30 minutes, too slow for every push.
+#
+# Start it by hand under Actions, "Install test", "Run workflow", or with
+#   gh workflow run install-test.yml --ref main
+name: Install test
+
+on:
+  schedule:
+    # 02:17 UTC, outside the busy hours of the runners
+    - cron: "17 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      # The installed system and nixpkgs end up in the store, the runner's
+      # 14 GB free are not enough
+      - uses: jlumbroso/free-disk-space@v2
+        with:
+          android: true
+          dotnet: true
+          haskell: true
+          docker-images: true
+          large-packages: false
+
+      # The test VMs need KVM. The runner has it, but only root may use it.
+      - name: Allow KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - uses: actions/checkout@v7
+
+      - uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            system-features = nixos-test benchmark big-parallel kvm
+
+      - name: Install test
+        run: nix build .#tests.install -L
+
+      # Screenshots and logs of the VMs, if the test got that far
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: install-test-logs
+          path: result/
+          if-no-files-found: ignore
+          retention-days: 7

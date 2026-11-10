@@ -162,6 +162,9 @@
       # Tests that boot VMs, too slow for every push: nix build .#tests.theme -L
       legacyPackages.${system}.tests = {
         theme = import ./tests/theme-vm.nix { inherit pkgs; };
+        # The installer on an empty disk, then the installed disk booted.
+        # Needs a clean, committed tree. nix build .#tests.install -L
+        install = import ./tests/install.nix { inherit self pkgs; };
       };
 
       devShells.${system}.default = pkgs.mkShell {
