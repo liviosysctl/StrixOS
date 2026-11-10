@@ -1,6 +1,6 @@
 # Installer medium. Built on the minimal NixOS installer:
 # console with autologin, NetworkManager (nmtui), drivers for every disk controller.
-{ lib, pkgs, modulesPath, distroFlake, version, ... }:
+{ config, lib, pkgs, modulesPath, distroFlake, version, ... }:
 
 let
   branding = import ../branding.nix;
@@ -9,6 +9,7 @@ let
 in
 {
   imports = [
+    ./options.nix
     "${modulesPath}/installer/cd-dvd/installation-cd-minimal.nix"
     ../modules/os-release.nix
     # No emoji from systemd tools, same as on installed machines
@@ -75,7 +76,7 @@ in
   system.nixos.label = version;
 
   environment.systemPackages = [
-    distroFlake.packages.${system}.installer
+    distroFlake.packages.${system}.${if config.${branding.id}.iso.dev then "installer-dev" else "installer"}
     distroFlake.inputs.disko.packages.${system}.disko
   ];
 

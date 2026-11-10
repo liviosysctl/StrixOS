@@ -15,12 +15,16 @@
       # The only place with the version number. bump_version.py replaces exactly this line.
       version = "0.1.0";
 
-      # Where installed machines get updates from. The branch differs between
-      # main (school proof of concept) and personal.
+      # Where installed machines get updates from. Machines installed from a
+      # release ISO follow ref (stable, moved by the release workflow). The dev
+      # ISO from every push follows devRef, so test machines get fixes before
+      # a release. The branches differ between main (school proof of concept)
+      # and personal.
       upstream = {
         owner = "liviosysctl";
         repo = "strixos";
-        ref = "main";
+        ref = "stable";
+        devRef = "main";
       };
 
       branding = import ./branding.nix;
@@ -29,6 +33,75 @@
       lib = nixpkgs.lib;
 
       mkSystem = import ./lib/mk-system.nix { inherit self nixpkgs version; };
+
+      # Template for /etc/nixos with the distro name and the branch to follow
+      # filled in, for the installer
+      machineTemplate =
+        ref:
+        pkgs.runCommand "${branding.id}-machine-template" { } ''
+          cp -r ${./templates/machine} $out
+          chmod -R u+w $out
+          substituteInPlace $out/flake.nix $out/machine.nix --replace-fail @distroId@ ${branding.id}
+          substituteInPlace $out/flake.nix \
+            --replace-fail @distroUrl@ github:${upstream.owner}/${upstream.repo}/${ref}
+        '';
+
+      # A finished flake.lock for /etc/nixos that points at exactly this commit,
+      # so the installed system matches the ISO and needs no download to lock.
+      # Only possible from a clean, committed tree with a flake.lock (null
+      # otherwise). Then the installer runs nix flake lock itself, which needs
+      # a network.
+      machineLock =
+        ref:
+        if builtins.pathExists ./flake.lock && self ? rev then
+          let
+            own = builtins.fromJSON (builtins.readFile ./flake.lock);
+            github = {
+              type = "github";
+              inherit (upstream) owner repo;
+            };
+            prefixFollows =
+              node:
+              node
+              // lib.optionalAttrs (node ? inputs) {
+                inputs = lib.mapAttrs (
+                  _: target: if builtins.isList target then [ branding.id ] ++ target else target
+                ) node.inputs;
+              };
+          in
+          pkgs.writeText "flake.lock" (
+            builtins.toJSON {
+              inherit (own) version;
+              root = "root";
+              # "follows" entries are paths from the root of the lock file.
+              # Here the distro is no longer the root but one input below it,
+              # so every such path gets its name in front.
+              nodes = (lib.mapAttrs (_: prefixFollows) (removeAttrs own.nodes [ "root" ])) // {
+                root.inputs.${branding.id} = branding.id;
+                ${branding.id} = {
+                  inputs = own.nodes.root.inputs;
+                  locked = github // {
+                    inherit (self) rev narHash lastModified;
+                  };
+                  original = github // {
+                    inherit ref;
+                  };
+                };
+              };
+            }
+          )
+        else
+          null;
+
+      mkInstaller =
+        ref:
+        pkgs.callPackage ./installer/package.nix {
+          inherit version;
+          inherit (disko.packages.${system}) disko;
+          machineTemplate = machineTemplate ref;
+          machineLock = machineLock ref;
+          themeFile = themes.installer;
+        };
 
       iso = self.nixosConfigurations."${branding.id}-iso";
 
@@ -84,77 +157,32 @@
         # nix build .#iso
         iso = iso.config.system.build.isoImage;
 
-        # Faster compression for test builds, the ISO gets slightly larger
+        # For testing: faster compression (the ISO gets slightly larger), and
+        # machines installed from it follow devRef instead of stable
         iso-dev =
           (iso.extendModules {
-            modules = [ { isoImage.squashfsCompression = "zstd -Xcompression-level 3"; } ];
+            modules = [
+              {
+                isoImage.squashfsCompression = "zstd -Xcompression-level 3";
+                ${branding.id}.iso.dev = true;
+              }
+            ];
           }).config.system.build.isoImage;
 
-        installer = pkgs.callPackage ./installer/package.nix {
-          inherit version;
-          inherit (disko.packages.${system}) disko;
-          machineTemplate = self.packages.${system}.machine-template;
-          machineLock = self.packages.${system}.machine-lock or null;
-          themeFile = themes.installer;
-        };
+        # Installed machines follow stable (release ISO) or devRef (dev ISO)
+        installer = mkInstaller upstream.ref;
+        installer-dev = mkInstaller upstream.devRef;
 
         # The theme engine and the checked themes folder
         theme-engine = themes.engine;
         themes = themes.dir;
 
-        # Template for /etc/nixos with the distro name filled in, for the installer
-        machine-template = pkgs.runCommand "${branding.id}-machine-template" { } ''
-          cp -r ${./templates/machine} $out
-          chmod -R u+w $out
-          substituteInPlace $out/flake.nix $out/machine.nix --replace-fail @distroId@ ${branding.id}
-          substituteInPlace $out/flake.nix \
-            --replace-fail @distroUrl@ github:${upstream.owner}/${upstream.repo}/${upstream.ref}
-        '';
+        machine-template = machineTemplate upstream.ref;
 
         default = self.packages.${system}.iso;
       }
-      # A finished flake.lock for /etc/nixos that points at exactly this commit,
-      # so the installed system matches the ISO and needs no download to lock.
-      # Only possible from a clean, committed tree with a flake.lock. Otherwise
-      # the installer runs nix flake lock itself, which needs a network.
-      // lib.optionalAttrs (builtins.pathExists ./flake.lock && self ? rev) {
-        machine-lock =
-          let
-            own = builtins.fromJSON (builtins.readFile ./flake.lock);
-            github = {
-              type = "github";
-              inherit (upstream) owner repo;
-            };
-            prefixFollows =
-              node:
-              node
-              // lib.optionalAttrs (node ? inputs) {
-                inputs = lib.mapAttrs (
-                  _: target: if builtins.isList target then [ branding.id ] ++ target else target
-                ) node.inputs;
-              };
-          in
-          pkgs.writeText "flake.lock" (
-            builtins.toJSON {
-              inherit (own) version;
-              root = "root";
-              # "follows" entries are paths from the root of the lock file.
-              # Here the distro is no longer the root but one input below it,
-              # so every such path gets its name in front.
-              nodes = (lib.mapAttrs (_: prefixFollows) (removeAttrs own.nodes [ "root" ])) // {
-                root.inputs.${branding.id} = branding.id;
-                ${branding.id} = {
-                  inputs = own.nodes.root.inputs;
-                  locked = github // {
-                    inherit (self) rev narHash lastModified;
-                  };
-                  original = github // {
-                    inherit (upstream) ref;
-                  };
-                };
-              };
-            }
-          );
+      // lib.optionalAttrs (machineLock upstream.ref != null) {
+        machine-lock = machineLock upstream.ref;
       };
 
       checks.${system} = import ./tests/eval.nix { inherit self pkgs; };

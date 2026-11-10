@@ -64,6 +64,8 @@ nix build .#iso -L        # release compression
 ls -lh result/iso/
 ```
 
+Machines installed from `iso` follow the branch `stable`, which only moves when a release is published. Machines installed from `iso-dev` follow `main` and get every fix with `strix-update`. CI builds an `iso-dev` on every push to `main` (Actions, the run, "Artifacts").
+
 The ISO boots on UEFI with Secure Boot off. Write it to a USB stick as a raw image, not by copying files onto a FAT32 stick.
 
 Commit and push before building a release ISO. Only an ISO from a clean tree with a `flake.lock` pins the installed system to its own commit; from a dirty tree the installer locks during the install and needs the network for it.
@@ -92,4 +94,11 @@ The dev shell activates the commit hook and has the Rust tools for the theme eng
 nix flake check                                       # fast checks, also run by CI on every push
 (cd packages/theme-engine && cargo test && cargo clippy --all-targets -- -D warnings)
 nix build .#tests.theme -L                            # the theme engine in a VM, needs KVM
+nix build .#tests.install -L                          # install on an empty disk and boot it, needs KVM
 ```
+
+### Releasing
+
+Same flow as the other repositories (CONTRIBUTING.md): bump the version in `flake.nix`, commit `chore(release): vX.Y.Z`, push an annotated tag. The release workflow then creates the release with the notes, builds the ISO, attaches it with `SHA256SUMS` and `manifest.json` (the bootstick app reads that), and moves `stable` to the tag. An ISO larger than 2 GiB is attached in parts, `manifest.json` lists them.
+
+Before tagging, try the packaging without a release: Actions, "Release", "Run workflow". The files land in the run as an artifact.
