@@ -136,6 +136,12 @@ pkgs.testers.runNixOSTest {
       ++ map (input: input.outPath) (lib.attrValues self.inputs);
 
       nix.settings = {
+        # The system and the small derivations it is made of (the toplevel,
+        # kernel modules, /etc ...) say allowSubstitutes = false, so Nix would
+        # rebuild them instead of taking them from the store of this VM,
+        # which needs stdenv and downloads. On the ISO that just works with
+        # the network, here they have to come from the store.
+        always-allow-substitutes = true;
         substituters = lib.mkForce [ ];
         hashed-mirrors = null;
         connect-timeout = 1;
