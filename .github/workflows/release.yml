@@ -1,16 +1,27 @@
 # Creates the GitHub release for every pushed version tag (v1.2.3).
 # The notes come from cliff.toml, so they look exactly like CHANGELOG.md.
+#
+# Then builds the ISO and attaches what the bootstick app downloads: the ISO
+# (in parts below 2 GiB if it is larger), SHA256SUMS and manifest.json. Only
+# after that, stable moves to the tag, so installed machines never see a
+# release without an ISO.
+#
+# Run by hand (Actions, "Release", "Run workflow") it is a dry run: it builds
+# and packages the ISO from the chosen branch and attaches the files to the
+# run as an artifact, without a release and without moving stable.
 name: Release
 
 on:
   push:
     tags: ["v[0-9]+.[0-9]+.[0-9]+"]
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
   release:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -33,3 +44,80 @@ jobs:
         with:
           name: ${{ github.ref_name }}
           body_path: RELEASE_NOTES.md
+
+  iso:
+    needs: release
+    # Also when release was skipped (dry run)
+    if: ${{ !cancelled() && (needs.release.result == 'success' || needs.release.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      # The runner has about 14 GB free, the ISO build needs more
+      - uses: jlumbroso/free-disk-space@v2
+        with:
+          android: true
+          dotnet: true
+          haskell: true
+          docker-images: true
+          large-packages: false
+
+      - uses: actions/checkout@v7
+
+      - uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Version
+        id: version
+        run: |
+          version=$(nix eval --raw .#lib.version)
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+          echo "name=$(nix eval --raw --file branding.nix name)" >> "$GITHUB_OUTPUT"
+          echo "id=$(nix eval --raw --file branding.nix id)" >> "$GITHUB_OUTPUT"
+
+      - name: Tag and flake version must match
+        if: github.event_name == 'push'
+        run: test "${{ steps.version.outputs.tag }}" = "$GITHUB_REF_NAME"
+
+      - name: Build the ISO
+        run: nix build -L .#iso
+
+      # Second line of defence behind checks.iso-clean: also catches a package
+      # that pulls the guest tools in some other way
+      - name: No VM guest tools in the ISO
+        run: |
+          id=${{ steps.version.outputs.id }}
+          if nix path-info -r \
+               ".#nixosConfigurations.$id-iso.config.system.build.toplevel" \
+               ".#nixosConfigurations.$id-reference.config.system.build.toplevel" \
+             | grep -E 'open-vm-tools|virtualbox'; then
+            echo "VM guest tools found in the ISO closure" >&2
+            exit 1
+          fi
+
+      - name: Split, checksum, manifest
+        env:
+          DISTRO_NAME: ${{ steps.version.outputs.name }}
+        run: ./.github/scripts/package-iso.sh "${{ steps.version.outputs.tag }}" result/iso/*.iso out/
+
+      - name: Attach to the release
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v3
+        with:
+          files: out/*
+
+      - name: Keep the files (dry run)
+        if: github.event_name != 'push'
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-dry-run
+          path: out/
+          retention-days: 7
+
+      # Installed machines follow stable. A plain push, because the tag is
+      # normally ahead of stable; force only matters if stable was ever moved
+      # by hand.
+      - name: Move stable to this release
+        if: github.event_name == 'push'
+        run: git push --force origin "HEAD:refs/heads/stable"
