@@ -419,11 +419,11 @@ fn apply_boot(config: &Config, selection: &Selection) -> Outcome {
     let value = selection.to_string();
     match variable.read() {
         Ok(Some(stored)) if stored == value.as_bytes() => {
-            return Outcome::Done("next boot already shows it".to_string())
+            return Outcome::Done("next boot already shows it".to_string());
         }
         Ok(_) => {}
         Err(error) => {
-            return Outcome::Failed(format!("cannot read {}: {error}", variable.path.display()))
+            return Outcome::Failed(format!("cannot read {}: {error}", variable.path.display()));
         }
     }
     match variable.write(value.as_bytes()) {
@@ -580,7 +580,7 @@ fn render(config: &Config, kind: &str, text: &str, themes: Option<&Path>) -> Res
         other => {
             return Err(format!(
                 "unknown kind \"{other}\" (known: tokens, installer, plymouth, palette)"
-            ))
+            ));
         }
     };
     print!("{output}");

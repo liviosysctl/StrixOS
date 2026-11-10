@@ -575,12 +575,12 @@ impl Selection {
                 "\"{text}\" is not a theme, write it as <theme> or <theme>:<variant>"
             ));
         }
-        if let Some(variant) = variant {
-            if !valid_id(variant) {
-                return Err(format!(
-                    "\"{text}\" is not a theme, write it as <theme> or <theme>:<variant>"
-                ));
-            }
+        if let Some(variant) = variant
+            && !valid_id(variant)
+        {
+            return Err(format!(
+                "\"{text}\" is not a theme, write it as <theme> or <theme>:<variant>"
+            ));
         }
         Ok(Selection {
             theme: theme.to_string(),
@@ -908,17 +908,23 @@ bright-white = "#ffffff"
         };
         let (theme, variant) = catalog.resolve(&Selection::parse("test").unwrap()).unwrap();
         assert_eq!((theme.id.as_str(), variant.id.as_str()), ("test", "dark"));
-        assert!(catalog
-            .resolve(&Selection::parse("test:light").unwrap())
-            .unwrap_err()
-            .contains("has no variant \"light\" (it has: dark)"));
-        assert!(catalog
-            .resolve(&Selection::parse("other").unwrap())
-            .unwrap_err()
-            .contains("there is no theme \"other\" (known: test)"));
-        assert!(catalog
-            .resolve(&Selection::parse("broken").unwrap())
-            .unwrap_err()
-            .contains("has errors"));
+        assert!(
+            catalog
+                .resolve(&Selection::parse("test:light").unwrap())
+                .unwrap_err()
+                .contains("has no variant \"light\" (it has: dark)")
+        );
+        assert!(
+            catalog
+                .resolve(&Selection::parse("other").unwrap())
+                .unwrap_err()
+                .contains("there is no theme \"other\" (known: test)")
+        );
+        assert!(
+            catalog
+                .resolve(&Selection::parse("broken").unwrap())
+                .unwrap_err()
+                .contains("has errors")
+        );
     }
 }

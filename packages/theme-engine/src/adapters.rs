@@ -2,8 +2,8 @@
 //! Everything here is pure, the parts that touch the system are in system.rs.
 
 use crate::color::Rgb;
-use crate::theme::{Theme, Variant, FORMAT, PALETTE_NAMES};
-use serde_json::{json, Map, Value};
+use crate::theme::{FORMAT, PALETTE_NAMES, Theme, Variant};
+use serde_json::{Map, Value, json};
 
 /// tokens.json: the selected variant for programs that read the tokens
 /// directly (Quickshell). Colors keep their names from theme.toml.
