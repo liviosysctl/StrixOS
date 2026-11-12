@@ -91,6 +91,95 @@ pub fn ghostty(theme: &Theme, variant: &Variant) -> String {
     out
 }
 
+/// The named colors of libadwaita (and adw-gtk3) for one variant, in the order they are written
+fn gtk_colors(variant: &Variant) -> Vec<(&'static str, Rgb)> {
+    let background = variant.color("background");
+    let surface = variant.color("surface");
+    let raised = extra_or(variant, "surface-raised", "surface");
+    let sunken = extra_or(variant, "surface-sunken", "background");
+    let text = variant.color("text");
+    let accent = variant.color("accent");
+    let on_accent = variant.color("on-accent");
+    let error = variant.color("error");
+    let warning = variant.color("warning");
+    let success = extra_or(variant, "success", "accent");
+    // Text on a colored fill: the one of text and background that reads better
+    let on = |fill: Rgb| {
+        if fill.contrast(text) >= fill.contrast(background) {
+            text
+        } else {
+            background
+        }
+    };
+    vec![
+        ("accent_color", accent),
+        ("accent_bg_color", accent),
+        ("accent_fg_color", on_accent),
+        ("destructive_color", error),
+        ("destructive_bg_color", error),
+        ("destructive_fg_color", on(error)),
+        ("error_color", error),
+        ("error_bg_color", error),
+        ("error_fg_color", on(error)),
+        ("warning_color", warning),
+        ("warning_bg_color", warning),
+        ("warning_fg_color", on(warning)),
+        ("success_color", success),
+        ("success_bg_color", success),
+        ("success_fg_color", on(success)),
+        ("window_bg_color", background),
+        ("window_fg_color", text),
+        ("view_bg_color", sunken),
+        ("view_fg_color", text),
+        ("headerbar_bg_color", surface),
+        ("headerbar_fg_color", text),
+        ("headerbar_backdrop_color", background),
+        ("sidebar_bg_color", surface),
+        ("sidebar_fg_color", text),
+        ("sidebar_backdrop_color", background),
+        ("secondary_sidebar_bg_color", surface),
+        ("secondary_sidebar_fg_color", text),
+        ("card_bg_color", surface),
+        ("card_fg_color", text),
+        ("dialog_bg_color", raised),
+        ("dialog_fg_color", text),
+        ("popover_bg_color", raised),
+        ("popover_fg_color", text),
+        ("thumbnail_bg_color", raised),
+        ("thumbnail_fg_color", text),
+    ]
+}
+
+/// gtk.css for GTK 3 (adw-gtk3 and the default theme read the libadwaita names): named colors only,
+/// GTK 3 does not know CSS variables
+pub fn gtk3(theme: &Theme, variant: &Variant) -> String {
+    let mut out = format!(
+        "/* The colors of {} ({}:{}), written by the theme engine. */\n",
+        theme.name, theme.id, variant.id
+    );
+    for (name, color) in gtk_colors(variant) {
+        out.push_str(&format!("@define-color {name} {};\n", color.hex()));
+    }
+    out
+}
+
+/// gtk.css for GTK 4: the named colors for libadwaita before 1.6 and the same as CSS variables
+/// (`--accent-bg-color`) for libadwaita 1.6 and later
+pub fn gtk4(theme: &Theme, variant: &Variant) -> String {
+    let colors = gtk_colors(variant);
+    let mut out = gtk3(theme, variant);
+    out.push_str("\n:root {\n");
+    for (name, color) in &colors {
+        out.push_str(&format!(
+            "  --{}: {};\n",
+            name.replace('_', "-"),
+            color.hex()
+        ));
+    }
+    out.push_str("}\n");
+    out
+}
+
 /// The console palette as the kernel takes it (`PIO_CMAP`): 16 RGB triples in
 /// ANSI order. The console draws its text in color 7 on color 0, so those two
 /// become the terminal's foreground and background. The console then looks
@@ -223,6 +312,20 @@ pub fn palette_lines(variant: &Variant) -> Vec<String> {
 mod tests {
     use super::*;
     use crate::theme::tests::good;
+
+    #[test]
+    fn gtk_follows_the_variant() {
+        let theme = good();
+        let variant = theme.variant("dark").unwrap();
+        let three = gtk3(&theme, variant);
+        let four = gtk4(&theme, variant);
+        let accent = variant.color("accent").hex();
+        assert!(three.contains(&format!("@define-color accent_bg_color {accent};")));
+        assert!(!three.contains(":root"));
+        assert!(four.contains(&format!("--accent-bg-color: {accent};")));
+        assert!(four.starts_with(&three));
+        assert!(four.contains("--window-bg-color:"));
+    }
 
     #[test]
     fn hyprland_and_ghostty() {

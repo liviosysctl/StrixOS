@@ -185,6 +185,9 @@ in
     assert reference'.services.logind.settings.Login.HandleLidSwitch == "suspend";
     assert reference'.services.logind.settings.Login.HandleLidSwitchDocked == "ignore";
     assert reference'.environment.etc."xdg/${branding.id}/lid".text == "suspend\n";
+    # GTK apps take the god's colors
+    assert reference'.systemd.user.services ? "${branding.id}-gtk-colors";
+    assert lib.any (p: lib.getName p == "adw-gtk3") reference'.environment.systemPackages;
     pkgs.runCommand "check-desktop"
       {
         nativeBuildInputs = [ reference'.programs.hyprland.package pkgs.gnugrep ];
@@ -243,17 +246,6 @@ in
         echo ok > $out
       '';
 
-  # The search service with its unit tests (golden queries, the 5 ms budget, the socket), and the
-  # system menu and command files checked by it: unique ids, groups that exist, no emoji
-  search =
-    let
-      search = pkgs.callPackage ../packages/search { };
-    in
-    pkgs.runCommand "check-search" { } ''
-      ${lib.getExe search} check
-      touch $out
-    '';
-
   # The Store: the service with its unit tests, the index service, the user service and the
   # polkit rule that lets the session run exactly `<id>-apps add|remove <package>` (Q4)
   store =
@@ -270,6 +262,17 @@ in
     # nixpkgs is named in the index unit, but not kept in the system
     assert !(builtins.hasContext cfg.systemd.services."${branding.id}-store-index".environment.NIXPKGS);
     cfg.${branding.id}.store.package;
+
+  # The search service with its unit tests (golden queries, the 5 ms budget, the socket), and the
+  # system menu and command files checked by it: unique ids, groups that exist, no emoji
+  search =
+    let
+      search = pkgs.callPackage ../packages/search { };
+    in
+    pkgs.runCommand "check-search" { } ''
+      ${lib.getExe search} check
+      touch $out
+    '';
 
   # The user service evaluates on the reference machine
   search-module =

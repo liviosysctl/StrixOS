@@ -302,12 +302,13 @@ in
     programs.firefox.enable = true;
     programs.dconf = {
       enable = true;
-      # Every god is dark: GTK and libadwaita apps follow
+      # Every god is dark: GTK and libadwaita apps follow. adw-gtk3 makes GTK 3 apps look like
+      # libadwaita and read the same named colors, so both take the god's colors from gtk.css
       profiles.user.databases = [
         {
           settings."org/gnome/desktop/interface" = {
             color-scheme = "prefer-dark";
-            gtk-theme = "Adwaita-dark";
+            gtk-theme = "adw-gtk3-dark";
             cursor-theme = "Adwaita";
             monospace-font-name = "JetBrains Mono 11";
           };
@@ -336,6 +337,7 @@ in
       gnome-text-editor
       amberol
       adwaita-icon-theme
+      adw-gtk3
       wl-clipboard
       grim
       slurp
@@ -411,6 +413,31 @@ in
         mkdir -p "$HOME/.config/ghostty"
         [ -e "$HOME/.config/ghostty/config" ] || install -m 0644 /etc/xdg/${id}/ghostty/user "$HOME/.config/ghostty/config"
         ln -sfn "$XDG_RUNTIME_DIR/${id}/theme/ghostty" "$HOME/.config/ghostty/${id}-theme"
+      '';
+    };
+
+    # GTK 3 and GTK 4 apps take the god's colors from the session's gtk3.css and gtk4.css. The link
+    # is made only where the user has no gtk.css of their own (or already has the link); apps read
+    # the file when they start, so a running app keeps its colors until it is opened again
+    systemd.user.services."${id}-gtk-colors" = {
+      description = "Give GTK apps the colors of the session's theme";
+      wantedBy = [ "default.target" ];
+      serviceConfig.Type = "oneshot";
+      script = ''
+        [ -w "$HOME" ] || exit 0
+        for version in 3 4; do
+          target="$XDG_RUNTIME_DIR/${id}/theme/gtk$version.css"
+          file="$HOME/.config/gtk-$version.0/gtk.css"
+          mkdir -p "''${file%/*}"
+          if [ -L "$file" ] && [ "$(readlink "$file")" = "$target" ]; then
+            continue
+          fi
+          if [ -e "$file" ] || [ -L "$file" ]; then
+            echo "$file is the user's own, left alone"
+            continue
+          fi
+          ln -s "$target" "$file"
+        done
       '';
     };
 
