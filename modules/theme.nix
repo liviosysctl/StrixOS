@@ -9,15 +9,59 @@
 #     reads the theme from an EFI variable before Plymouth starts
 # The choice is stored in /var/lib/<id>/theme/selection. At every boot the
 # <id>-theme service applies it again.
-{ config, lib, pkgs, ... }:
+#
+# The themes of the distribution are the eight gods of StrixUI (flake input).
+# Themes from outside come from theme repositories, listed in themes.json next
+# to the machine configuration: `<id>-theme repos` fetches, checks and copies
+# them into themes/ beside it, this module only reads those copies.
+{ config, lib, pkgs, distroFlake, ... }:
 
 let
   branding = import ../branding.nix;
   cfg = config.${branding.id}.theme;
 
+  builtin = "${distroFlake.inputs.strixui}/design-system/themes";
+  builtinIds = builtins.attrNames (
+    lib.filterAttrs (_: type: type == "directory") (builtins.readDir builtin)
+  );
+
+  # themes.json and the copies of the checked themes in themes/ next to it.
+  # A theme that cannot be used is left out with a warning, never an error:
+  # a theme repository must not stop an update.
+  repos =
+    if cfg.repos.file == null then
+      [ ]
+    else
+      let
+        data = lib.importJSON cfg.repos.file;
+      in
+      if (data.version or 0) == 1 then
+        data.repos or [ ]
+      else
+        lib.warn "themes.json has format ${toString (data.version or "?")}, only format 1 is read; no outside themes" [ ];
+  reposDir = dirOf cfg.repos.file + "/themes";
+  repoTheme =
+    repo: themeId:
+    let
+      path = reposDir + "/${themeId}";
+      from = repo.name or repo.url;
+    in
+    if builtins.match "[a-z][a-z0-9-]*" themeId == null then
+      lib.warn "themes.json: \"${themeId}\" of ${from} is no theme id, left out" [ ]
+    else if lib.elem themeId builtinIds then
+      lib.warn "themes.json: ${themeId} of ${from} has the id of a theme of ${branding.name}, left out" [ ]
+    else if !builtins.pathExists (path + "/theme.toml") then
+      lib.warn "themes.json: themes/${themeId} of ${from} is missing, run ${branding.id}-theme repos update and rebuild" [ ]
+    else
+      [ (lib.nameValuePair themeId path) ];
+  repoThemes = builtins.listToAttrs (
+    lib.concatMap (repo: lib.concatMap (repoTheme repo) (repo.themes or [ ])) repos
+  );
+
   themes = import ../lib/themes.nix {
-    inherit pkgs;
-    inherit (cfg) extraThemes default;
+    inherit pkgs builtin;
+    inherit (cfg) default;
+    extraThemes = removeAttrs repoThemes (builtins.attrNames cfg.extraThemes) // cfg.extraThemes;
   };
   exe = lib.getExe themes.engine;
   resolved = themes.resolve cfg.default;
@@ -39,6 +83,8 @@ let
 
   env = {
     THEMES_DIR = "${themes.dir}";
+    BUILTIN_THEMES = builtin;
+    GIT = lib.getExe pkgs.gitMinimal;
     STATE_DIR = stateDir;
     RUNTIME_DIR = runtimeDir;
     DEFAULT_THEME = cfg.default;
@@ -65,7 +111,8 @@ let
       }
       ''
         makeBinaryWrapper ${exe} $out/bin/${name} \
-          ${lib.concatStringsSep " " (lib.mapAttrsToList (n: value: "--set ${n} ${lib.escapeShellArg value}") env)}
+          ${lib.concatStringsSep " " (lib.mapAttrsToList (n: value: "--set ${n} ${lib.escapeShellArg value}") env)} \
+          --set-default REPOS_FILE /etc/nixos/themes.json
         mkdir -p $out/share/bash-completion/completions $out/share/zsh/site-functions $out/share/fish/vendor_completions.d
         substitute ${completions}/theme.bash $out/share/bash-completion/completions/${name} ${fill}
         substitute ${completions}/theme.zsh $out/share/zsh/site-functions/_${name} ${fill}
@@ -98,11 +145,22 @@ in
       type = lib.types.str;
       default = import ../themes/default.nix;
       defaultText = lib.literalExpression "import ./themes/default.nix";
-      example = "chamber:dark";
+      example = "janus";
       description = ''
         The theme in use until another one is chosen with `${branding.id}-theme set`,
         as `<theme>` or `<theme>:<variant>`. Also the theme of the boot splash
         before anything is chosen.
+      '';
+    };
+
+    repos.file = lib.mkOption {
+      type = lib.types.nullOr lib.types.path;
+      default = null;
+      description = ''
+        themes.json from /etc/nixos: the connected theme repositories. Their
+        checked themes are read from the folder themes/ next to it. Written by
+        `${branding.id}-theme repos` and `${branding.id}-update`; lib.mkSystem
+        sets this when the file is there.
       '';
     };
 

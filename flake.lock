@@ -39,7 +39,24 @@
     "root": {
       "inputs": {
         "disko": "disko",
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": "nixpkgs",
+        "strixui": "strixui"
+      }
+    },
+    "strixui": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1794414942,
+        "narHash": "sha256-Lem5qHuiymdSuKZoxUXV9Yg02SPdYcp95gaRE7JPaw4=",
+        "owner": "liviosysctl",
+        "repo": "StrixUI",
+        "rev": "4aec975639700a45e4853b67524140ae68b9e433",
+        "type": "github"
+      },
+      "original": {
+        "owner": "liviosysctl",
+        "repo": "StrixUI",
+        "type": "github"
       }
     }
   },

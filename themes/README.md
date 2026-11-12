@@ -1,22 +1,30 @@
 # Themes
 
-Every folder here is a theme. The folder name is the theme's id, the folder holds a `theme.toml`. The theme engine (`packages/theme-engine`) reads them, checks them while the system is built, and applies the chosen one at runtime.
+The themes of Strix are the eight Roman gods of the design system [StrixUI](https://github.com/liviosysctl/StrixUI). They come in as the flake input `strixui` (`design-system/themes/<id>/theme.toml`), so a new version of StrixUI reaches every machine with the weekly update. The theme engine (`packages/theme-engine`) reads them, checks them while the system is built, and applies the chosen one at runtime. More themes come from theme repositories, see below.
 
-`default.nix` names the theme a new installation starts with.
+`default.nix` names the theme a new installation starts with: `saturnus`. The installer on the ISO and the boot splash use it too.
 
-| Theme | Variants | Look |
+| Theme | Variant | Look |
 |---|---|---|
-| `neutral` | `dark` | Plain black and red. The installer, the boot splash and the documents. |
-| `chamber` | `light` (Lights on), `dark` (Lights off) | The design system Chamber UI: white cards with black sign plates. |
+| `saturnus` | `dark` | Strix red. Saturn, lord of time and of the night hours; the default |
+| `janus` | `dark` | Patina, the green of old bronze doors and keys |
+| `apollo` | `dark` | Antique gold, worn brass |
+| `mars` | `dark` | Rust, iron and burnt sienna |
+| `vulcanus` | `dark` | Olive, the patina on old bronze from the forge |
+| `neptunus` | `dark` | Deep water, slate and ink blue |
+| `pluto` | `dark` | Heather, faded plum |
+| `bacchus` | `dark` | Claret, old wine |
+
+`strix-theme list` shows each with its name and description. To change a god theme, change it in StrixUI (`tools/themes.py`, then `tools/build.py`).
 
 ## Switching
 
 ```sh
 strix-theme list                 # themes and variants, the current one marked with *
-strix-theme current              # e.g. chamber:dark
-strix-theme show chamber:dark    # all colors of a variant as JSON
-sudo strix-theme set chamber     # the default variant of chamber
-sudo strix-theme set chamber:dark
+strix-theme current              # e.g. janus:dark
+strix-theme show janus:dark      # all colors of a variant as JSON
+sudo strix-theme set janus       # the default variant of janus
+sudo strix-theme set janus:dark
 strix-theme status               # whether every part shows the current theme
 ```
 
@@ -39,20 +47,20 @@ The boot splash runs in the initrd, before the root file system is there. `set` 
 
 ```toml
 format = 1                      # the format this file is written in
-name = "Chamber"                # shown to people, at most 40 characters
-description = "White cards with black sign plates, like a test chamber."
-default-variant = "light"       # used for "chamber" without a variant
+name = "Janus"                  # shown to people, at most 40 characters
+description = "Patina, the green of old bronze doors and keys."
+default-variant = "dark"        # used for "janus" without a variant
 
-[variants.light]
-name = "Lights on"
-appearance = "light"            # "light" or "dark"
+[variants.dark]
+name = "Dark"
+appearance = "dark"             # "light" or "dark"
 
-[variants.light.colors]
-background = "#f2f3f5"
+[variants.dark.colors]
+background = "#070c09"
 # ... the ten required colors, then any extra colors
 
-[variants.light.terminal]
-background = "#2a2d32"
+[variants.dark.terminal]
+background = "#070c09"
 # ... foreground, cursor, selection and the 16 terminal colors
 ```
 
@@ -75,7 +83,7 @@ Ids of themes and variants: lowercase letters, digits and single hyphens, starti
 
 The contrast rules follow WCAG 2.x: 4.5:1 for text, 3:1 for parts of the interface. `appearance` must match the colors: a dark variant has text lighter than its background.
 
-Every other key under `colors` is an extra color. Extra colors are passed on unchanged in `tokens.json`. Chamber uses them to carry every token of its design system under its own name (`sign`, `on-sign`, `wall-panel`, ...).
+Every other key under `colors` is an extra color. Extra colors are passed on unchanged in `tokens.json`. The gods use them to carry every token of StrixUI under its own name (`accent-soft`, `border-active`, ...).
 
 ### Terminal colors
 
@@ -92,11 +100,38 @@ The virtual consoles take the 16 colors, with two changes: color 0 becomes `back
 | Plymouth | `background`, `text`, `accent`; one Plymouth theme per variant | built per variant, picked at boot |
 | Console installer on the ISO | `accent`, `text-muted`, terminal colors | built from the default theme |
 
-## Adding a theme
+## Theme repositories
 
-1. Make a folder `themes/<id>/` with a `theme.toml`. Copy `neutral/theme.toml` as a start.
-2. Check it: `nix build .#themes -L`. The build fails with a list of every problem.
-3. To use it right away on one machine without changing the repository, add it in `machine.nix`:
+Anyone can make themes for Strix: a theme repository is a Git repository with a fixed layout (layout 1). Start from [strix-theme-template](https://github.com/liviosysctl/strix-theme-template); [strix-theme-lucifer](https://github.com/liviosysctl/strix-theme-lucifer) is the first one.
+
+```
+strix-themes.toml          # layout = 1, name, description, author
+themes/<id>/theme.toml     # this format
+themes/<id>/wallpaper.jpg  # JPEG, 2560 by 1440, at most 4 MiB
+themes/<id>/wallpaper.toml # caption, credit, licence ("public domain" or "CC0")
+```
+
+```sh
+sudo strix-theme repos add someone/strix-theme-x   # owner/repo means GitHub; else an https:// address
+sudo strix-rebuild switch                          # builds its themes in
+strix-theme repos list                             # address, commit, themes, last problem
+sudo strix-update --themes                         # fetch them all now and switch
+sudo strix-update --themes Lucifer                 # only one, by name or address
+sudo strix-theme repos remove Lucifer && sudo strix-rebuild switch
+strix-theme repos check ./my-checkout              # for theme authors: the same rules on a checkout
+```
+
+`repos add` and `repos update` fetch the newest commit of the default branch (HTTPS only, one commit, no submodules, no LFS, at most 50 MiB) and check it: the layout, exactly the three files per theme and nothing else, the wallpaper, the licence, this format, and that no id is a god's or another repository's. Only a commit that passes is taken. Its themes are copied into `/etc/nixos/themes/<id>/` and the commit is written into `/etc/nixos/themes.json`. A repository whose newest commit fails keeps the one it has, and `repos list` says why.
+
+`strix-update` does this for every repository before it fetches the new release, and rebuilds when either changed. A theme repository never stops an update. The rebuild reads only the copies in `/etc/nixos`, so it needs no network for them, and a repository that disappears from the net keeps its themes. `lib.mkSystem` finds `themes.json` beside `apps.json`, so machines installed before it existed need no change.
+
+Connected themes appear in `strix-theme list` after the gods and switch like them. Their wallpaper travels in `tokens.json` as the theme folder (`dir`), the QML module of StrixUI shows it.
+
+## Adding a theme without a repository
+
+1. Make a folder `<id>/` with a `theme.toml`. Copy a god's `theme.toml` from StrixUI as a start.
+2. Check it: `strix-theme check <folder with the theme folder>`.
+3. Add it in `machine.nix`:
 
    ```nix
    strix.theme.extraThemes.my-theme = ./my-theme;   # a folder next to machine.nix
@@ -107,4 +142,4 @@ The virtual consoles take the 16 colors, with two changes: color 0 becomes `back
 
 ## Not in format 1 yet
 
-Fonts, radii, spacing and motion, wallpapers and other assets. They come with the desktop. New optional keys keep `format = 1`; a change that breaks existing themes raises the number, and the engine refuses formats it does not know.
+Fonts, radii, spacing and motion. They are the same for every theme and live in the design system (`packages/ui`). Wallpapers are not in `theme.toml` either: the gods' are in StrixUI, a theme repository's sit next to its `theme.toml`. New optional keys keep `format = 1`; a change that breaks existing themes raises the number, and the engine refuses formats it does not know.

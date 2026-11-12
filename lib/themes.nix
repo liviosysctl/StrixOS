@@ -3,7 +3,10 @@
 # Used by modules/theme.nix and by the flake (installer, checks).
 {
   pkgs,
-  # More theme folders, by id, next to the ones in themes/
+  # The folder with the themes of the distribution, one folder per theme
+  # (design-system/themes of StrixUI)
+  builtin,
+  # More theme folders, by id, next to the built-in ones
   extraThemes ? { },
   # The theme a new installation starts with, <theme> or <theme>:<variant>
   default ? import ../themes/default.nix,
@@ -16,11 +19,16 @@ let
   engine = pkgs.callPackage ../packages/theme-engine { };
   exe = lib.getExe engine;
 
-  # Every folder in themes/ is a theme, the folder name is its id
-  builtin = lib.mapAttrs (themeId: _: ../themes + "/${themeId}") (
-    lib.filterAttrs (_: type: type == "directory") (builtins.readDir ../themes)
+  # Every folder in the built-in folder is a theme, the folder name is its id
+  builtinThemes = lib.mapAttrs (themeId: _: "${builtin}/${themeId}") (
+    lib.filterAttrs (_: type: type == "directory") (builtins.readDir builtin)
   );
-  sources = builtin // extraThemes;
+  taken = builtins.attrNames (builtins.intersectAttrs builtinThemes extraThemes);
+  sources =
+    if taken == [ ] then
+      builtinThemes // extraThemes
+    else
+      throw "extra themes may not use the id of a built-in theme: ${lib.concatStringsSep ", " taken}";
 
   # Read while evaluating, for the names of themes and variants only.
   # The engine checks everything else while building `dir`.
@@ -99,6 +107,7 @@ in
 {
   inherit
     engine
+    builtinThemes
     dir
     data
     resolve

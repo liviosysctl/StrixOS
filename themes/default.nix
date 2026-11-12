@@ -1,4 +1,5 @@
 # The theme a new installation starts with, as <theme> or <theme>:<variant>.
 # The NixOS option <id>.theme.default takes it as its default value, the ISO
-# and the installer use it too.
-"neutral"
+# and the installer use it too. The themes themselves are the eight gods of
+# StrixUI (flake input strixui, design-system/themes).
+"saturnus"

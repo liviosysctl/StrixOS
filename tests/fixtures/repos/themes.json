@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "repos": [
+    {
+      "url": "https://github.com/liviosysctl/strix-theme-lucifer",
+      "name": "Lucifer",
+      "rev": "eebe8976429866a1685312cb96fefbe2cba8fd6f",
+      "themes": ["lucifer"]
+    },
+    {
+      "url": "https://example.org/someone/strix-theme-odd",
+      "name": "Odd",
+      "rev": "0000000000000000000000000000000000000000",
+      "themes": ["saturnus", "ghost", "../etc"],
+      "problem": "cannot fetch: repository not found"
+    }
+  ]
+}

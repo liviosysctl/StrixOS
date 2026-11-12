@@ -7,10 +7,16 @@
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # The design system: the eight god themes, the QML module, wallpapers and
+    # fonts. Only data, so not read as a flake. Moves with every update (update.yml).
+    strixui = {
+      url = "github:liviosysctl/StrixUI";
+      flake = false;
+    };
   };
 
   outputs =
-    { self, nixpkgs, disko, ... }:
+    { self, nixpkgs, disko, strixui, ... }:
     let
       # The only place with the version number. bump_version.py replaces exactly this line.
       version = "0.1.0";
@@ -105,8 +111,11 @@
 
       iso = self.nixosConfigurations."${branding.id}-iso";
 
-      # The themes in themes/ with the default from themes/default.nix
-      themes = import ./lib/themes.nix { inherit pkgs; };
+      # The themes of StrixUI with the default from themes/default.nix
+      themes = import ./lib/themes.nix {
+        inherit pkgs;
+        builtin = "${strixui}/design-system/themes";
+      };
     in
     {
       lib = { inherit version mkSystem; };
@@ -177,6 +186,9 @@
         theme-engine = themes.engine;
         themes = themes.dir;
 
+        # The design system: QML module, wallpapers, fonts
+        ui = pkgs.callPackage ./packages/ui { src = strixui; };
+
         # The search service, with the system menu and the command files (10-search in the plan)
         search = pkgs.callPackage ./packages/search { };
 
@@ -192,7 +204,7 @@
 
       # Tests that boot VMs, too slow for every push: nix build .#tests.theme -L
       legacyPackages.${system}.tests = {
-        theme = import ./tests/theme-vm.nix { inherit pkgs; };
+        theme = import ./tests/theme-vm.nix { inherit self pkgs; };
         # The installer on an empty disk, then the installed disk booted.
         # Needs a clean, committed tree. nix build .#tests.install -L
         install = import ./tests/install.nix { inherit self pkgs; };

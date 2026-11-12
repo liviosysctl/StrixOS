@@ -1,7 +1,8 @@
 # Every week and on demand: move everything to the newest versions, on main
 # and on personal.
 #
-#   nix flake update                      nixpkgs, disko and the other inputs
+#   nix flake update                      nixpkgs, disko, StrixUI (the design system
+#                                         and the god themes) and the other inputs
 #   cargo update (packages/theme-engine)  the crates of the theme engine
 #   cargo update (packages/search)        the crates of the search service
 #

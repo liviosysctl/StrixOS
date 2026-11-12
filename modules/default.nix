@@ -8,6 +8,7 @@
     ./systemd-tools.nix
     ./boot-splash.nix
     ./theme.nix
+    ./ui.nix
     ./tools.nix
     ./apps.nix
     ./search.nix

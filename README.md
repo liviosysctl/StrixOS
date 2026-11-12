@@ -23,8 +23,9 @@ Changes that matter for both go into both branches. When M245 is over, `personal
 | `modules/storage/btrfs.nix` | Disk layout with disko: GPT, ESP, optional LUKS, btrfs with flat subvolumes, Snapper for `/home`, hibernation. |
 | `modules/boot-splash.nix` | Graphical boot with Plymouth: wordmark, progress line, a styled passphrase field. |
 | `modules/theme.nix` | The theme engine on the system: the `strix-theme` command, the service that applies the theme at boot, the boot splash that follows it. |
-| `themes/` | The themes, one folder with a `theme.toml` each: `neutral` (black and red) and `chamber` (Chamber UI, light and dark). [themes/README.md](themes/README.md) describes the format. |
-| `packages/theme-engine/` | The theme engine in Rust: reads and checks themes, switches them at runtime. |
+| `themes/` | `default.nix`, the theme a new installation starts with (`saturnus`). The themes are the eight Roman gods of [StrixUI](https://github.com/liviosysctl/StrixUI), a flake input. [themes/README.md](themes/README.md) describes the format and the theme repositories. |
+| `packages/theme-engine/` | The theme engine in Rust: reads and checks themes, switches them at runtime, fetches and checks theme repositories. |
+| `packages/ui/`, `modules/ui.nix` | The design system of StrixUI on the machine: the QML module for Quickshell, the wallpapers, the fonts. |
 | `lib/themes.nix` | Themes at build time: the checked themes folder, a Plymouth theme per variant, the installer's colors. |
 | `packages/plymouth-theme/` | Builds the Plymouth theme of one theme variant. |
 | `templates/machine/` | Template for `/etc/nixos` that the installer fills in. |
@@ -36,21 +37,23 @@ Changes that matter for both go into both branches. When M245 is over, `personal
 
 ## On an installed machine
 
-`/etc/nixos` holds `flake.nix`, `flake.lock`, `hardware.nix`, `machine.nix` and `apps.json`. These commands work with it:
+`/etc/nixos` holds `flake.nix`, `flake.lock`, `hardware.nix`, `machine.nix` and `apps.json`, and once a theme repository is connected `themes.json` and `themes/`. These commands work with it:
 
 | Command | Does |
 |---|---|
 | `sudo strix-rebuild [switch\|boot\|test\|build]` | Rebuilds from `/etc/nixos` |
-| `sudo strix-update` | Fetches the newest release and switches to it, keeps the old version if the build fails |
+| `sudo strix-update` | Fetches the newest release and every connected theme repository and switches to them, keeps the old version if the build fails |
+| `sudo strix-update --themes [REPO]` | Only the theme repositories, or the one named |
 | `sudo strix-apps add\|remove <package>`, `strix-apps list` | Installs or removes a package from nixpkgs. This is what the Store calls. |
 | `sudo strix-theme set <theme>`, `strix-theme list` | Switches the theme without a rebuild, see [themes/README.md](themes/README.md). |
+| `sudo strix-theme repos add <owner/repo>`, `strix-theme repos list` | Connects a theme repository; `strix-rebuild switch` builds its themes in, every `strix-update` brings new versions |
 
 SSH is on: `ssh <user>@<address>` with the user's password. Root cannot log in. To turn it off, add `services.openssh.enable = false;` to `machine.nix` and rebuild.
 
 ## Planned
 
 - Strix base system with Hyprland and Quickshell
-- Theme engine for the desktop: Quickshell, Ghostty, GTK and Qt follow the theme (the engine, the console, the boot splash and `tokens.json` are done)
+- Theme engine for the desktop: Quickshell, Ghostty, GTK and Qt follow the theme (the engine, the console, the boot splash, `tokens.json`, theme repositories and the QML module are done)
 - Store: install packages from nixpkgs with one click
 - Bootstick app for Windows (separate repository)
 

@@ -9,6 +9,7 @@ let
   configs = self.nixosConfigurations;
   iso = configs."${branding.id}-iso".config;
   reference = configs."${branding.id}-reference";
+  gods = [ "apollo" "bacchus" "janus" "mars" "neptunus" "pluto" "saturnus" "vulcanus" ];
 
   # A check passes if this derivation can be evaluated at all.
   ok = name: pkgs.runCommand "check-${name}" { } "touch $out";
@@ -104,9 +105,46 @@ in
     assert fixed iso;
     ok "systemd-tools";
 
-  # Every theme in themes/ passes the engine's check, and the engine's own
-  # tests pass (they run while it is built)
-  themes = (import ../lib/themes.nix { inherit pkgs; }).dir;
+  # Every god theme of StrixUI passes the engine's check, and the engine's own
+  # tests pass (they run while it is built), the theme repositories' included
+  themes =
+    (import ../lib/themes.nix {
+      inherit pkgs;
+      builtin = "${self.inputs.strixui}/design-system/themes";
+    }).dir;
+
+  # The design system on the machine, and its QML module loads in Quickshell:
+  # every component of the gallery, Strix.Shell, the theme from the engine's
+  # tokens. Any QML warning or error fails the check.
+  ui =
+    let
+      cfg = reference.config;
+      ui = cfg.${branding.id}.ui.package;
+      themes = cfg.system.build.themes;
+      engine = lib.getExe cfg.${branding.id}.theme.package;
+    in
+    assert lib.elem ui cfg.fonts.packages;
+    assert lib.hasSuffix "/qml" cfg.environment.sessionVariables.QML_IMPORT_PATH;
+    pkgs.runCommand "check-ui"
+      {
+        nativeBuildInputs = [ pkgs.quickshell pkgs.gnugrep ];
+      }
+      ''
+        export HOME=$TMPDIR XDG_RUNTIME_DIR=$TMPDIR/run QT_QPA_PLATFORM=offscreen
+        mkdir -p -m 0700 $XDG_RUNTIME_DIR
+        THEMES_DIR=${themes} ${engine} show janus > tokens.json
+        cp ${./ui-load.qml} shell.qml
+        TOKENS=$PWD/tokens.json GALLERY=file://${ui}/share/${branding.id}-ui/qml/gallery.qml \
+          QML_IMPORT_PATH=${ui}/share/${branding.id}-ui/qml \
+          timeout 60 quickshell -p $PWD/shell.qml > log.txt 2>&1 || true
+        cat log.txt
+        grep -q "STRIX-RESULT gallery=1 theme=janus" log.txt
+        if grep -E "ERROR|WARN.*qml|\.qml:[0-9]+" log.txt; then
+          echo "QML problems, see above"
+          exit 1
+        fi
+        echo ok > $out
+      '';
 
   # The search service with its unit tests (golden queries, the 5 ms budget, the socket), and the
   # system menu and command files checked by it: unique ids, groups that exist, no emoji
@@ -136,12 +174,10 @@ in
       names = map (p: p.name) cfg.boot.plymouth.themePackages;
       unit = "${branding.id}-theme-boot";
     in
-    assert cfg.boot.plymouth.theme == "${branding.id}-neutral-dark";
-    assert lib.all (name: lib.elem name names) [
-      "${branding.id}-neutral-dark"
-      "${branding.id}-chamber-light"
-      "${branding.id}-chamber-dark"
-    ];
+    assert cfg.boot.plymouth.theme == "${branding.id}-saturnus-dark";
+    assert lib.all (name: lib.elem name names) (
+      map (god: "${branding.id}-${god}-dark") gods
+    );
     assert cfg.boot.initrd.systemd.services ? ${unit};
     assert lib.elem "plymouth-start.service" cfg.boot.initrd.systemd.services.${unit}.before;
     assert cfg.environment.etc."plymouth/plymouthd.conf".source == "/run/${branding.id}/theme/plymouthd.conf";
@@ -165,14 +201,46 @@ in
     let
       with' = default: (reference.extendModules { modules = [ { ${branding.id}.theme.default = default; } ]; }).config;
     in
-    assert (with' "chamber").boot.plymouth.theme == "${branding.id}-chamber-light";
-    assert (with' "chamber:dark").boot.plymouth.theme == "${branding.id}-chamber-dark";
+    assert (with' "janus").boot.plymouth.theme == "${branding.id}-janus-dark";
+    assert (with' "pluto:dark").boot.plymouth.theme == "${branding.id}-pluto-dark";
     ok "theme-default";
+
+  # Theme repositories: mkSystem finds themes.json beside apps.json, the copied
+  # themes join the gods and pass the engine's check. A theme with a god's id, a
+  # missing folder or a bad id is left out with a warning, never an error.
+  theme-repos =
+    let
+      machine = self.lib.mkSystem {
+        modules = [ ../hosts/reference ];
+        apps = ./fixtures/repos/apps.json;
+      };
+      cfg = machine.config;
+      names = map (p: p.name) cfg.boot.plymouth.themePackages;
+    in
+    assert reference.config.${branding.id}.theme.repos.file == null;
+    assert cfg.${branding.id}.theme.repos.file != null;
+    assert lib.elem "${branding.id}-lucifer-dark" names;
+    assert lib.length names == lib.length gods + 1;
+    cfg.system.build.themes;
+
+  # strix-update with the theme repositories: when it fetches, when it rebuilds,
+  # that a theme repository never stops an update; --themes alone
+  update-tool =
+    pkgs.runCommand "check-update-tool"
+      {
+        nativeBuildInputs = with pkgs; [ bash coreutils util-linux diffutils jq ];
+      }
+      ''
+        bash ${./update.sh} ${../modules/tools/common.sh} ${../modules/tools/update.sh} | tee $out
+      '';
+
+  # The update tool itself passes shellcheck (writeShellApplication runs it)
+  update-tool-build = reference.config.system.build.distroTools.update;
 
   # A default theme that does not exist stops the build
   theme-default-unknown = mustFail "theme-default-unknown" (toplevelWith { ${branding.id}.theme.default = "nope"; });
   theme-default-unknown-variant = mustFail "theme-default-unknown-variant" (
-    toplevelWith { ${branding.id}.theme.default = "chamber:dusk"; }
+    toplevelWith { ${branding.id}.theme.default = "janus:light"; }
   );
 
   # The ISO: console colors and the command, but no splash and so no EFI variable
