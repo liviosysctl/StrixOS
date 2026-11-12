@@ -6,7 +6,7 @@
 --   bindings.lua  every key of the cheat sheet  (strix-search bindings, from shell/menu.toml)
 --
 -- Own settings: strix.desktop.extraConfig in machine.nix, or ~/.config/strix/hyprland.lua,
--- which is read last. Measures and motion come from the design system StrixUI
+-- which is read last; Settings writes monitors.lua and keys.lua beside it. Measures and motion come from the design system StrixUI
 -- (surfaces.md, motion.md).
 
 hl.monitor({ output = "", mode = "preferred", position = "auto", scale = "auto" })
@@ -84,15 +84,19 @@ for _, part in ipairs({ "machine", "theme", "bindings" }) do
     end
 end
 
+-- The person's own files in ~/.config/strix, read last: monitors.lua and keys.lua are written
+-- by Settings (Display, Hotkeys), hyprland.lua is theirs to edit
 local home = os.getenv("HOME")
 if home then
-    local own = home .. "/.config/strix/hyprland.lua"
-    local file = io.open(own, "r")
-    if file then
-        file:close()
-        local ok, err = pcall(dofile, own)
-        if not ok then
-            print("strix: " .. own .. ": " .. tostring(err))
+    for _, name in ipairs({ "monitors", "keys", "hyprland" }) do
+        local own = home .. "/.config/strix/" .. name .. ".lua"
+        local file = io.open(own, "r")
+        if file then
+            file:close()
+            local ok, err = pcall(dofile, own)
+            if not ok then
+                print("strix: " .. own .. ": " .. tostring(err))
+            end
         end
     end
 end

@@ -115,9 +115,32 @@ impl State {
                 Ok(json!({ "ran": argv }))
             }
             "hotkeys" => match &self.cfg.menu {
-                Some(menu) => crate::bindings::hotkeys(menu).map(|rows| json!(rows)),
+                Some(menu) => crate::bindings::hotkeys(menu).map(|mut rows| {
+                    if let Some(dir) = &self.cfg.keys_dir {
+                        crate::keys::apply(&mut rows, &crate::keys::load(dir));
+                    }
+                    json!(rows)
+                }),
                 None => Ok(json!([])),
             },
+            "set_key" | "reset_key" => {
+                let (Some(menu), Some(dir)) = (&self.cfg.menu, &self.cfg.keys_dir) else {
+                    return Err("no menu or no config folder: keys cannot be changed here".into());
+                };
+                let id = params.get("id").and_then(Value::as_str).ok_or("needs id")?;
+                let keys = if method == "set_key" {
+                    Some(
+                        params
+                            .get("keys")
+                            .and_then(Value::as_str)
+                            .ok_or("needs keys")?,
+                    )
+                } else {
+                    None
+                };
+                let bound = crate::bindings::read(menu, &self.cfg.id)?;
+                crate::keys::set(&bound, dir, id, keys).map(|own| json!(own))
+            }
             "reload" => {
                 drop(index);
                 Ok(json!({ "entries": self.rebuild() }))

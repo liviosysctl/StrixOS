@@ -1,10 +1,11 @@
-// Settings (12-desktop, step 12): a window with the pages Themes, Hotkeys and About.
+// Settings (12-desktop, step 12): a window with the pages Themes, Network, Bluetooth, Sound,
+// Display, Power, Hotkeys and About; each page but Themes and About is its own file.
 // Opened by strix-settings [PAGE [ROW]] (ipc: settings open), from Search or the system menu.
 //
 // Themes: the machine's theme and Keep (the session's theme service, Backend "theme"), and the
 // theme repositories (strix-theme repos). Changes to repositories need root and a rebuild: they
 // run in Ghostty with sudo, where the progress stays readable, and the list is read again after.
-// Hotkeys: every key, from the search service (Backend "search", hotkeys).
+// Hotkeys: every key, from the search service (Backend "search", hotkeys), changed one by one.
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -21,11 +22,14 @@ Scope {
     property string row: ""
     property var themeState: null
     property var repos: []
-    property var hotkeys: []
-    property string filter: ""
     property string version: ""
     readonly property var pages: [
         { id: "themes", title: "Themes", icon: "palette" },
+        { id: "network", title: "Network", icon: "wifi" },
+        { id: "bluetooth", title: "Bluetooth", icon: "bluetooth" },
+        { id: "sound", title: "Sound", icon: "volume-2" },
+        { id: "display", title: "Display", icon: "monitor" },
+        { id: "power", title: "Power", icon: "zap" },
         { id: "hotkeys", title: "Hotkeys", icon: "keyboard" },
         { id: "about", title: "About", icon: "info" }
     ]
@@ -40,7 +44,6 @@ Scope {
     function refresh() {
         themes.call("state", {}, s => root.themeState = s)
         reposList.running = true
-        search.call("hotkeys", {}, rows => root.hotkeys = rows || [])
     }
 
     /// A command that needs root, in a terminal that stays open; the list is read again after
@@ -57,11 +60,6 @@ Scope {
         id: themes
         service: "theme"
         onEvent: (name, data) => { if (name === "changed") root.themeState = data }
-    }
-
-    Backend {
-        id: search
-        service: "search"
     }
 
     Process {
@@ -255,36 +253,12 @@ Scope {
                         }
                     }
 
-                    // ------------------------------------------------ Hotkeys
-                    Column {
-                        visible: root.page === "hotkeys"
-                        width: parent.width
-                        spacing: Theme.space2
-
-                        Label { textStyle: "title"; color: Theme.text; text: "Hotkeys" }
-                        SearchField {
-                            width: parent.width
-                            onTextChanged: root.filter = text.toLowerCase()
-                        }
-                        Repeater {
-                            model: root.hotkeys.filter(h => root.filter === ""
-                                || (h.title + " " + h.target + " " + h.keys + " " + h.group).toLowerCase().indexOf(root.filter) >= 0)
-                            HotkeyRow {
-                                required property var modelData
-                                width: content.width
-                                action: modelData.title
-                                target: modelData.target || ""
-                                keys: modelData.keys
-                            }
-                        }
-                        Label {
-                            width: parent.width
-                            wrapMode: Text.WordWrap
-                            textStyle: "caption"
-                            color: Theme.textFaint
-                            text: "The keys come from the system menu of Strix. Own keys go into ~/.config/strix/hyprland.lua for now."
-                        }
-                    }
+                    SettingsNetwork { visible: root.page === "network"; active: root.open && visible; width: parent.width }
+                    SettingsBluetooth { visible: root.page === "bluetooth"; active: root.open && visible; width: parent.width }
+                    SettingsSound { visible: root.page === "sound"; width: parent.width }
+                    SettingsDisplay { visible: root.page === "display"; width: parent.width }
+                    SettingsPower { visible: root.page === "power"; width: parent.width }
+                    SettingsHotkeys { visible: root.page === "hotkeys"; active: root.open && visible; width: parent.width }
 
                     // ------------------------------------------------ About
                     Column {

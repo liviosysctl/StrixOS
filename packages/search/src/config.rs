@@ -27,6 +27,8 @@ pub struct Config {
     pub app_dirs: Vec<PathBuf>,
     pub own_entries: Option<PathBuf>,
     pub usage_file: Option<PathBuf>,
+    /// Own keys from Settings › Hotkeys: keys.json and keys.lua
+    pub keys_dir: Option<PathBuf>,
     pub socket: Option<PathBuf>,
     pub locale: Locale,
     /// `XDG_CURRENT_DESKTOP`, for `OnlyShowIn` and `NotShowIn`.
@@ -82,8 +84,11 @@ impl Config {
             terminal,
             direct_spawn: env::var("SEARCH_SPAWN").as_deref() == Ok("direct"),
             app_dirs,
-            own_entries: config_home.map(|c| c.join(&id).join("search/entries.toml")),
+            own_entries: config_home
+                .as_ref()
+                .map(|c| c.join(&id).join("search/entries.toml")),
             usage_file: state_home.map(|s| s.join(&id).join("search/usage.json")),
+            keys_dir: config_home.map(|c| c.join(&id)),
             socket: path("XDG_RUNTIME_DIR").map(|r| r.join(&id).join("search.sock")),
             locale: Locale::from_env(),
             desktops: env::var("XDG_CURRENT_DESKTOP")
@@ -106,6 +111,7 @@ impl Config {
             app_dirs: Vec::new(),
             own_entries: None,
             usage_file: None,
+            keys_dir: None,
             socket: None,
             locale: Locale::default(),
             desktops: vec!["Hyprland".into()],

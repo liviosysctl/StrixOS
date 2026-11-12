@@ -80,7 +80,7 @@ pub enum Hypr {
 }
 
 /// One bound key combination
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Bound {
     pub id: String,
     /// "SUPER + SHIFT + RETURN"
@@ -343,6 +343,9 @@ pub struct Hotkey {
     /// Only inside one view, e.g. "picker"
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scope: Option<String>,
+    /// Changed in Settings › Hotkeys
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub changed: bool,
 }
 
 /// The groups of the cheat sheet, in this order; others follow in file order
@@ -393,6 +396,7 @@ pub fn hotkeys(path: &Path) -> Result<Vec<Hotkey>, String> {
                 title: a.title.clone(),
                 keys,
                 scope: a.scope.clone(),
+                changed: false,
             })
         })
         .chain(file.binding.iter().map(|b| Hotkey {
@@ -402,6 +406,7 @@ pub fn hotkeys(path: &Path) -> Result<Vec<Hotkey>, String> {
             keys: b.keys.clone(),
             target: b.target.clone().unwrap_or_default(),
             scope: None,
+            changed: false,
         }))
         .collect();
     let rank = |g: &str| {
@@ -421,20 +426,35 @@ pub fn lua(bound: &[Bound]) -> String {
          -- change menu.toml, or add your own in strix.desktop.extraConfig.\n\n",
     );
     for b in bound {
-        let mut opts = format!("description = {}", lua_string(&b.description));
-        if b.locked {
-            opts.push_str(", locked = true");
-        }
-        if b.repeat {
-            opts.push_str(", repeating = true");
-        }
-        out.push_str(&format!(
-            "hl.bind({}, {}, {{ {opts} }})\n",
-            lua_string(&b.combo),
-            b.dispatcher
-        ));
+        out.push_str(&bind_line(b, &b.combo));
     }
     out
+}
+
+/// One `hl.bind` of a binding, on `combo`
+pub fn bind_line(b: &Bound, combo: &str) -> String {
+    let mut opts = format!("description = {}", lua_string(&b.description));
+    if b.locked {
+        opts.push_str(", locked = true");
+    }
+    if b.repeat {
+        opts.push_str(", repeating = true");
+    }
+    format!(
+        "hl.bind({}, {}, {{ {opts} }})\n",
+        lua_string(combo),
+        b.dispatcher
+    )
+}
+
+/// The Hyprland combination of one key as the cheat sheet writes it ("Super Shift B"), or why
+/// it is not one
+pub fn single_combo(keys: &str) -> Result<String, String> {
+    let (mods, list) = expand(keys)?;
+    match list.as_slice() {
+        [key] => Ok(combo(&mods, key)),
+        _ => Err(format!("\"{keys}\" is more than one key")),
+    }
 }
 
 #[cfg(test)]

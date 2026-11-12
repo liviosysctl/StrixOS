@@ -177,6 +177,14 @@ in
     assert reference'.environment.sessionVariables.HYPRLAND_CONFIG == "/etc/xdg/${branding.id}/hypr/hyprland.lua";
     assert reference'.systemd.user.services ? "${branding.id}-theme-session";
     assert lib.hasInfix "org.freedesktop.policykit.exec" reference'.security.polkit.extraConfig;
+    # The laptop: power profiles, Bluetooth off until asked, the lid suspends unless docked
+    assert reference'.services.power-profiles-daemon.enable;
+    assert reference'.hardware.bluetooth.enable;
+    assert !reference'.hardware.bluetooth.powerOnBoot;
+    assert reference'.${branding.id}.desktop.lid == "suspend";
+    assert reference'.services.logind.settings.Login.HandleLidSwitch == "suspend";
+    assert reference'.services.logind.settings.Login.HandleLidSwitchDocked == "ignore";
+    assert reference'.environment.etc."xdg/${branding.id}/lid".text == "suspend\n";
     pkgs.runCommand "check-desktop"
       {
         nativeBuildInputs = [ reference'.programs.hyprland.package pkgs.gnugrep ];

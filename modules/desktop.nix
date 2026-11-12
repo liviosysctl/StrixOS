@@ -215,6 +215,16 @@ in
       description = "The login: the own one in Quickshell, or tuigreet in the console.";
     };
 
+    lid = lib.mkOption {
+      type = lib.types.enum [ "suspend" "hibernate" "lock" "ignore" ];
+      default = "suspend";
+      description = ''
+        What closing the lid does on battery and on power: suspend (the default), hibernate
+        (needs a swap file large enough, strix.storage.hibernation), lock the screen, or nothing.
+        With an external screen connected nothing happens either way. Settings › Power shows it.
+      '';
+    };
+
     hyprlandConfig = lib.mkOption {
       type = lib.types.package;
       readOnly = true;
@@ -272,8 +282,21 @@ in
       wireplumber.enable = true;
     };
     security.rtkit.enable = true;
-    # The battery in the bar
+    # The battery in the bar, the power profiles and Bluetooth of Settings
     services.upower.enable = true;
+    services.power-profiles-daemon.enable = true;
+    hardware.bluetooth = {
+      enable = true;
+      powerOnBoot = false;
+    };
+
+    # Closing the lid (Settings › Power shows it); locking comes from hypridle before sleep
+    services.logind.settings.Login = {
+      HandleLidSwitch = cfg.lid;
+      HandleLidSwitchExternalPower = cfg.lid;
+      HandleLidSwitchDocked = "ignore";
+    };
+    environment.etc."xdg/${id}/lid".text = cfg.lid + "\n";
     security.polkit.enable = true;
 
     programs.firefox.enable = true;

@@ -10,6 +10,36 @@ symbol = "palette"
 words = ["theme", "look", "god", "colours", "wallpaper", "appearance"]
 
 [[page]]
+id = "network"
+title = "Network"
+symbol = "wifi"
+words = ["wi-fi", "wifi", "wlan", "internet", "wired", "ethernet"]
+
+[[page]]
+id = "bluetooth"
+title = "Bluetooth"
+symbol = "bluetooth"
+words = ["headphones", "pair", "devices"]
+
+[[page]]
+id = "sound"
+title = "Sound"
+symbol = "volume-2"
+words = ["audio", "volume", "speakers", "headphones", "microphone"]
+
+[[page]]
+id = "display"
+title = "Display"
+symbol = "monitor"
+words = ["screen", "monitor", "scale", "resolution", "hidpi"]
+
+[[page]]
+id = "power"
+title = "Power"
+symbol = "zap"
+words = ["battery", "energy", "lid", "suspend", "hibernate", "profile"]
+
+[[page]]
 id = "hotkeys"
 title = "Hotkeys"
 symbol = "keyboard"
@@ -47,10 +77,63 @@ type = "action"
 words = ["repository", "repo", "git", "github", "connect", "outside", "more themes"]
 
 [[row]]
+id = "wifi"
+page = "network"
+title = "Wi-Fi"
+description = "Networks around, connect with a password"
+type = "switch"
+words = ["wlan", "wireless", "connect", "password"]
+
+[[row]]
+id = "output"
+page = "sound"
+title = "Output device"
+type = "choice"
+words = ["speaker", "headphones", "audio"]
+value = ["sh", "-c", "wpctl inspect @DEFAULT_AUDIO_SINK@ | sed -n 's/.*node.description = \"\\(.*\\)\"/\\1/p' | head -n 1"]
+
+[[row]]
+id = "input"
+page = "sound"
+title = "Microphone"
+type = "choice"
+words = ["input", "recording", "mic"]
+
+[[row]]
+id = "scale"
+page = "display"
+title = "Scale"
+type = "choice"
+words = ["zoom", "size", "hidpi", "bigger", "smaller"]
+
+[[row]]
+id = "profile"
+page = "power"
+title = "Power profile"
+type = "choice"
+words = ["power saver", "balanced", "performance", "energy"]
+value = ["powerprofilesctl", "get"]
+
+[[row]]
+id = "lid"
+page = "power"
+title = "Closing the lid"
+type = "text"
+words = ["lid", "suspend", "sleep", "close"]
+value = ["cat", "/etc/xdg/{id}/lid"]
+
+[[row]]
+id = "bluetooth"
+page = "bluetooth"
+title = "Bluetooth"
+type = "switch"
+words = ["headphones", "pair"]
+
+[[row]]
 id = "all"
 page = "hotkeys"
 title = "All hotkeys"
-description = "Every key of Strix, grouped as on the cheat sheet"
+description = "Every key of Strix; click one to change it"
 type = "keys"
 words = ["cheat sheet", "shortcuts", "bindings"]
 
