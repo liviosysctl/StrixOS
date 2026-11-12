@@ -22,7 +22,7 @@
     swapSize = "@swapSize@";
     hibernation = @hibernation@;
   };
-@vmwareLine@
+
   # Release the machine was installed with. Never change it, not even after updates.
   system.stateVersion = "@stateVersion@";
 }

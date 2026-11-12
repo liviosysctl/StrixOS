@@ -154,12 +154,6 @@
           modules = [ ./hosts/reference ];
           apps = ./templates/machine/apps.json;
         };
-
-        # Test machine for VMware Workstation, with guest tools
-        "${branding.id}-vmware" = mkSystem {
-          modules = [ ./hosts/vmware ];
-          apps = ./templates/machine/apps.json;
-        };
       };
 
       packages.${system} = {

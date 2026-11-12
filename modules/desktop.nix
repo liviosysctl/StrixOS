@@ -75,11 +75,6 @@ let
           },
       })
     ''
-    + lib.optionalString config.virtualisation.vmware.guest.enable ''
-
-      -- VMware draws no hardware cursor under Hyprland
-      hl.config({ cursor = { no_hardware_cursors = true } })
-    ''
     + lib.optionalString (cfg.extraConfig != "") ''
 
       -- strix.desktop.extraConfig
@@ -117,8 +112,8 @@ let
     export XKB_DEFAULT_LAYOUT=${lib.escapeShellArg xkb.layout} XKB_DEFAULT_VARIANT=${lib.escapeShellArg xkb.variant}
     export XKB_DEFAULT_OPTIONS=${lib.escapeShellArg xkb.options}
     export XCURSOR_THEME=Adwaita XCURSOR_SIZE=24
-    # A VM without 3D (VMware with 3D off, QEMU): wlroots refuses Mesa's software renderer
-    # unless allowed; with a GPU this changes nothing
+    # A machine without usable 3D (an old GPU, a VM): wlroots refuses Mesa's software renderer
+    # unless allowed; with a working GPU this changes nothing
     export WLR_RENDERER_ALLOW_SOFTWARE=1
     # Early in the boot the keyboard may not be there yet: start anyway, it comes by hotplug
     export WLR_LIBINPUT_NO_DEVICES=1

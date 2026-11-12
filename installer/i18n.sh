@@ -127,7 +127,7 @@ declare -A tr_en=(
   [b_stay]="Stay here"
 
   [e_root]="Run the installer with sudo: sudo %s-install"
-  [e_uefi]="%s needs UEFI. Switch the firmware from Legacy/CSM to UEFI. In VMware: VM Settings, Options, Advanced, Firmware type UEFI."
+  [e_uefi]="%s needs UEFI. Switch the firmware from Legacy/CSM to UEFI."
   [e_ram]="%s needs at least 4 GiB of memory to install."
 )
 
@@ -250,7 +250,7 @@ declare -A tr_de=(
   [b_stay]="Hier bleiben"
 
   [e_root]="Starte den Installer mit sudo: sudo %s-install"
-  [e_uefi]="%s braucht UEFI. Stelle die Firmware von Legacy/CSM auf UEFI um. In VMware: VM Settings, Options, Advanced, Firmware type UEFI."
+  [e_uefi]="%s braucht UEFI. Stelle die Firmware von Legacy/CSM auf UEFI um."
   [e_ram]="%s braucht mindestens 4 GiB Arbeitsspeicher für die Installation."
 )
 
@@ -373,7 +373,7 @@ declare -A tr_fr=(
   [b_stay]="Rester ici"
 
   [e_root]="Lance l'installateur avec sudo : sudo %s-install"
-  [e_uefi]="%s a besoin d'UEFI. Passe le firmware de Legacy/CSM à UEFI. Dans VMware : VM Settings, Options, Advanced, Firmware type UEFI."
+  [e_uefi]="%s a besoin d'UEFI. Passe le firmware de Legacy/CSM à UEFI."
   [e_ram]="%s a besoin d'au moins 4 Gio de mémoire pour l'installation."
 )
 
@@ -496,7 +496,7 @@ declare -A tr_it=(
   [b_stay]="Resta qui"
 
   [e_root]="Avvia l'installatore con sudo: sudo %s-install"
-  [e_uefi]="%s richiede UEFI. Passa il firmware da Legacy/CSM a UEFI. In VMware: VM Settings, Options, Advanced, Firmware type UEFI."
+  [e_uefi]="%s richiede UEFI. Passa il firmware da Legacy/CSM a UEFI."
   [e_ram]="%s richiede almeno 4 GiB di memoria per l'installazione."
 )
 

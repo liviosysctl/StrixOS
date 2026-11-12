@@ -98,12 +98,8 @@ answer() {
 
 # Fills the placeholders of the machine.nix template
 render_machine_nix() {
-  local template=$1 content console_map xkb_layout xkb_variant vmware_line="" leftover
+  local template=$1 content console_map xkb_layout xkb_variant leftover
   read -r console_map xkb_layout xkb_variant <<<"$(keyboard_settings "$keyboard")" || true
-
-  if [ "$virtualization" = vmware ]; then
-    vmware_line=$'\n  # Detected VMware: guest tools for display resizing and the clipboard\n  virtualisation.vmware.guest.enable = true;\n'
-  fi
 
   content=$(<"$template")
   content=${content//@hostName@/$host_name}
@@ -117,7 +113,6 @@ render_machine_nix() {
   content=${content//@encrypt@/$encrypt}
   content=${content//@swapSize@/$swap}
   content=${content//@hibernation@/$hibernation}
-  content=${content//@vmwareLine@/$vmware_line}
   content=${content//@stateVersion@/$STATE_VERSION}
 
   # Check before the free text goes in, so a name with @ signs cannot look
@@ -216,7 +211,6 @@ install_from_answers() {
     die "Encryption is on, but there is no passphrase in $luks_key_file."
   fi
   [ -s "$password_file" ] || die "There is no password in $password_file."
-  virtualization=$(systemd-detect-virt || true)
   swap=$(swap_size "$(ram_gib)" "$hibernation")
   log "Installing on $disk, swap $swap, encryption $encrypt, hibernation $hibernation"
 

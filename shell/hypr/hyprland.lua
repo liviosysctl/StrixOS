@@ -1,7 +1,7 @@
 -- The Hyprland configuration of Strix. modules/desktop.nix puts it with the files it requires
 -- into /etc/xdg/strix/hypr; HYPRLAND_CONFIG points here, so Hyprland never writes its own.
 --
---   machine.lua   keyboard of machine.nix, VMware, strix.desktop.extraConfig  (from Nix)
+--   machine.lua   keyboard of machine.nix, strix.desktop.extraConfig  (from Nix)
 --   theme.lua     window colors of the current theme  (the theme engine, /run/strix/theme)
 --   bindings.lua  every key of the cheat sheet  (strix-search bindings, from shell/menu.toml)
 --

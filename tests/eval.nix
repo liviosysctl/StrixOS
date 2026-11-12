@@ -146,7 +146,7 @@ in
         echo ok > $out
       '';
 
-  # The desktop: the Hyprland configuration of the reference and the VMware machine, every part
+  # The desktop: the Hyprland configuration of the reference machine, every part
   # checked by Hyprland itself (--verify-config), with the colors the engine writes for a god;
   # the session, the login and the theme follower are there
   desktop =
@@ -169,17 +169,14 @@ in
             echo "$log" | grep -q "config ok" || { echo "$log"; echo "FAIL ${name} $part.lua"; exit 1; }
             echo "ok   ${name} $part.lua"
           done
-          grep -q no_hardware_cursors ${name}/machine.lua && echo "     ${name}: no hardware cursor" || true
         '';
       reference' = reference.config;
-      vmware = configs."${branding.id}-vmware".config;
     in
     assert reference'.programs.hyprland.withUWSM;
     assert reference'.${branding.id}.desktop.greeter == "strix";
     assert reference'.environment.sessionVariables.HYPRLAND_CONFIG == "/etc/xdg/${branding.id}/hypr/hyprland.lua";
     assert reference'.systemd.user.services ? "${branding.id}-theme-session";
     assert lib.hasInfix "org.freedesktop.policykit.exec" reference'.security.polkit.extraConfig;
-    assert vmware.virtualisation.vmware.guest.enable;
     pkgs.runCommand "check-desktop"
       {
         nativeBuildInputs = [ reference'.programs.hyprland.package pkgs.gnugrep ];
@@ -188,9 +185,6 @@ in
         export HOME=$TMPDIR XDG_RUNTIME_DIR=$TMPDIR/run
         mkdir -p -m 0700 $XDG_RUNTIME_DIR
         ${check "reference" reference'}
-        ${check "vmware" vmware}
-        grep -q no_hardware_cursors vmware/machine.lua
-        ! grep -q no_hardware_cursors reference/machine.lua
         test "$(grep -c '^hl.bind' reference/bindings.lua)" -ge 50
         echo ok > $out
       '';
@@ -347,23 +341,8 @@ in
     assert lib.elem iso.${branding.id}.theme.package iso.environment.systemPackages;
     ok "theme-iso";
 
-  # Both test machines go through mkSystem like a real installation
+  # The test machine goes through mkSystem like a real installation
   eval-reference = builtins.seq reference.config.system.build.toplevel.drvPath (ok "eval-reference");
-  eval-vmware = builtins.seq
-    configs."${branding.id}-vmware".config.system.build.toplevel.drvPath
-    (ok "eval-vmware");
-
-  # VMware guests unload VMCI around hibernation, other machines don't have the unit
-  vmware-hibernate =
-    let
-      unit = "${branding.id}-vmware-hibernate";
-      vmware = configs."${branding.id}-vmware".config.systemd.services;
-    in
-    assert vmware ? ${unit};
-    assert lib.elem "vmware.service" vmware.${unit}.conflicts;
-    assert lib.elem "hibernate.target" vmware.${unit}.wantedBy;
-    assert !(reference.config.systemd.services ? ${unit});
-    ok "vmware-hibernate";
 
   # Hibernation without a swap file must be refused
   storage-hibernation-needs-swap = mustFail "storage-hibernation-needs-swap" (toplevelWith {

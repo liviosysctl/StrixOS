@@ -35,7 +35,7 @@ Changes that matter for both go into both branches. When M245 is over, `personal
 | `lib/themes.nix` | Themes at build time: the checked themes folder, a Plymouth theme per variant, the installer's colors. |
 | `packages/plymouth-theme/` | Builds the Plymouth theme of one theme variant. |
 | `templates/machine/` | Template for `/etc/nixos` that the installer fills in. |
-| `hosts/` | Made-up machines for CI and testing: `reference` and `vmware`. |
+| `hosts/` | A made-up machine for CI and testing: `reference`. |
 | `iso/default.nix` | The installer ISO, built on the minimal NixOS installer. |
 | `installer/` | `strix-install`: asks a few questions in the console, then partitions, encrypts and installs. `--core --answers FILE` installs without asking. |
 | `tests/` | Checks for `nix flake check`. |

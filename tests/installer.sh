@@ -121,18 +121,16 @@ check "answers with false values" '[ "$read_status" -eq 0 ]'
 check "answers with true values" 'jq ".encrypt = true" "$answers_file" >"$work/a2" && answers_file=$work/a2 && [ "$(answer .encrypt)" = true ]'
 check "missing answer is an error" '! (answer .nothing >/dev/null 2>&1)'
 
-# machine.nix with tricky free text and VMware detected
+# machine.nix with tricky free text
 host_name=livio-laptop time_zone=Europe/Zurich locale=de_CH.UTF-8 keyboard=ch user_name=livio
 full_name='Tom "TJ" & ${Jerry} @hostName@ \ end'
-disk=/dev/disk/by-id/ata-disk encrypt=true swap=17G hibernation=true virtualization=vmware
+disk=/dev/disk/by-id/ata-disk encrypt=true swap=17G hibernation=true
 out=$(render_machine_nix "$TEMPLATE_DIR/machine.nix")
 check "no placeholders left" '! sed /description/d <<<"$out" | grep -qE "@[A-Za-z]+@"'
 check "full name escaped" 'grep -qF "description = \"Tom \\\"TJ\\\" & \\\${Jerry} @hostName@ \\\\ end\";" <<<"$out"'
-check "VMware guest tools" 'grep -q "virtualisation.vmware.guest.enable = true;" <<<"$out"'
 check "keyboard filled in" 'grep -q "console.keyMap = \"sg\";" <<<"$out" && grep -q "layout = \"ch\";" <<<"$out"'
 check "state version" 'grep -q "system.stateVersion = \"26.11\";" <<<"$out"'
-virtualization=none
-check "no VMware line on real hardware" '! grep -q vmware <<<"$(render_machine_nix "$TEMPLATE_DIR/machine.nix")"'
+check "no guest tools" '! grep -q vmware <<<"$out"'
 
 # Translations: every language has the same keys and the same number of %s
 same_keys() {

@@ -88,7 +88,7 @@ in
     then connect with  ssh nixos@<address>
   '';
 
-  # Explicitly off: guest tools only belong in the test machine.
+  # Explicitly off: no guest tools on the installer.
   virtualisation.vmware.guest.enable = false;
   virtualisation.virtualbox.guest.enable = false;
 }

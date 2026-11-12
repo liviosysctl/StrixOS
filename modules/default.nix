@@ -14,6 +14,5 @@
     ./apps.nix
     ./search.nix
     ./storage/btrfs.nix
-    ./vmware-guest.nix
   ];
 }
