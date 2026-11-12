@@ -9,6 +9,7 @@
     ./boot-splash.nix
     ./theme.nix
     ./ui.nix
+    ./desktop.nix
     ./tools.nix
     ./apps.nix
     ./search.nix
