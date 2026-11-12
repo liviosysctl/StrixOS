@@ -484,9 +484,7 @@ pub fn check(
             continue;
         }
         if builtin.contains(id) {
-            fails.push(format!(
-                "{at}: {id} is a built-in theme, pick another id"
-            ));
+            fails.push(format!("{at}: {id} is a built-in theme, pick another id"));
         }
         if let Some((_, other)) = taken.iter().find(|(t, _)| t == id) {
             fails.push(format!(
@@ -1097,10 +1095,7 @@ mod tests {
             scratch: &tmp,
         };
         let error = up.add(&origin.to_string_lossy()).unwrap_err();
-        assert!(
-            error.contains("saturnus is a built-in theme"),
-            "{error}"
-        );
+        assert!(error.contains("saturnus is a built-in theme"), "{error}");
         assert!(!store.file.exists());
         assert!(
             up.add(&base.join("nothing").to_string_lossy())

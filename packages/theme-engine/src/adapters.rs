@@ -34,6 +34,63 @@ pub fn tokens(theme: &Theme, variant: &Variant) -> Value {
     })
 }
 
+/// An extra color by name, else a required one (themes from outside may lack the extras)
+fn extra_or(variant: &Variant, extra: &str, required: &str) -> Rgb {
+    variant
+        .colors
+        .get(extra)
+        .map(|c| c.rgb)
+        .unwrap_or_else(|| variant.color(required))
+}
+
+fn bare(color: Rgb) -> String {
+    color.hex().trim_start_matches('#').to_string()
+}
+
+/// hyprland.lua: the window borders and the background behind everything, as Hyprland's Lua
+/// configuration requires it. The active border is `border-active` of the design system (the
+/// accent quietened), else the accent; the inactive one `border`.
+pub fn hyprland(theme: &Theme, variant: &Variant) -> String {
+    let active = extra_or(variant, "border-active", "accent");
+    let inactive = variant.color("border");
+    let background = variant.color("background");
+    format!(
+        "-- The colors of {name} ({id}:{variant_id}), written by the theme engine.\n\
+         hl.config({{\n\
+         \x20   general = {{ col = {{ active_border = \"rgb({active})\", inactive_border = \"rgb({inactive})\" }} }},\n\
+         \x20   misc = {{ background_color = 0x{background} }},\n\
+         }})\n",
+        name = theme.name,
+        id = theme.id,
+        variant_id = variant.id,
+        active = bare(active),
+        inactive = bare(inactive),
+        background = bare(background),
+    )
+}
+
+/// ghostty: the terminal colors as a Ghostty config file
+pub fn ghostty(theme: &Theme, variant: &Variant) -> String {
+    let t = &variant.terminal;
+    let mut out = format!(
+        "# The colors of {} ({}:{}), written by the theme engine.\n\
+         background = {}\nforeground = {}\ncursor-color = {}\n\
+         selection-background = {}\nselection-foreground = {}\n",
+        theme.name,
+        theme.id,
+        variant.id,
+        t.background.hex(),
+        t.foreground.hex(),
+        t.cursor.hex(),
+        t.selection.hex(),
+        t.foreground.hex(),
+    );
+    for (index, color) in t.palette.iter().enumerate() {
+        out.push_str(&format!("palette = {index}={}\n", color.hex()));
+    }
+    out
+}
+
 /// The console palette as the kernel takes it (`PIO_CMAP`): 16 RGB triples in
 /// ANSI order. The console draws its text in color 7 on color 0, so those two
 /// become the terminal's foreground and background. The console then looks
@@ -166,6 +223,24 @@ pub fn palette_lines(variant: &Variant) -> Vec<String> {
 mod tests {
     use super::*;
     use crate::theme::tests::good;
+
+    #[test]
+    fn hyprland_and_ghostty() {
+        let theme = good();
+        let variant = theme.variant("dark").unwrap();
+        let lua = hyprland(&theme, variant);
+        // no border-active in the test theme: the accent
+        assert!(lua.contains("active_border = \"rgb(c8102e)\""), "{lua}");
+        assert!(lua.contains("inactive_border = \"rgb(2a2a2a)\""), "{lua}");
+        assert!(lua.contains("background_color = 0x000000"), "{lua}");
+        assert!(lua.starts_with("-- The colors of Test (test:dark)"));
+        let ghostty = ghostty(&theme, variant);
+        assert!(ghostty.contains("background = #000000\n"));
+        assert!(ghostty.contains("cursor-color = #c8102e\n"));
+        assert!(ghostty.contains("palette = 1=#c8102e\n"));
+        assert!(ghostty.contains("palette = 15=#ffffff\n"));
+        assert_eq!(ghostty.matches("palette = ").count(), 16);
+    }
 
     #[test]
     fn tokens_hold_every_color() {

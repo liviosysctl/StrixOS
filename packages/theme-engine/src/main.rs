@@ -6,6 +6,7 @@
 mod adapters;
 mod color;
 mod repos;
+mod session;
 mod system;
 mod theme;
 
@@ -33,11 +34,11 @@ Build and boot:
                           Check every theme in DIR, exit 1 on any problem
   render KIND THEME [--themes DIR]
                           Print what an adapter needs: tokens, installer,
-                          plymouth, palette
+                          plymouth, palette, hyprland, ghostty
   boot-select             In the initrd: pick the boot splash of the stored theme
 
 Theme repositories (themes from outside, layout 1):
-  repos list              Connected repositories, their commit and themes
+  repos list [--json]     Connected repositories, their commit and themes
   repos add URL           Fetch, check and connect a repository (https:// or
                           owner/repo for GitHub), needs root
   repos remove REPO       Disconnect it (address or name) and remove its themes
@@ -46,9 +47,17 @@ Theme repositories (themes from outside, layout 1):
   repos check DIR         Check a checkout against layout 1 (for theme authors)
   A rebuild makes new themes available: strix-update does both.
 
+The theme of a desktop session (a user service):
+  session                 Serve: its own theme on top of the machine's, another
+                          god every CYCLE_PERIOD unless kept, on SESSION_SOCKET
+  session call METHOD [JSON]
+                          One call to it: state, preview, set, keep, next
+
 Environment: THEMES_DIR, STATE_DIR, RUNTIME_DIR, DEFAULT_THEME, PLYMOUTH_PREFIX,
 PLYMOUTH_BASE_CONF, PLYMOUTH_THEMES, PLYMOUTH_CONF, EFI_VARIABLE, EFIVARS_DIR,
-CONSOLE_DEVICE, REPOS_FILE, BUILTIN_THEMES, GIT, THEME_REPOS_ALLOW_LOCAL (tests).
+CONSOLE_DEVICE, REPOS_FILE, BUILTIN_THEMES, GIT, THEME_REPOS_ALLOW_LOCAL (tests),
+SESSION_DIR, SESSION_STATE, SESSION_SOCKET, CYCLE_PERIOD, SESSION_HOOK, PKEXEC,
+THEME_COMMAND.
 ";
 
 /// Settings from the environment. Each command takes what it needs.
@@ -181,11 +190,15 @@ fn main() -> ExitCode {
         }
         ["boot-select"] => boot_select(&config),
         ["repos", "list"] => repos_list(&config),
+        ["repos", "list", "--json"] => repos_list_json(&config),
         ["repos", "add", url] => repos_add(&config, url),
         ["repos", "remove", repo] => repos_remove(&config, repo),
         ["repos", "update"] => repos_update(&config, None),
         ["repos", "update", repo] => repos_update(&config, Some(repo)),
         ["repos", "check", dir] => repos_check(&config, Path::new(dir)),
+        ["session"] => session_serve(&config),
+        ["session", "call", method] => session_call(method, "{}"),
+        ["session", "call", method, params] => session_call(method, params),
         [] | ["help"] | ["--help"] | ["-h"] => {
             print!("{}", USAGE.replace("{name}", &name));
             Ok(true)
@@ -357,9 +370,17 @@ fn apply_tokens(config: &Config, theme: &Theme, variant: &Variant) -> Outcome {
         Ok(json) => json + "\n",
         Err(error) => return Outcome::Failed(error.to_string()),
     };
+    // The files of the desktop first: programs that follow tokens.json reload them on its change
+    let files = [
+        ("hyprland.lua", adapters::hyprland(theme, variant)),
+        ("ghostty", adapters::ghostty(theme, variant)),
+        ("tokens.json", json),
+    ];
     let result = fs::create_dir_all(runtime_dir)
         .and_then(|()| {
-            system::write_atomic(&runtime_dir.join("tokens.json"), json.as_bytes(), 0o644)
+            files.iter().try_for_each(|(name, text)| {
+                system::write_atomic(&runtime_dir.join(name), text.as_bytes(), 0o644)
+            })
         })
         .and_then(|()| system::symlink_atomic(&theme.dir, &runtime_dir.join("current")));
     match result {
@@ -602,9 +623,11 @@ fn render(config: &Config, kind: &str, text: &str, themes: Option<&Path>) -> Res
         "installer" => adapters::installer(theme, variant),
         "plymouth" => adapters::plymouth_colors(variant),
         "palette" => adapters::palette_lines(variant).join("\n") + "\n",
+        "hyprland" => adapters::hyprland(theme, variant),
+        "ghostty" => adapters::ghostty(theme, variant),
         other => {
             return Err(format!(
-                "unknown kind \"{other}\" (known: tokens, installer, plymouth, palette)"
+                "unknown kind \"{other}\" (known: tokens, installer, plymouth, palette, hyprland, ghostty)"
             ));
         }
     };
@@ -740,6 +763,13 @@ fn repos_list(config: &Config) -> Result<bool, String> {
     Ok(true)
 }
 
+fn repos_list_json(config: &Config) -> Result<bool, String> {
+    let file = repos_store(config)?.load()?;
+    let json = serde_json::to_string_pretty(&file.repos).map_err(|e| e.to_string())?;
+    println!("{json}");
+    Ok(true)
+}
+
 fn repos_add(config: &Config, url: &str) -> Result<bool, String> {
     let repo = with_updater(config, |up| up.add(url))?;
     println!(
@@ -803,4 +833,49 @@ fn repos_check(config: &Config, dir: &Path) -> Result<bool, String> {
             Ok(false)
         }
     }
+}
+
+fn session_settings(config: &Config) -> Result<session::Settings, String> {
+    let text = |name: &str| env::var(name).ok().filter(|v| !v.is_empty());
+    let need = |name: &str| text(name).ok_or_else(|| format!("{name} is not set"));
+    let period = match text("CYCLE_PERIOD") {
+        Some(v) => v
+            .trim_end_matches('s')
+            .parse::<u64>()
+            .ok()
+            .filter(|s| *s > 0)
+            .ok_or_else(|| format!("CYCLE_PERIOD must be seconds, not \"{v}\""))?,
+        None => 600,
+    };
+    Ok(session::Settings {
+        themes_dir: Config::require(&config.themes_dir, "THEMES_DIR")?.clone(),
+        system_dir: config.runtime_dir.clone(),
+        selection_file: config.state_dir.as_ref().map(|d| d.join("selection")),
+        default_theme: Config::require(&config.default_theme, "DEFAULT_THEME")?.clone(),
+        cycle: builtin_ids(config)?,
+        dir: PathBuf::from(need("SESSION_DIR")?),
+        state_file: PathBuf::from(need("SESSION_STATE")?),
+        socket: PathBuf::from(need("SESSION_SOCKET")?),
+        period: std::time::Duration::from_secs(period),
+        hook: text("SESSION_HOOK").map(PathBuf::from),
+        pkexec: PathBuf::from(text("PKEXEC").unwrap_or_else(|| "pkexec".into())),
+        command: text("THEME_COMMAND").map(PathBuf::from),
+    })
+}
+
+fn session_serve(config: &Config) -> Result<bool, String> {
+    session::serve(session_settings(config)?)?;
+    Ok(true)
+}
+
+fn session_call(method: &str, params: &str) -> Result<bool, String> {
+    let socket = env::var("SESSION_SOCKET").map_err(|_| "SESSION_SOCKET is not set".to_string())?;
+    let params: serde_json::Value =
+        serde_json::from_str(params).map_err(|e| format!("the parameters are not JSON: {e}"))?;
+    let result = session::call(Path::new(&socket), method, params)?;
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&result).map_err(|e| e.to_string())?
+    );
+    Ok(true)
 }
