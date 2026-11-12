@@ -820,7 +820,7 @@ bright-white = "#ffffff"
 
     #[test]
     fn ids() {
-        for good in ["neutral", "chamber", "a", "a1", "high-contrast", "x2-y3"] {
+        for good in ["saturnus", "janus", "a", "a1", "high-contrast", "x2-y3"] {
             assert!(valid_id(good), "{good}");
         }
         for bad in [
@@ -868,36 +868,36 @@ bright-white = "#ffffff"
     #[test]
     fn selections() {
         assert_eq!(
-            Selection::parse("chamber").unwrap(),
+            Selection::parse("janus").unwrap(),
             Selection {
-                theme: "chamber".into(),
+                theme: "janus".into(),
                 variant: None
             }
         );
         assert_eq!(
-            Selection::parse(" chamber:dark\n").unwrap(),
+            Selection::parse(" janus:dark\n").unwrap(),
             Selection {
-                theme: "chamber".into(),
+                theme: "janus".into(),
                 variant: Some("dark".into())
             }
         );
         for bad in [
             "",
             ":",
-            "chamber:",
+            "janus:",
             ":dark",
             "Chamber",
-            "chamber:dark:x",
-            "chamber dark",
+            "janus:dark:x",
+            "janus dark",
             "../etc",
         ] {
             assert!(Selection::parse(bad).is_err(), "{bad:?}");
         }
         assert_eq!(
-            Selection::parse("chamber:dark").unwrap().to_string(),
-            "chamber:dark"
+            Selection::parse("janus:dark").unwrap().to_string(),
+            "janus:dark"
         );
-        assert_eq!(Selection::parse("chamber").unwrap().to_string(), "chamber");
+        assert_eq!(Selection::parse("janus").unwrap().to_string(), "janus");
     }
 
     #[test]

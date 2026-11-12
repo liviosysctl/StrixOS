@@ -5,6 +5,7 @@
 
 mod adapters;
 mod color;
+mod repos;
 mod system;
 mod theme;
 
@@ -35,9 +36,19 @@ Build and boot:
                           plymouth, palette
   boot-select             In the initrd: pick the boot splash of the stored theme
 
+Theme repositories (themes from outside, layout 1):
+  repos list              Connected repositories, their commit and themes
+  repos add URL           Fetch, check and connect a repository (https:// or
+                          owner/repo for GitHub), needs root
+  repos remove REPO       Disconnect it (address or name) and remove its themes
+  repos update [REPO]     Take the newest commit that passes, of every
+                          repository or of one; a failing one keeps its commit
+  repos check DIR         Check a checkout against layout 1 (for theme authors)
+  A rebuild makes new themes available: strix-update does both.
+
 Environment: THEMES_DIR, STATE_DIR, RUNTIME_DIR, DEFAULT_THEME, PLYMOUTH_PREFIX,
 PLYMOUTH_BASE_CONF, PLYMOUTH_THEMES, PLYMOUTH_CONF, EFI_VARIABLE, EFIVARS_DIR,
-CONSOLE_DEVICE.
+CONSOLE_DEVICE, REPOS_FILE, BUILTIN_THEMES, GIT, THEME_REPOS_ALLOW_LOCAL (tests).
 ";
 
 /// Settings from the environment. Each command takes what it needs.
@@ -53,6 +64,10 @@ struct Config {
     efi_variable: Option<String>,
     efivars_dir: PathBuf,
     console_device: PathBuf,
+    repos_file: Option<PathBuf>,
+    builtin_themes: Option<PathBuf>,
+    git: PathBuf,
+    allow_local: bool,
 }
 
 impl Config {
@@ -72,6 +87,10 @@ impl Config {
             efivars_dir: path("EFIVARS_DIR")
                 .unwrap_or_else(|| PathBuf::from("/sys/firmware/efi/efivars")),
             console_device: path("CONSOLE_DEVICE").unwrap_or_else(|| PathBuf::from("/dev/tty0")),
+            repos_file: path("REPOS_FILE"),
+            builtin_themes: path("BUILTIN_THEMES"),
+            git: path("GIT").unwrap_or_else(|| PathBuf::from("git")),
+            allow_local: text("THEME_REPOS_ALLOW_LOCAL").is_some_and(|v| v == "1"),
         }
     }
 
@@ -161,6 +180,12 @@ fn main() -> ExitCode {
             render(&config, kind, selection, Some(Path::new(dir)))
         }
         ["boot-select"] => boot_select(&config),
+        ["repos", "list"] => repos_list(&config),
+        ["repos", "add", url] => repos_add(&config, url),
+        ["repos", "remove", repo] => repos_remove(&config, repo),
+        ["repos", "update"] => repos_update(&config, None),
+        ["repos", "update", repo] => repos_update(&config, Some(repo)),
+        ["repos", "check", dir] => repos_check(&config, Path::new(dir)),
         [] | ["help"] | ["--help"] | ["-h"] => {
             print!("{}", USAGE.replace("{name}", &name));
             Ok(true)
@@ -639,4 +664,143 @@ fn boot_select(config: &Config) -> Result<bool, String> {
         Err(message) => println!("{message}, default splash"),
     }
     Ok(true)
+}
+
+fn repos_store(config: &Config) -> Result<repos::Store, String> {
+    Ok(repos::Store::new(Config::require(
+        &config.repos_file,
+        "REPOS_FILE",
+    )?))
+}
+
+/// Ids of the distribution's own themes, which no repository may use
+fn builtin_ids(config: &Config) -> Result<Vec<String>, String> {
+    let dir = Config::require(&config.builtin_themes, "BUILTIN_THEMES")?;
+    let catalog = Catalog::load(dir)?;
+    Ok(catalog
+        .themes
+        .iter()
+        .map(|t| t.id.clone())
+        .chain(catalog.broken.iter().map(|(id, _)| id.clone()))
+        .collect())
+}
+
+/// Runs `work` with everything an update needs, under the lock of STATE_DIR
+fn with_updater<T>(
+    config: &Config,
+    work: impl FnOnce(&repos::Updater) -> Result<T, String>,
+) -> Result<T, String> {
+    let store = repos_store(config)?;
+    let builtin = builtin_ids(config)?;
+    let fetcher = repos::Fetcher::new(config.git.clone(), config.allow_local);
+    let _lock = match &config.state_dir {
+        Some(dir) => {
+            fs::create_dir_all(dir).map_err(|e| format!("cannot create {}: {e}", dir.display()))?;
+            Some(
+                system::Lock::take(&dir.join(".repos.lock"))
+                    .map_err(|e| format!("cannot lock {}: {e}", dir.display()))?,
+            )
+        }
+        None => None,
+    };
+    let scratch = config
+        .state_dir
+        .clone()
+        .map(|dir| dir.join("fetch"))
+        .unwrap_or_else(|| env::temp_dir().join("theme-repos"));
+    let updater = repos::Updater {
+        store: &store,
+        fetcher: &fetcher,
+        builtin: &builtin,
+        scratch: &scratch,
+    };
+    work(&updater)
+}
+
+fn short(rev: &Option<String>) -> String {
+    rev.as_deref()
+        .map(|r| r.chars().take(7).collect())
+        .unwrap_or_else(|| "-".to_string())
+}
+
+fn repos_list(config: &Config) -> Result<bool, String> {
+    let file = repos_store(config)?.load()?;
+    if file.repos.is_empty() {
+        println!("No theme repository is connected.");
+    }
+    for repo in &file.repos {
+        println!("{}", repo.label());
+        println!("  {:<10}{}", "address", repo.url);
+        println!("  {:<10}{}", "commit", short(&repo.rev));
+        println!("  {:<10}{}", "themes", repo.themes.join(", "));
+        if let Some(problem) = &repo.problem {
+            println!("  {:<10}{problem}", "problem");
+        }
+    }
+    Ok(true)
+}
+
+fn repos_add(config: &Config, url: &str) -> Result<bool, String> {
+    let repo = with_updater(config, |up| up.add(url))?;
+    println!(
+        "Connected {} at {}: {}",
+        repo.label(),
+        short(&repo.rev),
+        repo.themes.join(", ")
+    );
+    println!("A rebuild makes the themes available.");
+    Ok(true)
+}
+
+fn repos_remove(config: &Config, text: &str) -> Result<bool, String> {
+    let repo = with_updater(config, |up| up.remove(text))?;
+    println!(
+        "Removed {} and its themes: {}",
+        repo.label(),
+        repo.themes.join(", ")
+    );
+    println!("A rebuild takes them off the system.");
+    Ok(true)
+}
+
+fn repos_update(config: &Config, only: Option<&str>) -> Result<bool, String> {
+    let report = with_updater(config, |up| up.update(only))?;
+    let mut ok = true;
+    for (label, outcome) in &report {
+        match outcome {
+            repos::Outcome::Current => println!("  {label}: up to date"),
+            repos::Outcome::Taken { rev } => {
+                println!("  {label}: now at {}", short(&Some(rev.clone())))
+            }
+            repos::Outcome::Kept { problem } => {
+                println!("  {label}: kept the old commit, {problem}");
+                ok = false;
+            }
+        }
+    }
+    Ok(ok)
+}
+
+fn repos_check(config: &Config, dir: &Path) -> Result<bool, String> {
+    let builtin = match &config.builtin_themes {
+        Some(_) => builtin_ids(config)?,
+        None => {
+            eprintln!(
+                "note: BUILTIN_THEMES is not set, the ids are not compared with the themes of the distribution"
+            );
+            Vec::new()
+        }
+    };
+    match repos::check(dir, &builtin, &[]) {
+        Ok(checked) => {
+            println!("ok      {}: {}", checked.name, checked.themes.join(", "));
+            Ok(true)
+        }
+        Err(fails) => {
+            for fail in &fails {
+                println!("ERROR   {fail}");
+            }
+            Ok(false)
+        }
+    }
 }

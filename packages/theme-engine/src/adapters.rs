@@ -227,15 +227,15 @@ mod tests {
             plymouth_colors(&theme.variants["dark"]),
             "000000 ffffff c8102e\n"
         );
-        assert_eq!(plymouth_name("os-", "chamber", "dark"), "os-chamber-dark");
+        assert_eq!(plymouth_name("os-", "janus", "dark"), "os-janus-dark");
     }
 
     #[test]
     fn plymouth_conf_replaces_the_theme() {
-        let conf = "[Daemon]\nShowDelay=0\nTheme=os-neutral-dark\nDeviceTimeout=8\n";
+        let conf = "[Daemon]\nShowDelay=0\nTheme=os-saturnus-dark\nDeviceTimeout=8\n";
         assert_eq!(
-            plymouth_conf(conf, "os-chamber-light"),
-            "[Daemon]\nShowDelay=0\nTheme=os-chamber-light\nDeviceTimeout=8\n"
+            plymouth_conf(conf, "os-janus-light"),
+            "[Daemon]\nShowDelay=0\nTheme=os-janus-light\nDeviceTimeout=8\n"
         );
         // Spaces around = and a second Theme= line
         let conf = "[Daemon]\nTheme = a\nTheme=b\n";

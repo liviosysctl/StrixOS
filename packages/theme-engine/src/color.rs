@@ -225,8 +225,8 @@ mod tests {
     }
 
     #[test]
-    fn contrast_matches_the_values_in_chamber_ui() {
-        // The design system notes these ratios next to its tokens
+    fn contrast_matches_known_ratios() {
+        // WCAG 2 ratios of known pairs, worked out by hand
         let check = |fg: &str, bg: &str, expected: f64| {
             let ratio = rgb(fg).contrast(rgb(bg));
             assert!(

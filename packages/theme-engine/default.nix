@@ -1,7 +1,7 @@
 # The theme engine, installed as <id>-theme (e.g. strix-theme).
 # The crate has a neutral name; only the installed program carries the distro's.
 # The unit tests run while building.
-{ lib, rustPlatform }:
+{ lib, rustPlatform, git }:
 
 let
   branding = import ../../branding.nix;
@@ -21,6 +21,9 @@ rustPlatform.buildRustPackage {
   };
 
   cargoLock.lockFile = ./Cargo.lock;
+
+  # The tests of the theme repositories clone local Git repositories
+  nativeCheckInputs = [ git ];
 
   postInstall = ''
     mv $out/bin/theme $out/bin/${branding.id}-theme
