@@ -24,3 +24,8 @@ values = ["{id}-theme", "list", "--names"]
 name = "show"
 description = "Show every colour of {value}"
 values = ["{id}-theme", "list", "--names"]
+
+[[sub]]
+name = "repos list"
+description = "Show the connected theme repositories"
+words = ["repository", "repositories"]

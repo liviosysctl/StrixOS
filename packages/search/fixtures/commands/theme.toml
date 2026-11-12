@@ -10,4 +10,9 @@ description = "Show every theme and variant"
 name = "set"
 description = "Switch to {value}"
 root = true
-values = ["printf", "neutral\tPlain black and red\nsaturnus\tStrix red\njanus\tPatina\n"]
+values = ["printf", "saturnus\tStrix red\njanus\tPatina\nlucifer\tEmber, from a theme repository\n"]
+
+[[sub]]
+name = "repos update"
+description = "Fetch every connected theme repository"
+root = true

@@ -1,5 +1,11 @@
 # Own commands for Search: one file per command. `{id}` stands for the distro id.
 name = "{id}-update"
-description = "Fetch the latest release and switch to it"
+description = "Fetch the latest release and every theme repository, and switch to them"
 words = ["update", "upgrade", "new", "version"]
 root = true
+bare = true
+
+[[sub]]
+name = "--themes"
+description = "Fetch only the theme repositories and switch to them"
+words = ["theme", "repository", "repositories"]

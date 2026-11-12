@@ -76,9 +76,9 @@ fn golden_queries() {
             "Settings \u{203a} Lock screen",
         ),
         (
-            "theme set neu",
+            "theme set jan",
             None,
-            "strix-theme set neutral",
+            "strix-theme set janus",
             Kind::Command,
             "Commands",
         ),
@@ -237,6 +237,26 @@ fn commands_with_values_and_root() {
         Run::Terminal(vec!["strix-theme".into(), "list".into()])
     );
     assert!(i.get("command:strix-update").is_some());
+    // bare: the command alone and its sub-command; a sub-command of two words
+    let themes = i.get("command:strix-update --themes").unwrap();
+    assert_eq!(
+        themes.run,
+        Run::Terminal(vec![
+            "sudo".into(),
+            "strix-update".into(),
+            "--themes".into()
+        ])
+    );
+    let repos = i.get("command:strix-theme repos update").unwrap();
+    assert_eq!(
+        repos.run,
+        Run::Terminal(vec![
+            "sudo".into(),
+            "strix-theme".into(),
+            "repos".into(),
+            "update".into()
+        ])
+    );
     // the description of a value finds it too
     assert_eq!(
         first(&i, "patina", Some(Kind::Command)).title,

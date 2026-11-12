@@ -407,6 +407,9 @@ struct CommandFile {
     words: Vec<String>,
     #[serde(default)]
     root: bool,
+    /// With sub-commands: the command alone is an entry too
+    #[serde(default)]
+    bare: bool,
     #[serde(default)]
     sub: Vec<SubCommand>,
 }
@@ -414,6 +417,7 @@ struct CommandFile {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct SubCommand {
+    /// One or more words, e.g. "repos update" or "--themes"
     name: String,
     /// `{value}` stands for the argument of a sub-command with values.
     description: String,
@@ -425,7 +429,8 @@ struct SubCommand {
     values: Option<Vec<String>>,
 }
 
-/// One entry per sub-command, or per sub-command and value; the command itself when it has none.
+/// One entry per sub-command, or per sub-command and value; the command itself when it has none
+/// or when `bare` is set.
 /// `{id}` in names and value commands stands for the distro id.
 pub fn commands(dir: &Path, parent: Option<&str>, distro: &str) -> Result<Vec<Entry>, String> {
     let mut files: Vec<PathBuf> = fs::read_dir(dir)
@@ -468,18 +473,19 @@ pub fn commands(dir: &Path, parent: Option<&str>, distro: &str) -> Result<Vec<En
             e.run = Run::Terminal(argv);
             e
         };
-        if c.sub.is_empty() {
+        if c.sub.is_empty() || c.bare {
             out.push(mk(vec![c.name.clone()], c.description.clone(), &[], c.root));
         }
         for s in &c.sub {
             let root = c.root || s.root;
+            let argv_of = |more: Option<&str>| {
+                std::iter::once(c.name.clone())
+                    .chain(s.name.split_whitespace().map(String::from))
+                    .chain(more.map(String::from))
+                    .collect::<Vec<_>>()
+            };
             match &s.values {
-                None => out.push(mk(
-                    vec![c.name.clone(), s.name.clone()],
-                    s.description.clone(),
-                    &s.words,
-                    root,
-                )),
+                None => out.push(mk(argv_of(None), s.description.clone(), &s.words, root)),
                 Some(argv) => {
                     for line in output(argv, Duration::from_secs(2))
                         .unwrap_or_default()
@@ -497,7 +503,7 @@ pub fn commands(dir: &Path, parent: Option<&str>, distro: &str) -> Result<Vec<En
                             words.push(about.to_string());
                         }
                         out.push(mk(
-                            vec![c.name.clone(), s.name.clone(), value.to_string()],
+                            argv_of(Some(value)),
                             s.description.replace("{value}", value),
                             &words,
                             root,
