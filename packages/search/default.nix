@@ -30,11 +30,12 @@ rustPlatform.buildRustPackage {
 
   postInstall = ''
     mkdir -p $out/share/${branding.id}-search
-    cp -r ${../../shell}/menu.toml ${../../shell}/commands $out/share/${branding.id}-search/
+    cp -r ${../../shell}/menu.toml ${../../shell}/settings.toml ${../../shell}/commands $out/share/${branding.id}-search/
     mv $out/bin/search $out/bin/.${branding.id}-search
     makeWrapper $out/bin/.${branding.id}-search $out/bin/${branding.id}-search \
       --set-default SEARCH_ID ${branding.id} \
       --set-default MENU_FILE $out/share/${branding.id}-search/menu.toml \
+      --set-default SETTINGS_FILE $out/share/${branding.id}-search/settings.toml \
       --set-default COMMANDS_DIR $out/share/${branding.id}-search/commands
   '';
 

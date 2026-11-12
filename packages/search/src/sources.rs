@@ -21,7 +21,7 @@ pub const APPS: &str = "menu:apps";
 pub const SETTINGS: &str = "menu:settings";
 pub const COMMANDS: &str = "menu:commands";
 
-fn read_toml<T: for<'de> Deserialize<'de>>(path: &Path) -> Result<T, String> {
+pub(crate) fn read_toml<T: for<'de> Deserialize<'de>>(path: &Path) -> Result<T, String> {
     let text = fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
     toml::from_str(&text).map_err(|e| format!("{}: {e}", path.display()))
 }
@@ -145,6 +145,10 @@ struct MenuFile {
     group: Vec<MenuGroup>,
     #[serde(default)]
     action: Vec<MenuAction>,
+    /// Keybindings that are no action of Search: read by `bindings`
+    #[serde(default)]
+    #[allow(dead_code)]
+    binding: Vec<toml::Value>,
 }
 
 #[derive(Deserialize)]
@@ -171,6 +175,9 @@ struct MenuAction {
     run: Option<Vec<String>>,
     #[serde(default)]
     terminal: bool,
+    /// The keys only work inside one view, e.g. "picker"; no global binding
+    #[allow(dead_code)]
+    scope: Option<String>,
 }
 
 /// The groups and actions of `menu.toml`. Groups are `menu:<id>`, actions `action:<id>`; `group`
@@ -276,7 +283,15 @@ enum Value {
 const ROW_TYPES: [&str; 6] = ["switch", "choice", "slider", "text", "keys", "action"];
 
 pub fn settings(path: &Path, parent: Option<&str>, distro: &str) -> Result<Vec<Entry>, String> {
-    let file: SettingsFile = read_toml(path)?;
+    let mut file: SettingsFile = read_toml(path)?;
+    // `{id}` in the commands that print a value, as in `open`
+    for row in &mut file.row {
+        if let Some(Value::Command(argv)) = &mut row.value {
+            for word in argv.iter_mut() {
+                *word = word.replace("{id}", distro);
+            }
+        }
+    }
     if file.open.is_empty() {
         return Err(format!("{}: open is empty", path.display()));
     }

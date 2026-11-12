@@ -114,6 +114,10 @@ impl State {
                 }
                 Ok(json!({ "ran": argv }))
             }
+            "hotkeys" => match &self.cfg.menu {
+                Some(menu) => crate::bindings::hotkeys(menu).map(|rows| json!(rows)),
+                None => Ok(json!([])),
+            },
             "reload" => {
                 drop(index);
                 Ok(json!({ "entries": self.rebuild() }))

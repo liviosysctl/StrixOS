@@ -1,0 +1,71 @@
+# The settings of Strix as Search sees them (10-search): every page and row of the settings
+# app (shell/qml/Settings.qml) with the words people search for. `open` starts the app at a page
+# or a row; `{id}` stands for the distro id, also in the commands that print a value.
+open = ["{id}-settings", "{page}", "{row}"]
+
+[[page]]
+id = "themes"
+title = "Themes"
+symbol = "palette"
+words = ["theme", "look", "god", "colours", "wallpaper", "appearance"]
+
+[[page]]
+id = "hotkeys"
+title = "Hotkeys"
+symbol = "keyboard"
+words = ["keys", "shortcuts", "bindings", "keyboard"]
+
+[[page]]
+id = "about"
+title = "About"
+symbol = "info"
+words = ["version", "system", "release"]
+
+[[row]]
+id = "theme"
+page = "themes"
+title = "Theme"
+description = "The god the machine starts with, also on the boot splash"
+type = "choice"
+words = ["colours", "look", "god", "picker"]
+value = ["{id}-theme", "current"]
+
+[[row]]
+id = "keep"
+page = "themes"
+title = "Keep this theme"
+description = "No change to another god every 10 minutes"
+type = "switch"
+words = ["cycle", "rotate", "change", "interval", "keep"]
+
+[[row]]
+id = "repositories"
+page = "themes"
+title = "Theme repositories"
+description = "Themes from outside: connect, update now, remove"
+type = "action"
+words = ["repository", "repo", "git", "github", "connect", "outside", "more themes"]
+
+[[row]]
+id = "all"
+page = "hotkeys"
+title = "All hotkeys"
+description = "Every key of Strix, grouped as on the cheat sheet"
+type = "keys"
+words = ["cheat sheet", "shortcuts", "bindings"]
+
+[[row]]
+id = "version"
+page = "about"
+title = "Version"
+type = "text"
+words = ["release", "os"]
+value = ["sh", "-c", ". /etc/os-release && echo \"$NAME $VERSION_ID\""]
+
+[[row]]
+id = "update"
+page = "about"
+title = "Update"
+description = "Fetch the newest release and every theme repository"
+type = "action"
+words = ["upgrade", "new version"]

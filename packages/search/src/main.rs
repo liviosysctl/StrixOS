@@ -1,5 +1,6 @@
 //! One search for apps, actions, settings and commands. Installed as `<id>-search`.
 
+mod bindings;
 mod config;
 mod desktop;
 mod entry;
@@ -26,6 +27,7 @@ Usage:
   {name} run TEXT [--dry-run]          run text as a command line in the terminal
   {name} list [--json]                 every entry
   {name} check [--programs]            what nix flake check refuses; with --programs also programs not on PATH
+  {name} bindings                      the Hyprland keybindings from MENU_FILE, as Lua
   {name} serve                         the service: socket in $XDG_RUNTIME_DIR/<id>/search.sock
   {name} reload                        ask the running service to read everything again
 
@@ -167,9 +169,16 @@ fn main() -> ExitCode {
             Ok(None)
         }
         "check" => {
+            let menu = cfg.menu.clone();
+            let id = cfg.id.clone();
             let state = State::new(cfg);
             let index = state.index.read().expect("index");
-            let problems = index.check(a.flags.iter().any(|f| f == "--programs"));
+            let mut problems = index.check(a.flags.iter().any(|f| f == "--programs"));
+            if let Some(menu) = &menu
+                && let Err(e) = bindings::read(menu, &id)
+            {
+                problems.extend(e.lines().map(|l| format!("bindings: {l}")));
+            }
             for p in &problems {
                 println!("FAIL {p}");
             }
@@ -180,6 +189,13 @@ fn main() -> ExitCode {
                 return ExitCode::FAILURE;
             }
         }
+        "bindings" => match &cfg.menu {
+            Some(menu) => bindings::read(menu, &cfg.id).map(|b| {
+                print!("{}", bindings::lua(&b));
+                None
+            }),
+            None => Err("MENU_FILE is not set".into()),
+        },
         "serve" => server::serve(cfg).map(|()| None),
         "reload" => match &cfg.socket {
             Some(s) => server::call(s, "reload", json!({})).map(Some),

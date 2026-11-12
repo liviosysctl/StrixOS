@@ -7,8 +7,15 @@
 # An action: id, title, group, symbol, words, keys, run (a command line), terminal (run it in
 # the terminal, kept open). An action with entries inside and no run opens inside Search.
 #
-# `qs ipc call <target> <function>` reaches the shell (Quickshell IpcHandler); those targets come
+# `qs -c {id} ipc call <target> <function>` reaches the shell (Quickshell IpcHandler, the config in
+# /etc/xdg/quickshell/{id}); those targets come
 # with the desktop. `{id}` stands for the distro id from branding.nix (strix).
+#
+# A binding (at the end): a key that is no action of Search, for windows, workspaces and apps.
+# id, title, group and target as on the cheat sheet, keys, and either run (a command line) or
+# hypr (a Hyprland Lua dispatcher; `{key}` stands for the key, a list gives one per key).
+# `strix-search bindings` makes the Hyprland keybindings from the actions with keys and these;
+# see packages/search/src/bindings.rs for the short forms "Super 1–9", "Super Arrows", "Super = -".
 
 [[group]]
 id = "apps"
@@ -80,7 +87,7 @@ group = "theme"
 symbol = "palette"
 words = ["choose", "carousel"]
 keys = "Super Ctrl Space"
-run = ["qs", "ipc", "call", "theme", "picker"]
+run = ["qs", "-c", "{id}", "ipc", "call", "theme", "picker"]
 
 [[action]]
 id = "keep-theme"
@@ -89,7 +96,8 @@ group = "theme"
 symbol = "lock"
 words = ["pin", "stop", "change", "cycle", "rotate", "god"]
 keys = "K"
-run = ["qs", "ipc", "call", "theme", "keep"]
+scope = "picker"
+run = ["qs", "-c", "{id}", "ipc", "call", "theme", "keep"]
 
 [[action]]
 id = "theme-saturnus"
@@ -97,7 +105,7 @@ title = "Saturnus"
 group = "theme"
 symbol = "swatch-book"
 words = ["god", "wallpaper", "red", "default", "saturn", "time", "sickle"]
-run = ["qs", "ipc", "call", "theme", "set", "saturnus"]
+run = ["qs", "-c", "{id}", "ipc", "call", "theme", "set", "saturnus"]
 
 [[action]]
 id = "theme-janus"
@@ -105,7 +113,7 @@ title = "Janus"
 group = "theme"
 symbol = "swatch-book"
 words = ["god", "wallpaper", "patina", "green", "door"]
-run = ["qs", "ipc", "call", "theme", "set", "janus"]
+run = ["qs", "-c", "{id}", "ipc", "call", "theme", "set", "janus"]
 
 [[action]]
 id = "theme-apollo"
@@ -113,7 +121,7 @@ title = "Apollo"
 group = "theme"
 symbol = "swatch-book"
 words = ["god", "wallpaper", "antique", "gold", "brass", "sun"]
-run = ["qs", "ipc", "call", "theme", "set", "apollo"]
+run = ["qs", "-c", "{id}", "ipc", "call", "theme", "set", "apollo"]
 
 [[action]]
 id = "theme-mars"
@@ -121,7 +129,7 @@ title = "Mars"
 group = "theme"
 symbol = "swatch-book"
 words = ["god", "wallpaper", "rust", "war"]
-run = ["qs", "ipc", "call", "theme", "set", "mars"]
+run = ["qs", "-c", "{id}", "ipc", "call", "theme", "set", "mars"]
 
 [[action]]
 id = "theme-vulcanus"
@@ -129,7 +137,7 @@ title = "Vulcanus"
 group = "theme"
 symbol = "swatch-book"
 words = ["god", "wallpaper", "olive", "forge", "smith", "fire"]
-run = ["qs", "ipc", "call", "theme", "set", "vulcanus"]
+run = ["qs", "-c", "{id}", "ipc", "call", "theme", "set", "vulcanus"]
 
 [[action]]
 id = "theme-neptunus"
@@ -137,7 +145,7 @@ title = "Neptunus"
 group = "theme"
 symbol = "swatch-book"
 words = ["god", "wallpaper", "sea", "water", "blue", "trident"]
-run = ["qs", "ipc", "call", "theme", "set", "neptunus"]
+run = ["qs", "-c", "{id}", "ipc", "call", "theme", "set", "neptunus"]
 
 [[action]]
 id = "theme-pluto"
@@ -145,7 +153,7 @@ title = "Pluto"
 group = "theme"
 symbol = "swatch-book"
 words = ["god", "wallpaper", "heather", "plum", "violet", "underworld"]
-run = ["qs", "ipc", "call", "theme", "set", "pluto"]
+run = ["qs", "-c", "{id}", "ipc", "call", "theme", "set", "pluto"]
 
 [[action]]
 id = "theme-bacchus"
@@ -153,7 +161,7 @@ title = "Bacchus"
 group = "theme"
 symbol = "swatch-book"
 words = ["god", "wallpaper", "claret", "wine"]
-run = ["qs", "ipc", "call", "theme", "set", "bacchus"]
+run = ["qs", "-c", "{id}", "ipc", "call", "theme", "set", "bacchus"]
 
 [[action]]
 id = "light"
@@ -161,7 +169,7 @@ title = "Switch to light"
 group = "style"
 symbol = "sun"
 words = ["variant", "light", "dark", "appearance"]
-run = ["qs", "ipc", "call", "theme", "variant", "light"]
+run = ["qs", "-c", "{id}", "ipc", "call", "theme", "variant", "light"]
 
 [[action]]
 id = "next-wallpaper"
@@ -169,7 +177,7 @@ title = "Next wallpaper"
 group = "style"
 symbol = "images"
 words = ["background", "cycle"]
-run = ["qs", "ipc", "call", "theme", "next"]
+run = ["qs", "-c", "{id}", "ipc", "call", "theme", "next"]
 
 [[action]]
 id = "toggle-bar"
@@ -178,7 +186,7 @@ group = "style"
 symbol = "app-window"
 words = ["bar", "hide", "show", "panel"]
 keys = "Super Shift Space"
-run = ["qs", "ipc", "call", "bar", "toggle"]
+run = ["qs", "-c", "{id}", "ipc", "call", "bar", "toggle"]
 
 # ------------------------------------------------------------------ Capture
 
@@ -189,7 +197,7 @@ group = "capture"
 symbol = "crop"
 words = ["screenshot", "area", "select", "snip"]
 keys = "Print"
-run = ["qs", "ipc", "call", "capture", "region"]
+run = ["qs", "-c", "{id}", "ipc", "call", "capture", "region"]
 
 [[action]]
 id = "window-screenshot"
@@ -198,7 +206,7 @@ group = "capture"
 symbol = "app-window"
 words = ["screenshot", "window"]
 keys = "Shift Print"
-run = ["qs", "ipc", "call", "capture", "window"]
+run = ["qs", "-c", "{id}", "ipc", "call", "capture", "window"]
 
 [[action]]
 id = "screen-screenshot"
@@ -207,7 +215,7 @@ group = "capture"
 symbol = "monitor"
 words = ["screenshot", "full", "display"]
 keys = "Ctrl Print"
-run = ["qs", "ipc", "call", "capture", "screen"]
+run = ["qs", "-c", "{id}", "ipc", "call", "capture", "screen"]
 
 [[action]]
 id = "record-region"
@@ -216,7 +224,7 @@ group = "capture"
 symbol = "video"
 words = ["screencast", "recording", "video"]
 keys = "Alt Print"
-run = ["qs", "ipc", "call", "capture", "record"]
+run = ["qs", "-c", "{id}", "ipc", "call", "capture", "record"]
 
 [[action]]
 id = "colour-picker"
@@ -225,7 +233,7 @@ group = "capture"
 symbol = "pipette"
 words = ["color", "hex", "eyedropper"]
 keys = "Super Print"
-run = ["qs", "ipc", "call", "capture", "colour"]
+run = ["qs", "-c", "{id}", "ipc", "call", "capture", "colour"]
 
 # ------------------------------------------------------------------ Clipboard
 
@@ -236,7 +244,7 @@ group = "clipboard"
 symbol = "history"
 words = ["clipboard", "paste", "copied"]
 keys = "Super V"
-run = ["qs", "ipc", "call", "clipboard", "toggle"]
+run = ["qs", "-c", "{id}", "ipc", "call", "clipboard", "toggle"]
 
 [[action]]
 id = "clipboard-clear"
@@ -244,7 +252,7 @@ title = "Clear history"
 group = "clipboard"
 symbol = "trash-2"
 words = ["clipboard", "delete", "wipe"]
-run = ["qs", "ipc", "call", "clipboard", "clear"]
+run = ["qs", "-c", "{id}", "ipc", "call", "clipboard", "clear"]
 
 # ------------------------------------------------------------------ Update
 
@@ -291,7 +299,7 @@ title = "Log out"
 group = "system"
 symbol = "log-out"
 words = ["sign", "out", "session", "exit"]
-run = ["hyprctl", "dispatch", "exit"]
+run = ["hyprctl", "dispatch", "hl.dsp.exit()"]
 
 [[action]]
 id = "suspend"
@@ -332,7 +340,7 @@ group = "system"
 symbol = "bell"
 words = ["panel", "messages"]
 keys = "Super N"
-run = ["qs", "ipc", "call", "notifications", "toggle"]
+run = ["qs", "-c", "{id}", "ipc", "call", "notifications", "toggle"]
 
 [[action]]
 id = "do-not-disturb"
@@ -341,7 +349,7 @@ group = "system"
 symbol = "bell"
 words = ["silence", "quiet", "mute", "notifications"]
 keys = "Super Shift N"
-run = ["qs", "ipc", "call", "notifications", "quiet"]
+run = ["qs", "-c", "{id}", "ipc", "call", "notifications", "quiet"]
 
 # ------------------------------------------------------------------ Learn
 
@@ -352,7 +360,7 @@ group = "learn"
 symbol = "keyboard"
 words = ["cheat", "sheet", "shortcuts", "keybindings", "keys"]
 keys = "Super K"
-run = ["qs", "ipc", "call", "cheatsheet", "toggle"]
+run = ["qs", "-c", "{id}", "ipc", "call", "cheatsheet", "toggle"]
 
 [[action]]
 id = "manual"
@@ -361,3 +369,145 @@ group = "learn"
 symbol = "book-open"
 words = ["help", "documentation", "readme"]
 run = ["xdg-open", "https://github.com/liviosysctl/StrixOS"]
+
+# ------------------------------------------------------------------ Keys that are no action
+
+[[binding]]
+id = "search"
+title = "Search"
+group = "Learn"
+target = "Apps, actions, settings and commands"
+keys = "Super Space"
+run = ["qs", "-c", "{id}", "ipc", "call", "search", "toggle"]
+
+[[binding]]
+id = "terminal"
+title = "Terminal"
+group = "Apps"
+target = "Ghostty"
+keys = "Super Return"
+run = ["ghostty"]
+
+[[binding]]
+id = "browser"
+title = "Browser"
+group = "Apps"
+target = "Firefox"
+keys = "Super Shift Return"
+run = ["firefox"]
+
+[[binding]]
+id = "files"
+title = "Files"
+group = "Apps"
+target = "File manager"
+keys = "Super Shift F"
+run = ["nautilus", "--new-window"]
+
+[[binding]]
+id = "text-editor"
+title = "Text editor"
+group = "Apps"
+target = "Editor"
+keys = "Super Shift E"
+run = ["gnome-text-editor", "--new-window"]
+
+[[binding]]
+id = "music"
+title = "Music"
+group = "Apps"
+target = "Music player"
+keys = "Super Shift M"
+run = ["amberol"]
+
+[[binding]]
+id = "close-window"
+title = "Close window"
+group = "Windows"
+target = "Window"
+keys = "Super W"
+hypr = "hl.dsp.window.close()"
+
+[[binding]]
+id = "full-screen"
+title = "Full screen"
+group = "Windows"
+target = "Window"
+keys = "Super F"
+hypr = "hl.dsp.window.fullscreen()"
+
+[[binding]]
+id = "float-or-tile"
+title = "Float or tile"
+group = "Windows"
+target = "Window"
+keys = "Super T"
+hypr = 'hl.dsp.window.float({ action = "toggle" })'
+
+[[binding]]
+id = "split-direction"
+title = "Split direction"
+group = "Windows"
+target = "Window"
+keys = "Super J"
+hypr = 'hl.dsp.layout("togglesplit")'
+
+[[binding]]
+id = "move-focus"
+title = "Move focus"
+group = "Windows"
+target = "Window"
+keys = "Super Arrows"
+hypr = 'hl.dsp.focus({ direction = "{key}" })'
+
+[[binding]]
+id = "swap-windows"
+title = "Swap windows"
+group = "Windows"
+target = "Window"
+keys = "Super Shift Arrows"
+hypr = 'hl.dsp.window.swap({ direction = "{key}" })'
+
+[[binding]]
+id = "grow-or-shrink"
+title = "Grow or shrink"
+group = "Windows"
+target = "Window"
+keys = "Super = -"
+hypr = [
+  "hl.dsp.window.resize({ x = 40, y = 40, relative = true })",
+  "hl.dsp.window.resize({ x = -40, y = -40, relative = true })",
+]
+repeat = true
+
+[[binding]]
+id = "go-to-workspace"
+title = "Go to workspace"
+group = "Workspaces"
+target = "Workspace"
+keys = "Super 1–9"
+hypr = "hl.dsp.focus({ workspace = {key} })"
+
+[[binding]]
+id = "move-window-there"
+title = "Move window there"
+group = "Workspaces"
+target = "Workspace"
+keys = "Super Shift 1–9"
+hypr = "hl.dsp.window.move({ workspace = {key} })"
+
+[[binding]]
+id = "next-workspace"
+title = "Next workspace"
+group = "Workspaces"
+target = "Workspace"
+keys = "Super Tab"
+hypr = 'hl.dsp.focus({ workspace = "e+1" })'
+
+[[binding]]
+id = "scratchpad"
+title = "Scratchpad"
+group = "Workspaces"
+target = "Special workspace"
+keys = "Super S"
+hypr = 'hl.dsp.workspace.toggle_special("scratchpad")'
