@@ -1,4 +1,4 @@
-# The three tools around /etc/nixos: rebuild, update, apps.
+# The three tools around /etc/nixos: rebuild, update (with the theme repositories), apps.
 # The names come from branding.nix (e.g. strix-rebuild).
 { config, lib, pkgs, ... }:
 
@@ -27,8 +27,14 @@ let
 
   update = tool {
     name = "update";
-    runtimeInputs = [ config.nix.package pkgs.diffutils ];
-    extraEnv.REBUILD = lib.getExe rebuild;
+    runtimeInputs = [ config.nix.package pkgs.diffutils pkgs.jq ];
+    extraEnv = {
+      REBUILD = lib.getExe rebuild;
+    }
+    # The theme repositories are fetched by the theme engine
+    // lib.optionalAttrs config.${branding.id}.theme.enable {
+      THEME_COMMAND = lib.getExe config.${branding.id}.theme.package;
+    };
   };
 
   apps = tool {
