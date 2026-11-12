@@ -180,6 +180,9 @@
         theme-engine = themes.engine;
         themes = themes.dir;
 
+        # The Store service (main only)
+        store = pkgs.callPackage ./packages/store { };
+
         # The design system: QML module, wallpapers, fonts
         ui = pkgs.callPackage ./packages/ui { src = strixui; };
 

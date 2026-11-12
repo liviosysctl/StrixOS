@@ -1,0 +1,31 @@
+{
+  "firefox": {
+    "name": "firefox-145.0", "pname": "firefox", "version": "145.0", "system": "x86_64-linux", "outputName": "out",
+    "meta": { "description": "Web browser built from Firefox source tree", "homepage": "https://www.mozilla.org/firefox/", "license": { "free": true, "shortName": "mpl20" }, "mainProgram": "firefox", "available": true, "broken": false, "unfree": false }
+  },
+  "firefox-esr": {
+    "name": "firefox-esr-140.5.0esr", "pname": "firefox-esr", "version": "140.5.0esr",
+    "meta": { "description": "Web browser built from Firefox Extended Support Release source tree", "license": { "free": true } }
+  },
+  "gimp": {
+    "name": "gimp-3.0.6", "pname": "gimp", "version": "3.0.6",
+    "meta": { "description": "GNU Image Manipulation Program", "homepage": "https://www.gimp.org/", "license": [ { "free": true }, { "free": true } ] }
+  },
+  "spotify": {
+    "name": "spotify-1.2.70", "pname": "spotify", "version": "1.2.70",
+    "meta": { "description": "Play music from the Spotify music service", "unfree": true, "license": { "free": false, "shortName": "unfree" } }
+  },
+  "discord": {
+    "name": "discord-0.0.110", "pname": "discord", "version": "0.0.110",
+    "meta": { "description": "All-in-one cross-platform voice and text chat for gamers", "license": { "free": false } }
+  },
+  "kdePackages.kate": {
+    "name": "kate-25.08.3", "pname": "kate", "version": "25.08.3",
+    "meta": { "description": "Advanced text editor" }
+  },
+  "oldthing": {
+    "name": "oldthing-1.0", "pname": "oldthing", "version": "1.0",
+    "meta": { "description": "Does not build any more", "broken": true }
+  },
+  "nodesc": { "name": "nodesc-2", "pname": "nodesc", "version": "2", "meta": {} }
+}

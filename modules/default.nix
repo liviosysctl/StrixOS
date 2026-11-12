@@ -12,6 +12,7 @@
     ./desktop.nix
     ./tools.nix
     ./apps.nix
+    ./store.nix
     ./search.nix
     ./storage/btrfs.nix
   ];

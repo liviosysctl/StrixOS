@@ -74,6 +74,14 @@ words = ["terminal", "shell"]
 # ------------------------------------------------------------------ Style
 
 [[action]]
+id = "store"
+title = "Store"
+group = "apps"
+symbol = "download"
+words = ["install", "remove", "uninstall", "apps", "programs", "software", "packages", "nixpkgs"]
+run = ["qs", "-c", "{id}", "ipc", "call", "store", "open"]
+
+[[action]]
 id = "theme"
 title = "Theme"
 group = "style"
