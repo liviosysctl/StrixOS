@@ -146,6 +146,99 @@ in
         echo ok > $out
       '';
 
+  # The desktop: the Hyprland configuration of the reference and the VMware machine, every part
+  # checked by Hyprland itself (--verify-config), with the colors the engine writes for a god;
+  # the session, the login and the theme follower are there
+  desktop =
+    let
+      check =
+        name: cfg:
+        let
+          hypr = cfg.${branding.id}.desktop.hyprlandConfig;
+          themes = cfg.system.build.themes;
+          engine = lib.getExe cfg.${branding.id}.theme.package;
+        in
+        ''
+          mkdir ${name}
+          cp -L ${hypr}/hyprland.lua ${hypr}/machine.lua ${hypr}/bindings.lua ${hypr}/theme.lua ${name}/
+          # theme.lua reads the session's colors, which the session service writes
+          mkdir -p $XDG_RUNTIME_DIR/${branding.id}/theme
+          THEMES_DIR=${themes} ${engine} render hyprland janus > $XDG_RUNTIME_DIR/${branding.id}/theme/hyprland.lua
+          for part in machine theme bindings hyprland; do
+            log=$(Hyprland --verify-config -c $PWD/${name}/$part.lua 2>&1) || { echo "$log"; echo "FAIL ${name} $part.lua"; exit 1; }
+            echo "$log" | grep -q "config ok" || { echo "$log"; echo "FAIL ${name} $part.lua"; exit 1; }
+            echo "ok   ${name} $part.lua"
+          done
+          grep -q no_hardware_cursors ${name}/machine.lua && echo "     ${name}: no hardware cursor" || true
+        '';
+      reference' = reference.config;
+      vmware = configs."${branding.id}-vmware".config;
+    in
+    assert reference'.programs.hyprland.withUWSM;
+    assert reference'.${branding.id}.desktop.greeter == "strix";
+    assert reference'.environment.sessionVariables.HYPRLAND_CONFIG == "/etc/xdg/${branding.id}/hypr/hyprland.lua";
+    assert reference'.systemd.user.services ? "${branding.id}-theme-session";
+    assert lib.hasInfix "org.freedesktop.policykit.exec" reference'.security.polkit.extraConfig;
+    assert vmware.virtualisation.vmware.guest.enable;
+    pkgs.runCommand "check-desktop"
+      {
+        nativeBuildInputs = [ reference'.programs.hyprland.package pkgs.gnugrep ];
+      }
+      ''
+        export HOME=$TMPDIR XDG_RUNTIME_DIR=$TMPDIR/run
+        mkdir -p -m 0700 $XDG_RUNTIME_DIR
+        ${check "reference" reference'}
+        ${check "vmware" vmware}
+        grep -q no_hardware_cursors vmware/machine.lua
+        ! grep -q no_hardware_cursors reference/machine.lua
+        test "$(grep -c '^hl.bind' reference/bindings.lua)" -ge 50
+        echo ok > $out
+      '';
+
+  # The shell loads in Quickshell on a Wayland compositor (Weston without a screen): every file of
+  # shell/qml, the QML module of StrixUI, no QML error. PipeWire, Hyprland and D-Bus are missing
+  # here, their warnings are expected.
+  shell =
+    let
+      cfg = reference.config;
+      ui = cfg.${branding.id}.ui.package;
+    in
+    assert cfg.environment.etc ? "xdg/quickshell/${branding.id}";
+    assert cfg.environment.etc ? "xdg/quickshell/${branding.id}-greeter";
+    assert lib.hasSuffix "-greeter" cfg.services.greetd.settings.default_session.command;
+    assert cfg.systemd.user.services ? "${branding.id}-shell";
+    assert cfg.security.pam.services ? "${branding.id}-lock";
+    assert cfg.${branding.id}.search.enable;
+    pkgs.runCommand "check-shell"
+      {
+        nativeBuildInputs = [ pkgs.quickshell pkgs.weston pkgs.gnugrep pkgs.coreutils ];
+      }
+      ''
+        export HOME=$TMPDIR XDG_RUNTIME_DIR=$TMPDIR/run
+        mkdir -p -m 0700 $XDG_RUNTIME_DIR $TMPDIR/xdg/quickshell
+        cp -r ${../shell/qml} $TMPDIR/xdg/quickshell/${branding.id}
+        cp -r ${../shell/greeter} $TMPDIR/xdg/quickshell/${branding.id}-greeter
+        weston --backend=headless --socket=wl-check --width=1280 --height=800 > weston.log 2>&1 &
+        for _ in $(seq 50); do [ -S $XDG_RUNTIME_DIR/wl-check ] && break; sleep 0.2; done
+        WAYLAND_DISPLAY=wl-check XDG_CONFIG_DIRS=$TMPDIR/xdg QT_QPA_PLATFORM=wayland \
+          QML_IMPORT_PATH=${ui}/share/${branding.id}-ui/qml \
+          timeout 20 qs -c ${branding.id} > log.txt 2>&1 || true
+        # the login, as greetd would start it (without greetd here)
+        WAYLAND_DISPLAY=wl-check XDG_CONFIG_DIRS=$TMPDIR/xdg QT_QPA_PLATFORM=wayland \
+          QML_IMPORT_PATH=${ui}/share/${branding.id}-ui/qml GREETER_STATE=$TMPDIR \
+          timeout 15 qs -c ${branding.id}-greeter > greeter.txt 2>&1 || true
+        kill %1 || true
+        for log in log.txt greeter.txt; do
+          cat $log
+          grep -q "Configuration Loaded" $log
+          if grep -E "Failed to load|\.qml\[[0-9]+|\.qml:[0-9]+|is not a type|ReferenceError|TypeError|Cannot assign" $log; then
+            echo "QML problems in $log, see above"
+            exit 1
+          fi
+        done
+        echo ok > $out
+      '';
+
   # The search service with its unit tests (golden queries, the 5 ms budget, the socket), and the
   # system menu and command files checked by it: unique ids, groups that exist, no emoji
   search =

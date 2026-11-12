@@ -26,6 +26,12 @@ Changes that matter for both go into both branches. When M245 is over, `personal
 | `themes/` | `default.nix`, the theme a new installation starts with (`saturnus`). The themes are the eight Roman gods of [StrixUI](https://github.com/liviosysctl/StrixUI), a flake input. [themes/README.md](themes/README.md) describes the format and the theme repositories. |
 | `packages/theme-engine/` | The theme engine in Rust: reads and checks themes, switches them at runtime, fetches and checks theme repositories. |
 | `packages/ui/`, `modules/ui.nix` | The design system of StrixUI on the machine: the QML module for Quickshell, the wallpapers, the fonts. |
+| `modules/desktop.nix` | The desktop: Hyprland as a UWSM session, the login of Strix under greetd (or tuigreet), PipeWire, the apps of the cheat sheet, the shell as a user service, hypridle, and the session's theme service: another god every 10 minutes unless kept, Hyprland and Ghostty follow. |
+| `shell/hypr/hyprland.lua` | The Hyprland configuration (Lua, Hyprland 0.55 and later): measures and motion of StrixUI; it requires `machine.lua`, `theme.lua` and `bindings.lua`, which Nix and the theme engine write. |
+| `shell/qml/` | The shell in Quickshell from StrixUI's QML module: wallpaper, top bar, lock screen, Search, cheat sheet, notifications, OSD, theme picker, Settings. `qs -c strix ipc show` lists what Hyprland can call. |
+| `shell/greeter/` | The login screen in Quickshell, run by greetd in cage; it starts the same UWSM session. |
+| `shell/settings.toml` | The pages and rows of Settings as Search finds them. |
+| `shell/menu.toml` | The system menu of Search and every key of the cheat sheet; `strix-search bindings` makes the Hyprland keybindings from it. |
 | `lib/themes.nix` | Themes at build time: the checked themes folder, a Plymouth theme per variant, the installer's colors. |
 | `packages/plymouth-theme/` | Builds the Plymouth theme of one theme variant. |
 | `templates/machine/` | Template for `/etc/nixos` that the installer fills in. |
@@ -47,12 +53,14 @@ Changes that matter for both go into both branches. When M245 is over, `personal
 | `sudo strix-apps add\|remove <package>`, `strix-apps list` | Installs or removes a package from nixpkgs. This is what the Store calls. |
 | `sudo strix-theme set <theme>`, `strix-theme list` | Switches the theme without a rebuild, see [themes/README.md](themes/README.md). |
 | `sudo strix-theme repos add <owner/repo>`, `strix-theme repos list` | Connects a theme repository; `strix-rebuild switch` builds its themes in, every `strix-update` brings new versions |
+| `strix-settings [PAGE [ROW]]` | Opens Settings: `themes`, `hotkeys`, `about` |
+| Super Ctrl Space | The theme picker; K keeps the theme, otherwise another god comes every 10 minutes |
 
 SSH is on: `ssh <user>@<address>` with the user's password. Root cannot log in. To turn it off, add `services.openssh.enable = false;` to `machine.nix` and rebuild.
 
 ## Planned
 
-- Strix base system with Hyprland and Quickshell
+- The desktop, step by step (12-desktop in the plan): Hyprland, keys, theme colors, the shell, the theme picker with the 10-minute cycle, the own login and a first Settings app are done; release v0.2.0 after the VMware cases
 - Theme engine for the desktop: Quickshell, Ghostty, GTK and Qt follow the theme (the engine, the console, the boot splash, `tokens.json`, theme repositories and the QML module are done)
 - Store: install packages from nixpkgs with one click
 - Bootstick app for Windows (separate repository)
