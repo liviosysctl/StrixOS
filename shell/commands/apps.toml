@@ -1,0 +1,13 @@
+name = "{id}-apps"
+description = "Apps from the Store"
+words = ["store", "packages", "install"]
+
+[[sub]]
+name = "list"
+description = "Show the apps installed from the Store"
+
+[[sub]]
+name = "remove"
+description = "Remove {value}"
+root = true
+values = ["{id}-apps", "list"]

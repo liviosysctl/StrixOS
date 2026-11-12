@@ -1,0 +1,13 @@
+name = "{id}-theme"
+description = "Themes"
+words = ["theme", "colours", "god"]
+
+[[sub]]
+name = "list"
+description = "Show every theme and variant"
+
+[[sub]]
+name = "set"
+description = "Switch to {value}"
+root = true
+values = ["printf", "neutral\tPlain black and red\nsaturnus\tStrix red\njanus\tPatina\n"]

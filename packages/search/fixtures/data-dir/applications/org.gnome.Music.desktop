@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Music
+Keywords=songs;audio;player;
+Exec=gnome-music
+Icon=org.gnome.Music

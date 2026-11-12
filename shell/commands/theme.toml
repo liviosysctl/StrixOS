@@ -1,0 +1,26 @@
+name = "{id}-theme"
+description = "Themes"
+words = ["theme", "colours", "god"]
+
+[[sub]]
+name = "list"
+description = "Show every theme and variant"
+
+[[sub]]
+name = "current"
+description = "Show the theme in use"
+
+[[sub]]
+name = "status"
+description = "Check that every part shows the current theme"
+
+[[sub]]
+name = "set"
+description = "Switch to {value}"
+root = true
+values = ["{id}-theme", "list", "--names"]
+
+[[sub]]
+name = "show"
+description = "Show every colour of {value}"
+values = ["{id}-theme", "list", "--names"]

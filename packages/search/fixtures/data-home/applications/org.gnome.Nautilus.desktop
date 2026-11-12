@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Files
+Name[de]=Dateien
+Comment=Access and organize files
+Keywords=folder;manager;explore;disk;filesystem;
+Categories=GNOME;Utility;Core;FileManager;
+Exec=nautilus --new-window %U
+Icon=org.gnome.Nautilus

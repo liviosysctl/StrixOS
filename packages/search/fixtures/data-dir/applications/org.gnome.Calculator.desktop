@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Calculator
+Keywords=calculation;arithmetic;scientific;
+Exec=gnome-calculator
+Icon=org.gnome.Calculator

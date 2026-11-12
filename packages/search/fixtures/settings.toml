@@ -1,0 +1,143 @@
+# A settings schema for the tests, in the format the settings app will use (see the plan, 10-search.md).
+open = ["{id}-settings", "--page", "{page}", "--row={row}"]
+
+[[page]]
+id = "appearance"
+title = "Appearance"
+symbol = "swatch-book"
+words = ["theme", "look"]
+
+[[page]]
+id = "lock-screen"
+title = "Lock screen"
+symbol = "lock"
+words = ["lockscreen"]
+
+[[page]]
+id = "display"
+title = "Display"
+symbol = "monitor"
+words = ["screen", "monitor"]
+
+[[page]]
+id = "sound"
+title = "Sound"
+symbol = "volume-2"
+words = ["audio", "volume"]
+
+[[page]]
+id = "network"
+title = "Network"
+symbol = "wifi"
+words = ["wi-fi", "wifi", "internet"]
+
+[[page]]
+id = "keyboard"
+title = "Keyboard"
+symbol = "keyboard"
+words = ["layout", "input"]
+
+[[page]]
+id = "notifications"
+title = "Notifications"
+symbol = "bell"
+words = ["alerts"]
+
+[[row]]
+id = "theme"
+page = "appearance"
+title = "Theme"
+type = "choice"
+words = ["colours", "look", "god"]
+value = ["printf", "Saturnus\n"]
+
+[[row]]
+id = "change-theme"
+page = "appearance"
+title = "Change theme"
+description = "Another god every 10 minutes"
+type = "choice"
+words = ["cycle", "rotate", "interval", "god", "wallpaper"]
+value = "Every 10 minutes"
+
+[[row]]
+id = "variant"
+page = "appearance"
+title = "Variant"
+type = "choice"
+words = ["light", "dark"]
+value = "Dark"
+
+[[row]]
+id = "text-size"
+page = "appearance"
+title = "Text size"
+type = "slider"
+words = ["font", "scale"]
+value = "100%"
+
+[[row]]
+id = "clock-style"
+page = "lock-screen"
+title = "Clock style"
+type = "choice"
+words = ["time"]
+value = "Stacked"
+
+[[row]]
+id = "24-hour"
+page = "lock-screen"
+title = "24-hour clock"
+type = "switch"
+words = ["time", "format"]
+value = "On"
+
+[[row]]
+id = "wallpaper"
+page = "lock-screen"
+title = "Wallpaper"
+description = "Another theme at each lock"
+type = "choice"
+words = ["god", "theme", "change", "rotate", "random"]
+value = "Another theme at each lock"
+
+[[row]]
+id = "scale"
+page = "display"
+title = "Scale"
+type = "choice"
+words = ["resolution", "hidpi", "zoom"]
+value = "100%"
+
+[[row]]
+id = "night-light"
+page = "display"
+title = "Night light"
+description = "Warmer colours in the evening"
+type = "switch"
+words = ["warm", "blue", "light", "colour", "temperature"]
+value = "Off"
+
+[[row]]
+id = "output"
+page = "sound"
+title = "Output device"
+type = "choice"
+words = ["speaker", "audio", "headphones"]
+value = ["sh", "-c", "sleep 5; echo too late"]
+
+[[row]]
+id = "layout"
+page = "keyboard"
+title = "Layout"
+type = "choice"
+words = ["keymap", "language"]
+value = "Swiss German"
+
+[[row]]
+id = "do-not-disturb"
+page = "notifications"
+title = "Do not disturb"
+type = "switch"
+words = ["silence", "quiet", "mute"]
+value = "Off"

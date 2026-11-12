@@ -108,6 +108,26 @@ in
   # tests pass (they run while it is built)
   themes = (import ../lib/themes.nix { inherit pkgs; }).dir;
 
+  # The search service with its unit tests (golden queries, the 5 ms budget, the socket), and the
+  # system menu and command files checked by it: unique ids, groups that exist, no emoji
+  search =
+    let
+      search = pkgs.callPackage ../packages/search { };
+    in
+    pkgs.runCommand "check-search" { } ''
+      ${lib.getExe search} check
+      touch $out
+    '';
+
+  # The user service evaluates on the reference machine
+  search-module =
+    let
+      cfg = (reference.extendModules { modules = [ { ${branding.id}.search.enable = true; } ]; }).config;
+      unit = cfg.systemd.user.services."${branding.id}-search";
+    in
+    assert lib.hasSuffix "-search serve" unit.serviceConfig.ExecStart;
+    builtins.seq cfg.system.build.toplevel.drvPath (ok "search-module");
+
   # The splash follows the theme: one Plymouth theme per variant, the default
   # one set, the initrd unit that picks the stored one, /etc pointing at /run
   theme-splash =

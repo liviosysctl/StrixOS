@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Text Editor
+Keywords=text;plain;edit;notepad;
+Exec=gnome-text-editor %U
+Icon=org.gnome.TextEditor

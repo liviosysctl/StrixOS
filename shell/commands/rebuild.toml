@@ -1,0 +1,20 @@
+name = "{id}-rebuild"
+description = "Build the configuration in /etc/nixos"
+words = ["rebuild", "nixos", "configuration"]
+root = true
+
+[[sub]]
+name = "switch"
+description = "Build the configuration in /etc/nixos and switch to it now"
+
+[[sub]]
+name = "boot"
+description = "Build the configuration in /etc/nixos and use it from the next start"
+
+[[sub]]
+name = "test"
+description = "Switch to the configuration in /etc/nixos until the next start"
+
+[[sub]]
+name = "dry-build"
+description = "Show what building the configuration would do"

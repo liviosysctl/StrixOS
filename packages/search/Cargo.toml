@@ -1,0 +1,23 @@
+[package]
+name = "search"
+version = "0.1.0"
+edition = "2024"
+description = "One search for apps, actions, settings and commands"
+license = "MIT"
+publish = false
+
+# The binary is installed under the distro's name by packages/search/default.nix.
+[[bin]]
+name = "search"
+path = "src/main.rs"
+
+[dependencies]
+libc = "0.2"
+nucleo-matcher = "0.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "1"
+
+[profile.release]
+lto = true
+codegen-units = 1

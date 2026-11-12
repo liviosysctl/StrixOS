@@ -177,6 +177,9 @@
         theme-engine = themes.engine;
         themes = themes.dir;
 
+        # The search service, with the system menu and the command files (10-search in the plan)
+        search = pkgs.callPackage ./packages/search { };
+
         machine-template = machineTemplate upstream.ref;
 
         default = self.packages.${system}.iso;

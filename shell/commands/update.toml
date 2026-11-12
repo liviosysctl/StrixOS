@@ -1,0 +1,5 @@
+# Own commands for Search: one file per command. `{id}` stands for the distro id.
+name = "{id}-update"
+description = "Fetch the latest release and switch to it"
+words = ["update", "upgrade", "new", "version"]
+root = true

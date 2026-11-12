@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Image Viewer
+Keywords=picture;photo;image;
+Exec=loupe %U
+Icon=org.gnome.Loupe

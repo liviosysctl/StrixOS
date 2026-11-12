@@ -3,6 +3,7 @@
 #
 #   nix flake update                      nixpkgs, disko and the other inputs
 #   cargo update (packages/theme-engine)  the crates of the theme engine
+#   cargo update (packages/search)        the crates of the search service
 #
 # The update is committed locally first (the install test needs a committed
 # tree for the machine lock), then nix flake check and the install test run.
@@ -65,6 +66,7 @@ jobs:
           git config user.email "livio.deganutti@pm.me"
           nix flake update 2>&1 | tee update.log
           (cd packages/theme-engine && cargo update 2>&1) | tee -a update.log
+          (cd packages/search && cargo update 2>&1) | tee -a update.log
           if git diff --quiet; then
             echo "Everything is already up to date."
             echo "changed=false" >> "$GITHUB_OUTPUT"
