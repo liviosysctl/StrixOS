@@ -272,6 +272,8 @@ in
       wireplumber.enable = true;
     };
     security.rtkit.enable = true;
+    # The battery in the bar
+    services.upower.enable = true;
     security.polkit.enable = true;
 
     programs.firefox.enable = true;

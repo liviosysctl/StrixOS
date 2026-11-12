@@ -28,7 +28,7 @@ Changes that matter for both go into both branches. When M245 is over, `personal
 | `packages/ui/`, `modules/ui.nix` | The design system of StrixUI on the machine: the QML module for Quickshell, the wallpapers, the fonts. |
 | `modules/desktop.nix` | The desktop: Hyprland as a UWSM session, the login of Strix under greetd (or tuigreet), PipeWire, the apps of the cheat sheet, the shell as a user service, hypridle, and the session's theme service: another god every 10 minutes unless kept, Hyprland and Ghostty follow. |
 | `shell/hypr/hyprland.lua` | The Hyprland configuration (Lua, Hyprland 0.55 and later): measures and motion of StrixUI; it requires `machine.lua`, `theme.lua` and `bindings.lua`, which Nix and the theme engine write. |
-| `shell/qml/` | The shell in Quickshell from StrixUI's QML module: wallpaper, top bar, lock screen, Search, cheat sheet, notifications, OSD, theme picker, Settings. `qs -c strix ipc show` lists what Hyprland can call. |
+| `shell/qml/` | The shell in Quickshell from StrixUI's QML module: wallpaper, top bar (network, volume, battery), lock screen, Search, cheat sheet, notifications, OSD for volume and brightness, clipboard history, theme picker, Settings. `qs -c strix ipc show` lists what Hyprland can call. |
 | `shell/greeter/` | The login screen in Quickshell, run by greetd in cage; it starts the same UWSM session. |
 | `shell/settings.toml` | The pages and rows of Settings as Search finds them. |
 | `shell/menu.toml` | The system menu of Search and every key of the cheat sheet; `strix-search bindings` makes the Hyprland keybindings from it. |
@@ -54,6 +54,8 @@ Changes that matter for both go into both branches. When M245 is over, `personal
 | `sudo strix-theme set <theme>`, `strix-theme list` | Switches the theme without a rebuild, see [themes/README.md](themes/README.md). |
 | `sudo strix-theme repos add <owner/repo>`, `strix-theme repos list` | Connects a theme repository; `strix-rebuild switch` builds its themes in, every `strix-update` brings new versions |
 | `strix-settings [PAGE [ROW]]` | Opens Settings: `themes`, `hotkeys`, `about` |
+| `strix-capture region\|window\|screen\|record\|colour` | Screenshots to `~/Pictures/Screenshots` and the clipboard, a recording to `~/Videos/Recordings`, the colour picker; Print and its modifiers call it |
+| Super V | The clipboard history |
 | Super Ctrl Space | The theme picker; K keeps the theme, otherwise another god comes every 10 minutes |
 
 SSH is on: `ssh <user>@<address>` with the user's password. Root cannot log in. To turn it off, add `services.openssh.enable = false;` to `machine.nix` and rebuild.
