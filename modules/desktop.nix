@@ -97,6 +97,24 @@ let
   ui = config.${id}.ui.package;
   sessionCommand = "uwsm start -e -D Hyprland hyprland.desktop";
 
+  # Screenshots, a recording, the colour picker: <id>-capture region|window|screen|record|colour
+  captureCommand = pkgs.writeShellApplication {
+    name = "${id}-capture";
+    runtimeInputs = with pkgs; [
+      grim
+      slurp
+      wl-clipboard
+      jq
+      libnotify
+      wf-recorder
+      hyprpicker
+      procps
+      coreutils
+      config.programs.hyprland.package
+    ];
+    text = builtins.readFile ../shell/bin/capture.sh;
+  };
+
   # Settings at a page and a row, for Search and people: <id>-settings [PAGE [ROW]]
   settingsCommand = pkgs.writeShellScriptBin "${id}-settings" ''
     exec ${lib.getExe' pkgs.quickshell "qs"} -c ${id} ipc call settings open "''${1:-themes}" "''${2:-}"
@@ -284,6 +302,9 @@ in
 
     environment.systemPackages = with pkgs; [
       settingsCommand
+      captureCommand
+      libnotify
+      cliphist
       quickshell
       ghostty
       nautilus
@@ -311,6 +332,23 @@ in
         ExecStart = "${lib.getExe' pkgs.quickshell "qs"} -c ${id}";
         Restart = "on-failure";
         RestartSec = 1;
+      };
+    };
+
+    # The clipboard history behind Super V: text and pictures, kept by cliphist
+    systemd.user.services."${id}-clipboard" = {
+      description = "Keep a history of the clipboard";
+      partOf = [ "graphical-session.target" ];
+      after = [ "graphical-session.target" ];
+      wantedBy = [ "graphical-session.target" ];
+      path = [ pkgs.wl-clipboard pkgs.cliphist ];
+      script = ''
+        wl-paste --type text --watch cliphist store &
+        exec wl-paste --type image --watch cliphist store
+      '';
+      serviceConfig = {
+        Restart = "on-failure";
+        RestartSec = 2;
       };
     };
 

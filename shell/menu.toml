@@ -197,7 +197,7 @@ group = "capture"
 symbol = "crop"
 words = ["screenshot", "area", "select", "snip"]
 keys = "Print"
-run = ["qs", "-c", "{id}", "ipc", "call", "capture", "region"]
+run = ["{id}-capture", "region"]
 
 [[action]]
 id = "window-screenshot"
@@ -206,7 +206,7 @@ group = "capture"
 symbol = "app-window"
 words = ["screenshot", "window"]
 keys = "Shift Print"
-run = ["qs", "-c", "{id}", "ipc", "call", "capture", "window"]
+run = ["{id}-capture", "window"]
 
 [[action]]
 id = "screen-screenshot"
@@ -215,7 +215,7 @@ group = "capture"
 symbol = "monitor"
 words = ["screenshot", "full", "display"]
 keys = "Ctrl Print"
-run = ["qs", "-c", "{id}", "ipc", "call", "capture", "screen"]
+run = ["{id}-capture", "screen"]
 
 [[action]]
 id = "record-region"
@@ -224,7 +224,7 @@ group = "capture"
 symbol = "video"
 words = ["screencast", "recording", "video"]
 keys = "Alt Print"
-run = ["qs", "-c", "{id}", "ipc", "call", "capture", "record"]
+run = ["{id}-capture", "record"]
 
 [[action]]
 id = "colour-picker"
@@ -233,7 +233,7 @@ group = "capture"
 symbol = "pipette"
 words = ["color", "hex", "eyedropper"]
 keys = "Super Print"
-run = ["qs", "-c", "{id}", "ipc", "call", "capture", "colour"]
+run = ["{id}-capture", "colour"]
 
 # ------------------------------------------------------------------ Clipboard
 
@@ -511,3 +511,91 @@ group = "Workspaces"
 target = "Special workspace"
 keys = "Super S"
 hypr = 'hl.dsp.workspace.toggle_special("scratchpad")'
+
+# The keys of a laptop or a media keyboard. They work on the lock screen too (locked) and repeat
+# while held; the OSD of the shell shows volume and brightness.
+
+[[binding]]
+id = "volume-up"
+title = "Louder"
+group = "Sound and light"
+target = "Speakers"
+keys = "VolumeUp"
+run = ["wpctl", "set-volume", "-l", "1", "@DEFAULT_AUDIO_SINK@", "5%+"]
+locked = true
+repeat = true
+
+[[binding]]
+id = "volume-down"
+title = "Quieter"
+group = "Sound and light"
+target = "Speakers"
+keys = "VolumeDown"
+run = ["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", "5%-"]
+locked = true
+repeat = true
+
+[[binding]]
+id = "mute"
+title = "Mute"
+group = "Sound and light"
+target = "Speakers"
+keys = "Mute"
+run = ["wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "toggle"]
+locked = true
+
+[[binding]]
+id = "mic-mute"
+title = "Mute the microphone"
+group = "Sound and light"
+target = "Microphone"
+keys = "MicMute"
+run = ["wpctl", "set-mute", "@DEFAULT_AUDIO_SOURCE@", "toggle"]
+locked = true
+
+[[binding]]
+id = "brightness-up"
+title = "Brighter"
+group = "Sound and light"
+target = "Screen"
+keys = "BrightnessUp"
+run = ["qs", "-c", "{id}", "ipc", "call", "osd", "brightness", "5%+"]
+locked = true
+repeat = true
+
+[[binding]]
+id = "brightness-down"
+title = "Darker"
+group = "Sound and light"
+target = "Screen"
+keys = "BrightnessDown"
+run = ["qs", "-c", "{id}", "ipc", "call", "osd", "brightness", "5%-"]
+locked = true
+repeat = true
+
+[[binding]]
+id = "play"
+title = "Play or pause"
+group = "Sound and light"
+target = "Music and video"
+keys = "Play"
+run = ["playerctl", "play-pause"]
+locked = true
+
+[[binding]]
+id = "next-track"
+title = "Next track"
+group = "Sound and light"
+target = "Music and video"
+keys = "Next"
+run = ["playerctl", "next"]
+locked = true
+
+[[binding]]
+id = "previous-track"
+title = "Previous track"
+group = "Sound and light"
+target = "Music and video"
+keys = "Previous"
+run = ["playerctl", "previous"]
+locked = true

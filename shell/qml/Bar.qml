@@ -1,10 +1,14 @@
 // The top bar (TopBar in StrixUI): no surface of its own, small text and symbols straight on the
 // wallpaper. Left: search and the clock, then CPU and memory. Middle: the workspaces of Hyprland.
-// Right: the bell with its count and power. Super Shift Space hides it (ipc: bar toggle).
+// Right: the network (a click opens nmtui), the volume, the battery when there is one, the bell
+// with its count and power. Super Shift Space hides it (ipc: bar toggle).
 import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Hyprland
+import Quickshell.Networking
+import Quickshell.Services.Pipewire
+import Quickshell.Services.UPower
 import Quickshell.Wayland
 import Strix
 
@@ -19,6 +23,31 @@ Scope {
     }
 
     SystemClock { id: clock; precision: SystemClock.Minutes }
+
+    // The network: the Wi-Fi it is connected to, else a cable, else offline
+    readonly property string network: {
+        const devices = Networking.devices.values
+        const wifi = devices.find(d => d.type === DeviceType.Wifi && d.connected)
+        if (wifi) {
+            const net = wifi.networks.values.find(n => n.connected)
+            return net ? net.name : "Wi-Fi"
+        }
+        if (devices.some(d => d.type === DeviceType.Wired && d.connected)) return "Wired"
+        return "Offline"
+    }
+
+    // The volume of the default output
+    readonly property var sink: Pipewire.defaultAudioSink
+    PwObjectTracker { objects: root.sink ? [root.sink] : [] }
+    readonly property real volume: root.sink && root.sink.audio ? root.sink.audio.volume : 0
+    readonly property bool muted: !!(root.sink && root.sink.audio && root.sink.audio.muted)
+
+    // The battery, on a laptop
+    readonly property var battery: UPower.displayDevice
+    readonly property bool hasBattery: !!(root.battery && root.battery.ready && root.battery.isLaptopBattery)
+    readonly property real charge: root.hasBattery ? (root.battery.percentage > 1 ? root.battery.percentage / 100 : root.battery.percentage) : 0
+    readonly property bool charging: root.hasBattery && (root.battery.state === UPowerDeviceState.Charging
+        || root.battery.state === UPowerDeviceState.FullyCharged || root.battery.state === UPowerDeviceState.PendingCharge)
 
     // CPU from /proc/stat, memory from /proc/meminfo, every two seconds
     property real cpu: 0
@@ -98,6 +127,36 @@ Scope {
                 anchors { right: parent.right; rightMargin: Theme.space4; verticalCenter: parent.verticalCenter }
                 spacing: Theme.space3
 
+                Row {
+                    spacing: Theme.space1
+                    anchors.verticalCenter: parent.verticalCenter
+                    IconButton {
+                        small: true
+                        iconName: "wifi"
+                        onClicked: Quickshell.execDetached(["uwsm", "app", "--", "ghostty", "-e", "nmtui"])
+                    }
+                    Label {
+                        textStyle: "micro"
+                        color: root.network === "Offline" ? Theme.textFaint : Theme.textMuted
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: root.network
+                        elide: Text.ElideRight
+                        width: Math.min(implicitWidth, 140)
+                    }
+                }
+                Meter {
+                    anchors.verticalCenter: parent.verticalCenter
+                    label: "VOL"
+                    value: root.muted ? 0 : root.volume
+                    valueText: root.muted ? "off" : Math.round(root.volume * 100) + "%"
+                }
+                Meter {
+                    visible: root.hasBattery
+                    anchors.verticalCenter: parent.verticalCenter
+                    label: root.charging ? "AC" : "BAT"
+                    value: root.charge
+                    valueText: Math.round(root.charge * 100) + "%"
+                }
                 Row {
                     spacing: Theme.space1
                     anchors.verticalCenter: parent.verticalCenter

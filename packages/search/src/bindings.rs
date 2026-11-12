@@ -67,6 +67,9 @@ pub struct Binding {
     /// Held down repeats (resizing)
     #[serde(default)]
     pub repeat: bool,
+    /// Works on the lock screen too (volume, brightness)
+    #[serde(default)]
+    pub locked: bool,
 }
 
 #[derive(Deserialize, Clone)]
@@ -86,6 +89,7 @@ pub struct Bound {
     pub dispatcher: String,
     pub description: String,
     pub repeat: bool,
+    pub locked: bool,
 }
 
 const MODIFIERS: [(&str, &str); 4] = [
@@ -109,6 +113,16 @@ fn key_name(key: &str) -> Option<String> {
         "Right" => "right",
         "Up" => "up",
         "Down" => "down",
+        // The keys of a laptop or a media keyboard, as the cheat sheet writes them
+        "VolumeUp" => "XF86AudioRaiseVolume",
+        "VolumeDown" => "XF86AudioLowerVolume",
+        "Mute" => "XF86AudioMute",
+        "MicMute" => "XF86AudioMicMute",
+        "BrightnessUp" => "XF86MonBrightnessUp",
+        "BrightnessDown" => "XF86MonBrightnessDown",
+        "Play" => "XF86AudioPlay",
+        "Next" => "XF86AudioNext",
+        "Previous" => "XF86AudioPrev",
         _ => "",
     };
     if !named.is_empty() {
@@ -240,6 +254,7 @@ pub fn read(path: &Path, distro: &str) -> Result<Vec<Bound>, String> {
                 dispatcher: exec(&fill(argv)),
                 description: a.title.clone(),
                 repeat: false,
+                locked: false,
             }),
             (Some(_), true) => {
                 problems.push(format!("{at}: a key cannot start a terminal action yet"))
@@ -298,6 +313,7 @@ pub fn read(path: &Path, distro: &str) -> Result<Vec<Bound>, String> {
                 dispatcher,
                 description: b.title.clone(),
                 repeat: b.repeat,
+                locked: b.locked,
             });
         }
     }
@@ -406,6 +422,9 @@ pub fn lua(bound: &[Bound]) -> String {
     );
     for b in bound {
         let mut opts = format!("description = {}", lua_string(&b.description));
+        if b.locked {
+            opts.push_str(", locked = true");
+        }
         if b.repeat {
             opts.push_str(", repeating = true");
         }
@@ -650,5 +669,30 @@ run = ["x"]
             "{e}"
         );
         assert!(e.contains("unknown key \"Nope\""), "{e}");
+    }
+
+    #[test]
+    fn laptop_keys_work_on_the_lock_screen() {
+        assert_eq!(
+            key_name("VolumeUp").as_deref(),
+            Some("XF86AudioRaiseVolume")
+        );
+        assert_eq!(
+            key_name("BrightnessDown").as_deref(),
+            Some("XF86MonBrightnessDown")
+        );
+        assert_eq!(key_name("Volume"), None);
+        let text = lua(&[Bound {
+            id: "volume-up".into(),
+            combo: "XF86AudioRaiseVolume".into(),
+            dispatcher: "hl.dsp.exec_cmd(\"wpctl\")".into(),
+            description: "Louder".into(),
+            repeat: true,
+            locked: true,
+        }]);
+        assert!(
+            text.contains("{ description = \"Louder\", locked = true, repeating = true }"),
+            "{text}"
+        );
     }
 }

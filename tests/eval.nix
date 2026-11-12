@@ -203,6 +203,7 @@ in
     assert cfg.systemd.user.services ? "${branding.id}-shell";
     assert cfg.security.pam.services ? "${branding.id}-lock";
     assert cfg.${branding.id}.search.enable;
+    assert cfg.systemd.user.services ? "${branding.id}-clipboard";
     pkgs.runCommand "check-shell"
       {
         nativeBuildInputs = [ pkgs.quickshell pkgs.weston pkgs.gnugrep pkgs.coreutils ];
