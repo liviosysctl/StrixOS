@@ -1,9 +1,8 @@
 # Creates the GitHub release for every pushed version tag (v1.2.3).
 # The notes come from cliff.toml, so they look exactly like CHANGELOG.md.
 #
-# Then builds the ISO, signs it for Secure Boot and attaches what the
-# bootstick app downloads: the ISO
-# (in parts below 2 GiB if it is larger), SHA256SUMS and manifest.json. Only
+# Then builds the ISO, signs it for Secure Boot and attaches it (in parts
+# below 2 GiB if it is larger) with SHA256SUMS. Only
 # after that, stable moves to the tag, so installed machines never see a
 # release without an ISO.
 #
@@ -73,7 +72,6 @@ jobs:
         run: |
           version=$(nix eval --raw .#lib.version)
           echo "tag=v$version" >> "$GITHUB_OUTPUT"
-          echo "name=$(nix eval --raw --file branding.nix name)" >> "$GITHUB_OUTPUT"
           echo "id=$(nix eval --raw --file branding.nix id)" >> "$GITHUB_OUTPUT"
 
       - name: Tag and flake version must match
@@ -105,11 +103,8 @@ jobs:
           REQUIRE_SIGNATURE: ${{ github.event_name == 'push' }}
         run: ./.github/scripts/sign-iso.sh result/iso/*.iso signed
 
-      - name: Split, checksum, manifest
-        env:
-          DISTRO_NAME: ${{ steps.version.outputs.name }}
-          SECURE_BOOT_SIGNED: ${{ steps.sign.outputs.signed }}
-        run: ./.github/scripts/package-iso.sh "${{ steps.version.outputs.tag }}" "${{ steps.sign.outputs.iso }}" out/
+      - name: Split and checksum
+        run: ./.github/scripts/package-iso.sh "${{ steps.sign.outputs.iso }}" out/
 
       - name: Attach to the release
         if: github.event_name == 'push'
