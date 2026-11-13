@@ -1,0 +1,55 @@
+# Nix with flakes, plus the distro's binary cache on Cachix (modules/cache.nix)
+# when the repository has the secret CACHIX_AUTH_TOKEN. Without the secret the
+# jobs build everything themselves, as before the cache existed.
+#
+#   - uses: ./.github/actions/nix
+#     with:
+#       cachix-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+#
+# The action only pulls. The cache job in check.yml pushes on its own with
+# `cachix push`, so ISOs and VM test results never fill the cache.
+name: Nix
+description: Install Nix with flakes and pull from the distro's binary cache
+
+inputs:
+  cachix-token:
+    description: The repository secret CACHIX_AUTH_TOKEN, empty when there is none
+    required: false
+    default: ""
+  extra-nix-config:
+    description: More lines for nix.conf
+    required: false
+    default: ""
+
+outputs:
+  cache:
+    description: Name of the Cachix cache, empty when it is not used
+    value: ${{ steps.cache.outputs.name }}
+
+runs:
+  using: composite
+  steps:
+    - uses: cachix/install-nix-action@v31
+      with:
+        extra_nix_config: |
+          experimental-features = nix-command flakes
+          ${{ inputs.extra-nix-config }}
+
+    # The cache is named after the distro id (branding.nix)
+    - id: cache
+      shell: bash
+      env:
+        TOKEN: ${{ inputs.cachix-token }}
+      run: |
+        if [ -z "$TOKEN" ]; then
+          echo "No CACHIX_AUTH_TOKEN, building without the binary cache."
+          exit 0
+        fi
+        echo "name=$(nix eval --raw --file branding.nix id)" >> "$GITHUB_OUTPUT"
+
+    - if: steps.cache.outputs.name != ''
+      uses: cachix/cachix-action@v17
+      with:
+        name: ${{ steps.cache.outputs.name }}
+        authToken: ${{ inputs.cachix-token }}
+        skipPush: true

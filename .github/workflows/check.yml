@@ -27,10 +27,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: cachix/install-nix-action@v31
+      - uses: ./.github/actions/nix
         with:
-          extra_nix_config: |
-            experimental-features = nix-command flakes
+          cachix-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
       - name: nix flake check
         run: nix flake check -L --show-trace
@@ -53,10 +52,9 @@ jobs:
 
       - uses: actions/checkout@v7
 
-      - uses: cachix/install-nix-action@v31
+      - uses: ./.github/actions/nix
         with:
-          extra_nix_config: |
-            experimental-features = nix-command flakes
+          cachix-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
       - name: Build the ISO
         run: nix build .#iso-dev -L
