@@ -1,14 +1,15 @@
 # Secure Boot on installed machines.
 #
-# The machine boots shim (signed by Microsoft) -> systemd-boot -> kernel, the
-# same way the signed ISO boots shim -> GRUB -> kernel. systemd-boot and the
-# kernels are signed with a key made on the machine at install time
+# The machine boots shim (signed by Microsoft) -> GRUB -> kernel, the same
+# way the signed ISO does. GRUB (one image with every module it needs, since
+# it may load none from disk under Secure Boot) and the kernels are signed
+# with a key made on the machine at install time
 # (/var/lib/<id>/secure-boot, root only). shim trusts it once MokManager has
 # enrolled it: the installer asks for that when Secure Boot is on, later
 # `sudo <id>-secure-boot enroll` does the same.
 #
-# With Secure Boot off everything boots as before, shim then starts
-# systemd-boot without checking it.
+# With Secure Boot off everything boots as before, shim then starts GRUB
+# without checking it.
 #
 # The initrd is not checked (shim checks only PE images), the same trade-off
 # as on the ISO. Lanzaboote would cover it, but needs own keys in the
@@ -21,8 +22,7 @@ let
   system = pkgs.stdenv.hostPlatform.system;
 
   tool = pkgs.callPackage ../packages/secure-boot {
-    inherit (distroFlake.packages.${system}) shim;
-    systemd = config.systemd.package;
+    inherit (distroFlake.packages.${system}) shim grub-sb;
     esp = config.boot.loader.efi.efiSysMountPoint;
     testKeyDir = cfg.testKey;
   };
@@ -34,7 +34,7 @@ in
       default = true;
       description = ''
         Boot through shim, so the machine also starts with Secure Boot on.
-        systemd-boot and every kernel are signed with a key made on this
+        GRUB and every kernel are signed with a key made on this
         machine after each boot loader install. Turning it off leaves the
         files on the ESP until the next install of the boot loader.
       '';
@@ -51,16 +51,18 @@ in
     };
   };
 
-  config = lib.mkIf (cfg.enable && config.boot.loader.systemd-boot.enable) {
-    boot.loader.systemd-boot.extraInstallCommands = ''
+  config = lib.mkIf (cfg.enable && config.boot.loader.grub.enable) {
+    # After NixOS has written grub.cfg and, when GRUB changed, its own
+    # unsigned GRUB to EFI/BOOT/BOOTX64.EFI: shim goes back there, the signed
+    # GRUB next to it
+    boot.loader.grub.extraInstallCommands = lib.mkAfter ''
       ${lib.getExe tool} sign
     '';
 
-    # A boot entry made by bootctl would point the firmware at systemd-boot
-    # directly, which the firmware refuses with Secure Boot on (it only knows
-    # Microsoft's keys). The installer makes one for shim instead
-    # (`<id>-secure-boot boot-entry`), and the fallback path
-    # EFI/BOOT/BOOTX64.EFI is shim as well.
+    # Boot entries made by NixOS would point the firmware at GRUB directly,
+    # which it refuses with Secure Boot on (it only knows Microsoft's keys).
+    # The installer makes one for shim instead (`<id>-secure-boot boot-entry`),
+    # and the fallback path EFI/BOOT/BOOTX64.EFI is shim as well.
     boot.loader.efi.canTouchEfiVariables = lib.mkForce false;
 
     environment.systemPackages = [

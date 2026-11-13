@@ -404,7 +404,7 @@ in
       isoPkgs = configs."${branding.id}-iso".pkgs;
     in
     assert cfg.${branding.id}.secureBoot.enable;
-    assert lib.hasInfix "${branding.id}-secure-boot sign" cfg.boot.loader.systemd-boot.extraInstallCommands;
+    assert lib.hasInfix "${branding.id}-secure-boot sign" cfg.boot.loader.grub.extraInstallCommands;
     assert !cfg.boot.loader.efi.canTouchEfiVariables;
     assert lib.any (p: (p.pname or "") == "mokutil") cfg.environment.systemPackages;
     assert isoPkgs.grub2_efi ? sbat;
@@ -417,9 +417,30 @@ in
     let
       cfg = (reference.extendModules { modules = [ { ${branding.id}.secureBoot.enable = false; } ]; }).config;
     in
-    assert !lib.hasInfix "secure-boot" cfg.boot.loader.systemd-boot.extraInstallCommands;
-    assert cfg.boot.loader.efi.canTouchEfiVariables;
+    assert !lib.hasInfix "secure-boot" cfg.boot.loader.grub.extraInstallCommands;
     ok "secure-boot-off";
+
+  # GRUB: as the fallback path, Windows found by os-prober, the menu hidden
+  # unless another system is there, drawn in the selected theme (one GRUB
+  # theme per variant, the default one also on the ISO)
+  grub =
+    let
+      cfg = reference.config;
+      grub = cfg.boot.loader.grub;
+      install = grub.extraInstallCommands;
+    in
+    assert grub.enable && grub.efiSupport && grub.efiInstallAsRemovable;
+    assert grub.useOSProber;
+    assert grub.timeoutStyle == "hidden";
+    assert !cfg.boot.loader.systemd-boot.enable;
+    assert lib.hasInfix "${branding.id}-grub-menu" install;
+    assert lib.hasInfix "${branding.id}-grub-theme" install;
+    # The theme comes first, the signature last: sign may not miss a file written after it
+    assert lib.hasSuffix "${branding.id}-secure-boot sign\n" install;
+    assert lib.hasInfix "theme/theme.txt" grub.extraConfig;
+    assert cfg.systemd.paths."${branding.id}-grub-theme".pathConfig.PathChanged == "/run/${branding.id}/theme/tokens.json";
+    assert lib.hasSuffix "${branding.id}-saturnus-dark" iso.isoImage.grubTheme.name;
+    ok "grub";
 
   # The binary cache is only used once its public key is in modules/cache.nix
   cache =

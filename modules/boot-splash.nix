@@ -34,8 +34,5 @@ in
       "rd.udev.log_level=3"
       "udev.log_priority=3"
     ];
-
-    # Boot menu only while a key (e.g. space) is held during boot
-    boot.loader.timeout = lib.mkDefault 0;
   };
 }

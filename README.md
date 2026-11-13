@@ -53,6 +53,7 @@ These are renderings of the design from StrixUI; the shell in this repository is
 | `lib/mk-system.nix` | `lib.mkSystem`: builds a machine from the files in `/etc/nixos`. |
 | `modules/` | The distro modules: os-release, base system, the three tools, apps from `apps.json`, disk layout. |
 | `modules/storage/btrfs.nix` | Disk layout with disko: GPT, ESP, optional LUKS, btrfs with flat subvolumes, Snapper for `/home`, hibernation. |
+| `modules/boot-loader.nix` | GRUB as the boot loader: hidden menu, shown for a few seconds when Windows or another system is found; drawn in the selected theme. |
 | `modules/boot-splash.nix` | Graphical boot with Plymouth: wordmark, progress line, a styled passphrase field. |
 | `modules/theme.nix` | The theme engine on the system: the `strix-theme` command, the service that applies the theme at boot, the boot splash that follows it. |
 | `themes/` | `default.nix`, the theme a new installation starts with (`saturnus`). The themes are the eight Roman gods of [StrixUI](https://github.com/liviosysctl/StrixUI), a flake input. [themes/README.md](themes/README.md) describes the format and the theme repositories. |
@@ -66,8 +67,9 @@ These are renderings of the design from StrixUI; the shell in this repository is
 | `shell/greeter/` | The login screen in Quickshell, run by greetd in cage; it starts the same UWSM session. |
 | `shell/settings.toml` | The pages and rows of Settings as Search finds them. |
 | `shell/menu.toml` | The system menu of Search and every key of the cheat sheet; `strix-search bindings` makes the Hyprland keybindings from it. |
-| `lib/themes.nix` | Themes at build time: the checked themes folder, a Plymouth theme per variant, the installer's colors. |
+| `lib/themes.nix` | Themes at build time: the checked themes folder, a Plymouth and a GRUB theme per variant, the installer's colors. |
 | `packages/plymouth-theme/` | Builds the Plymouth theme of one theme variant. |
+| `packages/grub-theme/` | Builds the GRUB theme of one theme variant: the god's wallpaper, wordmark and motto, the menu in the look of StrixUI. |
 | `templates/machine/` | Template for `/etc/nixos` that the installer fills in. |
 | `hosts/` | A made-up machine for CI and testing: `reference`. |
 | `iso/default.nix` | The installer ISO, built on the minimal NixOS installer. |

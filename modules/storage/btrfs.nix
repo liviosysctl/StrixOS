@@ -142,7 +142,7 @@ in
         type = "gpt";
         partitions = {
           ESP = {
-            # 1 GiB holds many kernel generations for systemd-boot.
+            # 1 GiB holds many kernel generations and the boot menu theme.
             size = "1G";
             type = "EF00";
             content = {
