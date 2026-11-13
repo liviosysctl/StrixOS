@@ -3,10 +3,11 @@
 # November 2026, the newest revocations shim knows of.
 #
 #   nix build .#tests.secure-boot-iso -L   the signed ISO boots from a stick
-#   nix build .#tests.secure-boot -L       an installed machine boots, keeps
+#   nix build .#tests.secure-boot -L       an installed machine boots through
+#                                          shim and GRUB in its theme, keeps
 #                                          booting after a new boot loader
 #                                          install, and refuses an unsigned
-#                                          boot loader
+#                                          GRUB
 #
 # The test key is made in the Nix store, so it is only good for tests. The
 # keys are already in shim's MOK list here; enrolling with MokManager is a
@@ -166,7 +167,11 @@ in
     nodes.machine =
       { lib, ... }:
       {
-        imports = [ ../modules/secure-boot.nix ];
+        imports = [
+          ../modules/boot-loader.nix
+          ../modules/theme.nix
+          ../modules/secure-boot.nix
+        ];
 
         ${id}.secureBoot.testKey = testKey;
 
@@ -177,11 +182,7 @@ in
           variables = variables "machine" [ "${testKey}/cert.pem" ];
           keepVariables = false;
         };
-        boot.loader.systemd-boot.enable = true;
         boot.consoleLogLevel = lib.mkForce 7;
-
-        # The unsigned systemd-boot for the last subtest
-        virtualisation.additionalPaths = [ pkgs.systemd ];
       };
 
     testScript = ''
@@ -190,11 +191,17 @@ in
 
       with subtest("booted through shim with Secure Boot on"):
           machine.succeed("mokutil --sb-state | grep -x 'SecureBoot enabled'")
-          machine.succeed("bootctl status | grep -E 'Secure Boot: enabled'")
           print(machine.succeed("${id}-secure-boot status"))
+          machine.succeed("${id}-secure-boot status | grep '^signed: *kernels/'")
           machine.succeed("cmp /boot/EFI/BOOT/BOOTX64.EFI ${self.packages.${system}.shim}/share/shim/shimx64.efi")
           machine.fail("${id}-secure-boot status | grep '^unsigned'")
           machine.succeed("test -s /boot/${id}.cer")
+
+      with subtest("GRUB in the theme, the menu hidden with no other system"):
+          machine.succeed("test -s /boot/grub/${id}/theme/theme.txt")
+          machine.succeed("test -s /boot/grub/${id}/theme/background.png")
+          machine.succeed("grep -q 'theme/theme.txt' /boot/grub/grub.cfg")
+          machine.fail("test -e /boot/grub/${id}/menu.cfg")
 
       with subtest("a new boot loader install keeps everything signed"):
           machine.succeed("/run/current-system/bin/switch-to-configuration boot")
@@ -203,9 +210,9 @@ in
           machine.wait_for_unit("multi-user.target")
           machine.succeed("mokutil --sb-state | grep -x 'SecureBoot enabled'")
 
-      with subtest("an unsigned systemd-boot does not start"):
+      with subtest("an unsigned GRUB does not start"):
           machine.succeed(
-              "cp ${pkgs.systemd}/lib/systemd/boot/efi/systemd-bootx64.efi /boot/EFI/BOOT/grubx64.efi && sync"
+              "cp /var/lib/${id}/secure-boot/grubx64.unsigned /boot/EFI/BOOT/grubx64.efi && sync"
           )
           machine.reboot()
           # shim refuses it and starts MokManager instead

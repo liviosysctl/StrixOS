@@ -4,7 +4,7 @@
 # Getting an own shim signed would mean Microsoft's shim review; Ventoy and
 # other small distributions reuse a signed one the same way.
 #
-# shim then starts grubx64.efi (the ISO) or systemd-boot (installed machines)
+# shim then starts grubx64.efi (GRUB, on the ISO and on installed machines)
 # from its own folder if the binary is signed by a key in the machine's MOK
 # list, and MokManager when it is not. The version also sets the lowest SBAT
 # generation shim accepts: 16.1-2 wants grub,5 (see packages/grub-sb).

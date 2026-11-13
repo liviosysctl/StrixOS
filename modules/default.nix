@@ -7,6 +7,7 @@
     ./base.nix
     ./cache.nix
     ./systemd-tools.nix
+    ./boot-loader.nix
     ./boot-splash.nix
     ./theme.nix
     ./ui.nix

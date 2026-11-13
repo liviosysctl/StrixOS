@@ -1,4 +1,4 @@
-# strix-secure-boot: the boot chain shim -> systemd-boot -> kernel on an
+# strix-secure-boot: the boot chain shim -> GRUB -> kernel on an
 # installed machine, signed with a key made on the machine (secure-boot.sh).
 {
   lib,
@@ -14,8 +14,8 @@
   util-linux,
   diffutils,
   shim,
-  # systemd-boot as the machine builds it
-  systemd,
+  # GRUB with an SBAT section (packages/grub-sb)
+  grub-sb,
   esp ? "/boot",
   # Tests only: a folder with key.pem and cert.pem to use instead of a new key
   testKeyDir ? null,
@@ -46,7 +46,8 @@ writeShellApplication {
     ESP = esp;
     KEY_DIR = "/var/lib/${branding.id}/secure-boot";
     SHIM_DIR = "${shim}/share/shim";
-    SYSTEMD_BOOT = "${systemd}/lib/systemd/boot/efi/systemd-bootx64.efi";
+    GRUB_MKIMAGE = "${grub-sb}/bin/grub-mkimage";
+    GRUB_MODULES = "${grub-sb}/lib/grub/x86_64-efi";
   }
   // lib.optionalAttrs (testKeyDir != null) {
     TEST_KEY_DIR = testKeyDir;

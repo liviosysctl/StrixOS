@@ -1,14 +1,14 @@
 # Secure Boot on an installed machine (modules/secure-boot.nix).
 #
-# The machine boots shim (signed by Microsoft) -> systemd-boot -> kernel.
-# shim starts systemd-boot and systemd-boot starts the kernel only when they
-# are signed by a key shim trusts. That key is made on this machine and never
+# The machine boots shim (signed by Microsoft) -> GRUB -> kernel. shim starts
+# GRUB and GRUB starts the kernel (through shim) only when they are signed by
+# a key shim trusts. That key is made on this machine and never
 # leaves it; MokManager adds it to shim's list (the MOK list) once, at the
 # keyboard, after "enroll".
 #
 #   sign         after every boot loader install (extraInstallCommands):
-#                make the key if there is none, put shim in front of
-#                systemd-boot, sign systemd-boot and every kernel on the ESP
+#                make the key if there is none, put shim in front of GRUB,
+#                build GRUB as one image and sign it, sign every kernel
 #   enroll       ask MokManager to enroll the key at the next start
 #                (--code NNNN: the one-time code to type there, default random)
 #   boot-entry   a firmware boot entry for shim, first in the boot order
@@ -16,9 +16,10 @@
 #
 # Layout of the ESP:
 #   EFI/BOOT/BOOTX64.EFI   shim (firmware fallback path, and the boot entry)
-#   EFI/BOOT/grubx64.efi   systemd-boot, signed (shim starts this name)
+#   EFI/BOOT/grubx64.efi   GRUB with its modules built in, signed (shim starts
+#                          this name); it reads grub/grub.cfg from this ESP
 #   EFI/BOOT/mmx64.efi     MokManager
-#   EFI/nixos/*.efi        kernels signed, initrds as they are
+#   kernels/*-bzImage      kernels signed, initrds as they are
 #   <id>.cer               the certificate, for "Enroll key from disk"
 
 die() {
@@ -83,6 +84,38 @@ put() {
   cmp -s "$1" "$2" || install -m 0644 "$1" "$2"
 }
 
+# Everything grub.cfg uses, built in: under Secure Boot GRUB loads no module
+# from disk. NixOS's grub.cfg, os-prober's entries (Windows is chainloaded,
+# the firmware checks its signature), the theme and the firmware settings.
+grub_modules=(
+  normal configfile echo test true sleep reboot halt minicmd ls cat probe regexp
+  search search_fs_uuid search_fs_file search_label part_gpt part_msdos fat ext2 btrfs
+  linux chain efifwsetup loadenv keystatus
+  all_video efi_gop efi_uga video_bochs video_cirrus gfxterm gfxterm_background gfxmenu png font
+)
+
+# GRUB as one image that finds this ESP by its UUID and reads grub/grub.cfg
+# there. Signed again only when the unsigned image changed.
+sign_grub() {
+  local uuid work
+  uuid=$(findmnt -nvo UUID --target "$ESP") || die "$ESP is not mounted"
+  [ -n "$uuid" ] || die "the file system of $ESP has no UUID"
+  work=$(mktemp -d)
+  # $root and $prefix are GRUB's, not the shell's
+  # shellcheck disable=SC2016
+  printf '%s\n' \
+    "search --no-floppy --fs-uuid --set=root $uuid" \
+    'set prefix=($root)/grub' \
+    'configfile $prefix/grub.cfg' >"$work/early.cfg"
+  "$GRUB_MKIMAGE" --directory "$GRUB_MODULES" --format x86_64-efi --prefix /grub \
+    --config "$work/early.cfg" --output "$work/grubx64.efi" "${grub_modules[@]}"
+  if ! cmp -s "$work/grubx64.efi" "$KEY_DIR/grubx64.unsigned" || ! signed_by_us "$ESP/EFI/BOOT/grubx64.efi"; then
+    sign_to "$work/grubx64.efi" "$ESP/EFI/BOOT/grubx64.efi"
+    install -m 0600 "$work/grubx64.efi" "$KEY_DIR/grubx64.unsigned"
+  fi
+  rm -rf "$work"
+}
+
 cmd_sign() {
   need_root
   [ -d "$ESP/EFI" ] || die "no ESP at $ESP"
@@ -91,18 +124,13 @@ cmd_sign() {
   install -d "$ESP/EFI/BOOT"
   put "$SHIM_DIR/shimx64.efi" "$ESP/EFI/BOOT/BOOTX64.EFI"
   put "$SHIM_DIR/mmx64.efi" "$ESP/EFI/BOOT/mmx64.efi"
-  sign_to "$SYSTEMD_BOOT" "$ESP/EFI/BOOT/grubx64.efi"
+  sign_grub
   put "$der" "$ESP/$DISTRO_ID.cer"
 
-  # The copy NixOS keeps for its own boot entry: signed too, so it also
-  # starts if someone points the firmware at it with the key in db
-  if [ -f "$ESP/EFI/systemd/systemd-bootx64.efi" ] && ! signed_by_us "$ESP/EFI/systemd/systemd-bootx64.efi"; then
-    sign_to "$ESP/EFI/systemd/systemd-bootx64.efi" "$ESP/EFI/systemd/systemd-bootx64.efi"
-  fi
-
-  # Kernels are PE files (MZ), initrds are not
+  # Kernels are PE files (MZ), initrds are not. GRUB keeps them in kernels/,
+  # installs from before GRUB had them in EFI/nixos/.
   local file count=0
-  for file in "$ESP"/EFI/nixos/*.efi; do
+  for file in "$ESP"/kernels/* "$ESP"/EFI/nixos/*.efi; do
     [ -f "$file" ] || continue
     [ "$(head -c 2 "$file")" = MZ ] || continue
     if ! signed_by_us "$file"; then
@@ -110,7 +138,7 @@ cmd_sign() {
       count=$((count + 1))
     fi
   done
-  say "Secure Boot: shim and systemd-boot in place, $count new kernel(s) signed."
+  say "Secure Boot: shim and GRUB in place, $count new kernel(s) signed."
 }
 
 esp_disk_and_part() {
@@ -185,7 +213,7 @@ cmd_status() {
     say "Machine key: none yet"
   fi
   local file
-  for file in "$ESP/EFI/BOOT/grubx64.efi" "$ESP"/EFI/nixos/*-bzImage.efi; do
+  for file in "$ESP/EFI/BOOT/grubx64.efi" "$ESP"/kernels/*-bzImage; do
     [ -f "$file" ] || continue
     if signed_by_us "$file"; then say "signed:   ${file#"$ESP"/}"; else say "unsigned: ${file#"$ESP"/}"; fi
   done

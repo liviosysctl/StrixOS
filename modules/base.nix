@@ -22,11 +22,6 @@ in
   };
 
   config = {
-    # Boot loader
-    boot.loader.systemd-boot.enable = true;
-    boot.loader.systemd-boot.configurationLimit = 10; # a 1 GiB ESP easily holds that many
-    boot.loader.efi.canTouchEfiVariables = true;
-
     # Nix. nixosSystem already sets the registry entry for nixpkgs.
     nix.settings.experimental-features = [ "nix-command" "flakes" ];
     nix.settings.auto-optimise-store = true;
