@@ -430,4 +430,14 @@ in
     assert used -> lib.all (url: lib.hasPrefix "https://" url) settings.extra-substituters;
     assert used -> settings.extra-trusted-public-keys != [ ];
     ok "cache";
+
+  # Neovim is the editor and follows the theme through its colorscheme files
+  neovim =
+    let
+      cfg = reference.config;
+    in
+    assert cfg.programs.neovim.enable && cfg.programs.neovim.defaultEditor;
+    assert cfg.environment.etc ? "xdg/nvim/colors/${branding.id}.lua";
+    assert cfg.environment.etc ? "xdg/nvim/plugin/${branding.id}.lua";
+    ok "neovim";
 }

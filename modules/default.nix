@@ -11,6 +11,7 @@
     ./theme.nix
     ./ui.nix
     ./desktop.nix
+    ./neovim.nix
     ./tools.nix
     ./apps.nix
     ./store.nix

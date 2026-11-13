@@ -414,11 +414,11 @@ run = ["nautilus", "--new-window"]
 
 [[binding]]
 id = "text-editor"
-title = "Text editor"
+title = "Editor"
 group = "Apps"
-target = "Editor"
+target = "Neovim"
 keys = "Super Shift E"
-run = ["gnome-text-editor", "--new-window"]
+run = ["ghostty", "-e", "nvim"]
 
 [[binding]]
 id = "music"
