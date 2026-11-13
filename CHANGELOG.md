@@ -2,6 +2,21 @@
 
 All notable changes to this project. Versions follow [Semantic Versioning](https://semver.org); entries are generated from [Conventional Commits](https://www.conventionalcommits.org) with git-cliff.
 
+## v0.3.0 — 2026-11-13
+
+A single signed ISO again and Neovim in the colours of the theme.
+
+### Added
+- Add Neovim in the colors of the theme
+- Download the installed system instead of carrying it
+
+### Changed
+- Remove the manifest of the bootstick app
+- Remove the explanations meant for beginners
+
+### Fixed
+- Move stable with a token that may change workflows
+
 ## v0.2.0 — 2026-11-13
 
 The desktop with Hyprland, the shell, the Store and Settings, a binary cache, and an ISO that starts with Secure Boot on.
