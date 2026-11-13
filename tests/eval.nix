@@ -395,6 +395,32 @@ in
     withApps ./fixtures/apps-unfree-unmarked.json
   );
 
+  # Secure Boot (main): the machine signs after every boot loader install and
+  # lets the installer make the boot entry for shim; the ISO's GRUB has the
+  # SBAT section shim asks for. The boot chain itself: tests/secure-boot.nix
+  secure-boot =
+    let
+      cfg = reference.config;
+      isoPkgs = configs."${branding.id}-iso".pkgs;
+    in
+    assert cfg.${branding.id}.secureBoot.enable;
+    assert lib.hasInfix "${branding.id}-secure-boot sign" cfg.boot.loader.systemd-boot.extraInstallCommands;
+    assert !cfg.boot.loader.efi.canTouchEfiVariables;
+    assert lib.any (p: (p.pname or "") == "mokutil") cfg.environment.systemPackages;
+    assert isoPkgs.grub2_efi ? sbat;
+    assert lib.hasInfix "grub,7," (builtins.readFile isoPkgs.grub2_efi.sbat);
+    assert lib.any (p: (p.pname or "") == "mokutil") iso.environment.systemPackages;
+    ok "secure-boot";
+
+  # Turned off, nothing of it is left in the boot loader install
+  secure-boot-off =
+    let
+      cfg = (reference.extendModules { modules = [ { ${branding.id}.secureBoot.enable = false; } ]; }).config;
+    in
+    assert !lib.hasInfix "secure-boot" cfg.boot.loader.systemd-boot.extraInstallCommands;
+    assert cfg.boot.loader.efi.canTouchEfiVariables;
+    ok "secure-boot-off";
+
   # The binary cache is only used once its public key is in modules/cache.nix
   cache =
     let

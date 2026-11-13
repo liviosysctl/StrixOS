@@ -225,7 +225,10 @@
         # The installer on an empty disk, then the installed disk booted.
         # Needs a clean, committed tree. nix build .#tests.install -L
         install = import ./tests/install.nix { inherit self pkgs; };
-      };
+      }
+      # Secure Boot with OVMF: the signed ISO, an installed machine
+      # (nix build .#tests.secure-boot-iso -L, .#tests.secure-boot -L)
+      // import ./tests/secure-boot.nix { inherit self pkgs; };
 
       devShells.${system}.default = pkgs.mkShell {
         packages = [
