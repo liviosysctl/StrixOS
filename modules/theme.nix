@@ -119,6 +119,40 @@ let
         substitute ${completions}/theme.fish $out/share/fish/vendor_completions.d/${name}.fish ${fill}
       '';
 
+  # The GRUB menu follows the theme too: every variant's GRUB theme, by
+  # selection, and a script that copies the one of the current theme to the
+  # ESP. The service below runs it when the theme changes, the boot loader
+  # install after every switch (a new ESP, a new default).
+  grub = config.boot.loader.grub;
+  grubThemes = pkgs.linkFarm "${branding.id}-grub-themes" (
+    lib.mapAttrsToList (selection: path: { name = selection; inherit path; }) themes.grubThemes
+  );
+  defaultSelection = "${resolved.theme or ""}:${resolved.variant or ""}";
+  grubTheme = pkgs.writeShellScript "${branding.id}-grub-theme" ''
+    set -eu
+    export PATH=${lib.makeBinPath [ pkgs.coreutils pkgs.diffutils pkgs.jq ]}
+    esp=${config.boot.loader.efi.efiSysMountPoint}
+    [ -d "$esp/grub" ] || exit 0
+    selection=${lib.escapeShellArg defaultSelection}
+    if [ -s ${runtimeDir}/tokens.json ]; then
+      current=$(jq -r '.theme + ":" + .variant' ${runtimeDir}/tokens.json 2>/dev/null || true)
+      [ -e "${grubThemes}/$current" ] && selection=$current
+    fi
+    source=${grubThemes}/$selection
+    target=$esp/grub/${branding.id}/theme
+    # Unchanged themes are not written again
+    if [ -d "$target" ] && diff -rq "$source/" "$target/" >/dev/null 2>&1; then
+      exit 0
+    fi
+    mkdir -p "$esp/grub/${branding.id}"
+    rm -rf "$target.new"
+    cp -rL "$source" "$target.new"
+    chmod -R u+w "$target.new"
+    rm -rf "$target"
+    mv "$target.new" "$target"
+    echo "Boot menu: $selection"
+  '';
+
   # Every variant's Plymouth theme for the initrd. NixOS only copies the one
   # set in boot.plymouth.theme, the unit below may pick any of them.
   # Like NixOS, the paths in the .plymouth files are moved to the new folder.
@@ -180,6 +214,12 @@ in
       readOnly = true;
       description = "The ${branding.id}-theme command with the settings of this system.";
     };
+
+    grubTheme = lib.mkOption {
+      type = lib.types.package;
+      readOnly = true;
+      description = "The GRUB theme of the default theme (the ISO's boot menu).";
+    };
   };
 
   config = lib.mkIf cfg.enable (
@@ -192,7 +232,10 @@ in
           }
         ];
 
-        ${branding.id}.theme.package = command;
+        ${branding.id}.theme = {
+          package = command;
+          grubTheme = themes.grubTheme defaultSelection;
+        };
         environment.systemPackages = [ command ];
         system.build.themes = themes.dir;
 
@@ -259,6 +302,26 @@ in
             RemainAfterExit = true;
             ExecStart = "${exe} boot-select";
           };
+        };
+      })
+
+      (lib.mkIf (grub.enable && grub.efiSupport) {
+        boot.loader.grub.extraInstallCommands = ''
+          ${grubTheme}
+        '';
+
+        # tokens.json changes with every `${branding.id}-theme set` and at every boot
+        systemd.services."${branding.id}-grub-theme" = {
+          description = "Draw the boot menu in the selected theme";
+          after = [ "${branding.id}-theme.service" ];
+          serviceConfig = {
+            Type = "oneshot";
+            ExecStart = grubTheme;
+          };
+        };
+        systemd.paths."${branding.id}-grub-theme" = {
+          wantedBy = [ "multi-user.target" ];
+          pathConfig.PathChanged = "${runtimeDir}/tokens.json";
         };
       })
     ]

@@ -10,6 +10,8 @@
   extraThemes ? { },
   # The theme a new installation starts with, <theme> or <theme>:<variant>
   default ? import ../themes/default.nix,
+  # StrixUI itself, for fonts and the wallpapers of the gods (builtin is its design-system/themes)
+  strixui ? dirOf (dirOf builtin),
 }:
 
 let
@@ -84,6 +86,7 @@ let
         inherit theme variant;
         selection = "${theme}:${variant}";
         plymouth = plymouthName theme variant;
+        grub = "${branding.id}-${theme}-${variant}";
       }) (builtins.attrNames themeData.variants)
     ) data
   );
@@ -98,6 +101,22 @@ let
       themes = dir;
     }
   ) variants;
+
+  # One GRUB theme per variant, so the boot menu can follow the theme
+  grubThemes = builtins.listToAttrs (
+    map (
+      v:
+      lib.nameValuePair v.selection (
+        pkgs.callPackage ../packages/grub-theme { } {
+          name = v.grub;
+          inherit (v) selection;
+          inherit engine strixui;
+          themes = dir;
+        }
+      )
+    ) variants
+  );
+  grubTheme = selection: grubThemes.${selection};
 
   # Colors for the console installer on the ISO, from the default theme
   installer = pkgs.runCommand "${branding.id}-installer-theme" { } ''
@@ -116,6 +135,8 @@ in
     plymouthPrefix
     plymouthName
     plymouthThemes
+    grubThemes
+    grubTheme
     installer
     ;
 }
