@@ -12,6 +12,8 @@ in
     ./options.nix
     "${modulesPath}/installer/cd-dvd/installation-cd-minimal.nix"
     ../modules/os-release.nix
+    # Downloads the distro's own packages during the install instead of compiling them
+    ../modules/cache.nix
     # No emoji from systemd tools, same as on installed machines
     ../modules/systemd-tools.nix
     # The console in the colors of the default theme. No splash on the ISO,

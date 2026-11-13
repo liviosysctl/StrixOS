@@ -191,6 +191,14 @@
 
         machine-template = machineTemplate upstream.ref;
 
+        # What CI pushes to the binary cache (modules/cache.nix): everything
+        # an install or an update would otherwise compile. Pushing takes the
+        # closure; Cachix leaves out what cache.nixos.org already has.
+        cache-roots = pkgs.linkFarm "${branding.id}-cache-roots" {
+          inherit (self.packages.${system}) installer installer-dev theme-engine store search ui;
+          reference = self.nixosConfigurations."${branding.id}-reference".config.system.build.toplevel;
+        };
+
         default = self.packages.${system}.iso;
       }
       // lib.optionalAttrs (machineLock upstream.ref != null) {

@@ -394,4 +394,14 @@ in
   apps-unfree-needs-field = mustFail "apps-unfree-needs-field" (
     withApps ./fixtures/apps-unfree-unmarked.json
   );
+
+  # The binary cache is only used once its public key is in modules/cache.nix
+  cache =
+    let
+      settings = reference.config.nix.settings;
+      used = settings ? extra-substituters && settings.extra-substituters != [ ];
+    in
+    assert used -> lib.all (url: lib.hasPrefix "https://" url) settings.extra-substituters;
+    assert used -> settings.extra-trusted-public-keys != [ ];
+    ok "cache";
 }

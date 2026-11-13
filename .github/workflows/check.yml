@@ -5,6 +5,11 @@
 # faster compression) and attach it to the run as a download. Find it under
 # Actions, the run, "Artifacts". The ISO comes from a clean checkout with
 # flake.lock, so machines installed from it are pinned to that commit.
+#
+# On every push to main and personal: the cache job builds the distro's own
+# packages and the reference system and pushes them to the binary cache
+# (modules/cache.nix), so installed machines download them instead of
+# compiling. It needs the secret CACHIX_AUTH_TOKEN and does nothing without it.
 name: Check
 
 on:
@@ -34,9 +39,48 @@ jobs:
       - name: nix flake check
         run: nix flake check -L --show-trace
 
-  iso:
+  cache:
     needs: flake
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    if: >-
+      github.event_name != 'pull_request' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/personal')
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+    steps:
+      # The reference system with the desktop does not fit into the 14 GB
+      - if: env.CACHIX_AUTH_TOKEN != ''
+        uses: jlumbroso/free-disk-space@v2
+        with:
+          android: true
+          dotnet: true
+          haskell: true
+          docker-images: true
+          large-packages: false
+
+      - uses: actions/checkout@v7
+
+      - id: nix
+        uses: ./.github/actions/nix
+        with:
+          cachix-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      # cache-roots (flake.nix) holds what an update would otherwise compile.
+      # cachix push takes the whole closure and skips everything that is
+      # already on cache.nixos.org.
+      - name: Build and push
+        if: steps.nix.outputs.cache != ''
+        run: |
+          nix build --no-link --print-out-paths -L .#cache-roots > paths.txt
+          cachix push "${{ steps.nix.outputs.cache }}" < paths.txt
+
+  iso:
+    needs: [flake, cache]
+    # After the cache job, so the own packages come from the cache
+    if: >-
+      !cancelled() && needs.flake.result == 'success' && needs.cache.result != 'failure' &&
+      github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
