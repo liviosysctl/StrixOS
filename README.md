@@ -1,9 +1,9 @@
 ![Strix, nocte vigilat](docs/images/banner.jpg)
 
-Strix is a NixOS-based system for people coming from Windows: NixOS without the terminal. You create the install stick on Windows with one click, install apps from the Store with one click, and change the look of the whole desktop with a theme.
+Strix is a NixOS-based desktop distribution: Hyprland with a shell of its own in Quickshell, own services in Rust, and one theme that reaches every part of the system, from the boot splash to the terminal. The machine is described in `/etc/nixos`, three commands rebuild, update and add apps, and a Store does the last one too.
 
 ```
-Version :: 0.1.0, the desktop comes with 0.2.0
+Version :: 0.2.0
 Base :: NixOS unstable
 Desktop :: Hyprland, the shell in Quickshell
 Themes :: the eight Roman gods of StrixUI, Saturnus first
@@ -42,10 +42,8 @@ These are renderings of the design from StrixUI; the shell in this repository is
 
 | Branch | Content |
 |---|---|
-| `main` | The proof of concept for the school module M245: Windows bootstick app, app store, signed ISO. |
-| `personal` | The distribution as I use it myself, without the store and the beginner parts. |
-
-Changes that matter for both go into both branches. When M245 is over, `personal` becomes `main` and the proof of concept moves to its own branch.
+| `main` | The distribution. Releases come from here. |
+| `m245-poc` | The proof of concept for the school module M245, based on 0.2.0: installer, signed ISO, Store and a minimal desktop, for the Windows bootstick app. Its ISOs are built from the branch, not released. |
 
 ## What is in the repository
 
@@ -60,7 +58,7 @@ Changes that matter for both go into both branches. When M245 is over, `personal
 | `themes/` | `default.nix`, the theme a new installation starts with (`saturnus`). The themes are the eight Roman gods of [StrixUI](https://github.com/liviosysctl/StrixUI), a flake input. [themes/README.md](themes/README.md) describes the format and the theme repositories. |
 | `packages/theme-engine/` | The theme engine in Rust: reads and checks themes, switches them at runtime, fetches and checks theme repositories, writes the colours for Hyprland, Ghostty and GTK. |
 | `packages/search/`, `modules/search.nix` | The search service behind Search and the cheat sheet: apps, the actions of `menu.toml`, every row of Settings, commands; it also makes the Hyprland keys and keeps the user's own keys. |
-| `packages/store/`, `modules/store.nix` | The Store (`main` only): an index of the channel's packages, search, install and remove through `strix-apps`; proprietary apps ask first. |
+| `packages/store/`, `modules/store.nix` | The Store: an index of the channel's packages, search, install and remove through `strix-apps`; proprietary apps ask first. |
 | `packages/ui/`, `modules/ui.nix` | The design system of StrixUI on the machine: the QML module for Quickshell, the wallpapers, the fonts. |
 | `modules/desktop.nix` | The desktop: Hyprland as a UWSM session, the login of Strix under greetd (or tuigreet), PipeWire, the apps of the cheat sheet, the shell as a user service, hypridle, and the session's theme service: another god every 10 minutes unless kept, Hyprland and Ghostty follow. |
 | `shell/hypr/hyprland.lua` | The Hyprland configuration (Lua, Hyprland 0.55 and later): measures and motion of StrixUI; it requires `machine.lua`, `theme.lua` and `bindings.lua`, which Nix and the theme engine write. |
@@ -100,10 +98,8 @@ SSH is on: `ssh <user>@<address>` with the user's password. Root cannot log in. 
 
 ## Planned
 
-- Release 0.2.0 with the desktop, after the tests on the laptop
-- The bootstick app for Windows (a repository of its own)
-- A signed ISO, so it boots with Secure Boot on
-- A graphical installer in Quickshell, after the proof of concept
+- Neovim, in the theme's colours like the rest of the system
+- A graphical installer in Quickshell
 
 ## Building the ISO
 
@@ -117,7 +113,7 @@ ls -lh result/iso/
 
 Machines installed from `iso` follow the branch `stable`, which only moves when a release is published. Machines installed from `iso-dev` follow `main` and get every fix with `strix-update`. CI builds an `iso-dev` on every push to `main` (Actions, the run, "Artifacts").
 
-The ISO boots on UEFI with Secure Boot off. Write it to a USB stick as a raw image, not by copying files onto a FAT32 stick.
+The ISO boots on UEFI. Release ISOs are signed and also boot with Secure Boot on: the first start shows MokManager once, choose "Enroll key from disk" and `strix.cer` from the stick ([secure-boot/README.md](secure-boot/README.md)). An ISO from `nix build` is unsigned and needs Secure Boot off. Write it to a USB stick as a raw image (`dd`, or Rufus in DD mode), not by copying files onto a FAT32 stick.
 
 Commit and push before building a release ISO. Only an ISO from a clean tree with a `flake.lock` pins the installed system to its own commit; from a dirty tree the installer locks during the install and needs the network for it.
 
@@ -150,6 +146,6 @@ nix build .#tests.install -L                          # install on an empty disk
 
 ### Releasing
 
-Same flow as the other repositories (CONTRIBUTING.md): bump the version in `flake.nix`, commit `chore(release): vX.Y.Z`, push an annotated tag. The release workflow then creates the release with the notes, builds the ISO, attaches it with `SHA256SUMS` and `manifest.json` (the bootstick app reads that), and moves `stable` to the tag. An ISO larger than 2 GiB is attached in parts, `manifest.json` lists them.
+Same flow as the other repositories (CONTRIBUTING.md): bump the version in `flake.nix`, commit `chore(release): vX.Y.Z`, push an annotated tag. The release workflow then creates the release with the notes, builds and signs the ISO, attaches it with `SHA256SUMS`, and moves `stable` to the tag. An ISO larger than 2 GiB is attached in parts below 2 GiB; join them with `cat strix-*.iso.part* > strix.iso` and check with `sha256sum -c SHA256SUMS`.
 
 Before tagging, try the packaging without a release: Actions, "Release", "Run workflow". The files land in the run as an artifact.
