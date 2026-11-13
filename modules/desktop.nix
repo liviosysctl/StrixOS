@@ -32,6 +32,16 @@ let
     (lib.findFirst (t: t.name == "theme-cycle") { value = "600s"; } tokens.duration.tokens).value;
   cyclePeriod = cfg.themeCycle;
 
+  # The settings a new user's Zed starts with: the theme of the system, the fonts of StrixUI,
+  # no telemetry, no updates of its own (Nix updates it)
+  zedSettings = pkgs.writeText "zed-settings.json" (builtins.toJSON {
+    theme = branding.name;
+    ui_font_family = "JetBrains Mono";
+    buffer_font_family = "JetBrains Mono";
+    telemetry = { diagnostics = false; metrics = false; };
+    auto_update = false;
+  });
+
   # theme.lua: the session's colors, else the machine's (before the session service started)
   themeLua = pkgs.writeText "theme.lua" ''
     -- The colors of the current theme (modules/desktop.nix): the session's theme, which
@@ -335,6 +345,9 @@ in
       ghostty
       nautilus
       gnome-text-editor
+      # The editor of the proof of concept: plain to use, in the theme's colors
+      zed-editor
+      jq
       amberol
       adwaita-icon-theme
       adw-gtk3
@@ -414,6 +427,32 @@ in
         [ -e "$HOME/.config/ghostty/config" ] || install -m 0644 /etc/xdg/${id}/ghostty/user "$HOME/.config/ghostty/config"
         ln -sfn "$XDG_RUNTIME_DIR/${id}/theme/ghostty" "$HOME/.config/ghostty/${id}-theme"
       '';
+    };
+
+    # Zed takes the colors of the session's theme: its theme file is written from tokens.json
+    # at login and again whenever the god changes (the path unit). A new user also gets
+    # settings that choose it; an existing settings.json stays as it is.
+    systemd.user.services."${id}-zed-theme" = {
+      description = "Give Zed the colors of the session's theme";
+      wantedBy = [ "default.target" ];
+      path = [ pkgs.jq pkgs.coreutils ];
+      serviceConfig.Type = "oneshot";
+      script = ''
+        [ -w "$HOME" ] || exit 0
+        tokens="$XDG_RUNTIME_DIR/${id}/theme/tokens.json"
+        [ -r "$tokens" ] || tokens="${runtimeDir}/tokens.json"
+        [ -r "$tokens" ] || exit 0
+        dir="$HOME/.config/zed"
+        mkdir -p "$dir/themes"
+        jq --arg name ${lib.escapeShellArg branding.name} -f ${../shell/zed/theme.jq} "$tokens" >"$dir/themes/${id}.json.new"
+        mv "$dir/themes/${id}.json.new" "$dir/themes/${id}.json"
+        [ -e "$dir/settings.json" ] || install -m 0644 ${zedSettings} "$dir/settings.json"
+      '';
+    };
+    systemd.user.paths."${id}-zed-theme" = {
+      description = "Follow the session's theme in Zed";
+      wantedBy = [ "default.target" ];
+      pathConfig.PathChanged = "%t/${id}/theme/tokens.json";
     };
 
     # GTK 3 and GTK 4 apps take the god's colors from the session's gtk3.css and gtk4.css. The link

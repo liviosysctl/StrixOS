@@ -430,4 +430,14 @@ in
     assert used -> lib.all (url: lib.hasPrefix "https://" url) settings.extra-substituters;
     assert used -> settings.extra-trusted-public-keys != [ ];
     ok "cache";
+
+  # Zed is the editor of the proof of concept and follows the session's theme
+  zed =
+    let
+      cfg = reference.config;
+    in
+    assert lib.any (p: (p.pname or "") == "zed-editor") cfg.environment.systemPackages;
+    assert cfg.systemd.user.paths ? "${branding.id}-zed-theme";
+    assert lib.hasInfix "theme.jq" cfg.systemd.user.services."${branding.id}-zed-theme".script;
+    ok "zed";
 }
