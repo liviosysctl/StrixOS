@@ -4,6 +4,8 @@
 //! ```text
 //! {"id": 1, "method": "search", "params": {"text": "gimp", "limit": 40}}  -> {"results": [...], "ready": true}
 //! {"id": 2, "method": "install", "params": {"attr": "gimp"}}              -> {"started": true}
+//! {"id": 2, "method": "install", "params": {"attr": "spotify", "proprietary": true}}
+//!   (a proprietary package is installed only when the user agreed to it, Q7)
 //! {"id": 3, "method": "remove", "params": {"attr": "gimp"}}
 //! {"id": 4, "method": "job"}                                              -> the running or last job
 //! {"event": "progress", "data": {"line": "..."}}                          while a job runs
@@ -122,8 +124,9 @@ impl State {
         }
     }
 
-    /// Checks a request to install or remove; the job itself runs in `start`
-    pub fn check(&mut self, action: &str, attr: &str) -> Result<(), String> {
+    /// Checks a request to install or remove; the job itself runs in `start`. A proprietary
+    /// package is installed only with `proprietary` set: the user has seen the question (Q7)
+    pub fn check(&mut self, action: &str, attr: &str, proprietary: bool) -> Result<(), String> {
         if !valid_attr(attr) {
             return Err(format!("\"{attr}\" is not a package name"));
         }
@@ -139,10 +142,15 @@ impl State {
             "remove" if !installed => Err(format!("{attr} is not installed")),
             "install" => {
                 self.refresh();
-                match &self.index {
-                    Some(index) if !index.packages.iter().any(|p| p.attr == attr) => {
-                        Err(format!("there is no package {attr}"))
-                    }
+                let package = self
+                    .index
+                    .as_ref()
+                    .map(|index| index.packages.iter().find(|p| p.attr == attr));
+                match package {
+                    Some(None) => Err(format!("there is no package {attr}")),
+                    Some(Some(p)) if p.unfree && !proprietary => Err(format!(
+                        "{attr} is proprietary software: install it with \"proprietary\": true"
+                    )),
                     _ => Ok(()),
                 }
             }
@@ -165,10 +173,11 @@ fn start(
     clients: &Clients,
     action: &str,
     attr: &str,
+    proprietary: bool,
 ) -> Result<(), String> {
     let (argv, apps_action) = {
         let mut s = state.lock().unwrap_or_else(|p| p.into_inner());
-        s.check(action, attr)?;
+        s.check(action, attr, proprietary)?;
         let tool = s.cfg.apps_command.clone().expect("checked");
         let apps_action = if action == "install" { "add" } else { "remove" };
         let mut argv: Vec<String> = Vec::new();
@@ -292,7 +301,12 @@ pub fn answer(state: &Arc<Mutex<State>>, clients: &Clients, line: &str) -> Value
             Ok(json!(list))
         }
         "install" | "remove" => {
-            start(state, clients, method, &text("attr")).map(|()| json!({ "started": true }))
+            let proprietary = params
+                .get("proprietary")
+                .and_then(Value::as_bool)
+                .unwrap_or(false);
+            start(state, clients, method, &text("attr"), proprietary)
+                .map(|()| json!({ "started": true }))
         }
         "job" => Ok(json!(state.lock().unwrap_or_else(|p| p.into_inner()).job)),
         "version" => Ok(json!(env!("CARGO_PKG_VERSION"))),
@@ -452,33 +466,40 @@ mod tests {
         let (_, cfg) = setup("check");
         let mut s = State::new(cfg);
         assert!(
-            s.check("install", "gimp")
+            s.check("install", "gimp", false)
                 .unwrap_err()
                 .contains("already installed")
         );
         assert!(
-            s.check("remove", "firefox")
+            s.check("remove", "firefox", false)
                 .unwrap_err()
                 .contains("not installed")
         );
         assert!(
-            s.check("install", "nope")
+            s.check("install", "nope", false)
                 .unwrap_err()
                 .contains("no package")
         );
         assert!(
-            s.check("install", "a;b")
+            s.check("install", "a;b", false)
                 .unwrap_err()
                 .contains("not a package name")
         );
-        assert!(s.check("install", "firefox").is_ok());
-        assert!(s.check("remove", "gimp").is_ok());
+        assert!(s.check("install", "firefox", false).is_ok());
+        assert!(s.check("remove", "gimp", false).is_ok());
+        // Proprietary only when the user agreed
+        assert!(
+            s.check("install", "spotify", false)
+                .unwrap_err()
+                .contains("proprietary")
+        );
+        assert!(s.check("install", "spotify", true).is_ok());
         s.job = Some(Job {
             running: true,
             ..Job::default()
         });
         assert!(
-            s.check("install", "firefox")
+            s.check("install", "firefox", false)
                 .unwrap_err()
                 .contains("still running")
         );
@@ -536,7 +557,18 @@ mod tests {
         assert!(lines.contains(&"building add firefox"), "{lines:?}");
         assert!(lines.contains(&"a warning"), "{lines:?}");
 
-        let done = call(&socket, "install", json!({ "attr": "discord" }), true).unwrap();
+        assert!(
+            call(&socket, "install", json!({ "attr": "discord" }), false)
+                .unwrap_err()
+                .contains("proprietary")
+        );
+        let done = call(
+            &socket,
+            "install",
+            json!({ "attr": "discord", "proprietary": true }),
+            true,
+        )
+        .unwrap();
         assert_eq!(done["ok"], false);
         assert_eq!(done["code"], 3);
         assert!(

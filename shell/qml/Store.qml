@@ -1,6 +1,7 @@
 // The Store (main, the school proof of concept): find an app in nixpkgs, install or remove it with
 // one click. The service strix-store (Backend "store") searches the package index and runs
-// strix-apps, which writes apps.json and rebuilds; its output streams into the window.
+// strix-apps, which writes apps.json and rebuilds; its output streams into the window. Proprietary
+// apps are shown and marked; installing one asks first (Q7), and the service refuses it otherwise.
 // Opened from Search (Apps › Store) or with `qs -c strix ipc call store open`.
 import QtQuick
 import Quickshell
@@ -38,12 +39,26 @@ Scope {
         })
     }
 
+    // The package waiting for an answer to the question about proprietary software
+    property var asking: null
+
     function act(pkg) {
         if (!pkg || (root.job && root.job.running)) return
+        if (!pkg.installed && pkg.unfree) {
+            root.asking = pkg
+            proprietary.open()
+            return
+        }
+        root.run(pkg, false)
+    }
+
+    function run(pkg, agreed) {
         root.error = ""
         root.lines = []
         const action = pkg.installed ? "remove" : "install"
-        store.call(action, { attr: pkg.attr }, () => {
+        const params = { attr: pkg.attr }
+        if (agreed) params.proprietary = true
+        store.call(action, params, () => {
             root.job = { action: action, attr: pkg.attr, running: true, lines: [] }
         })
     }
@@ -155,7 +170,7 @@ Scope {
                             Label { textStyle: "label"; color: Theme.text; text: modelData.pname }
                             Label { textStyle: "caption"; color: Theme.textFaint; text: modelData.version }
                             Badge { visible: modelData.installed; text: "Installed"; kind: "accent" }
-                            Badge { visible: !!modelData.unfree; text: "Unfree" }
+                            Badge { visible: !!modelData.unfree; text: "Proprietary" }
                         }
                         Label {
                             width: parent.width
@@ -226,8 +241,17 @@ Scope {
             }
         }
 
-        Shortcut { sequence: "Down"; enabled: root.open; onActivated: root.selected = Math.min(root.selected + 1, root.results.length - 1) }
-        Shortcut { sequence: "Up"; enabled: root.open; onActivated: root.selected = Math.max(root.selected - 1, 0) }
-        Shortcut { sequence: "Escape"; enabled: root.open; onActivated: { if (input.text !== "") input.text = ""; else root.open = false } }
+        Dialog {
+            id: proprietary
+            title: root.asking ? "Install " + root.asking.pname + "?" : ""
+            text: "This app is not open source: its code is not public, and its licence may limit what you can do with it. It installs like any other app and can be removed again."
+            acceptText: "Install anyway"
+            onAccepted: { if (root.asking) root.run(root.asking, true); root.asking = null }
+            onRejected: root.asking = null
+        }
+
+        Shortcut { sequence: "Down"; enabled: root.open && !proprietary.visible; onActivated: root.selected = Math.min(root.selected + 1, root.results.length - 1) }
+        Shortcut { sequence: "Up"; enabled: root.open && !proprietary.visible; onActivated: root.selected = Math.max(root.selected - 1, 0) }
+        Shortcut { sequence: "Escape"; enabled: root.open && !proprietary.visible; onActivated: { if (input.text !== "") input.text = ""; else root.open = false } }
     }
 }
