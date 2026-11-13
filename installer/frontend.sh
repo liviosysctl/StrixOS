@@ -54,7 +54,7 @@ label_of() {
 
 ask_language() {
   ui_lang=$(ui_lang_for_locale "$default_locale")
-  draw_question 1 "$(t s_language)" "$(t q_language)" "" "$(t h_language)"
+  draw_question 1 "$(t s_language)" "$(t q_language)" ""
   locale=$(pick "$default_locale" "${languages[@]}")
   locale_label=$(label_of "$locale" "${languages[@]}")
   ui_lang=$(ui_lang_for_locale "$locale")
@@ -114,7 +114,7 @@ ask_time_zone() {
 ask_you() {
   local error=""
   while true; do
-    draw_question 4 "$(t s_you)" "$(t q_name)" "$error" "$(t h_name)"
+    draw_question 4 "$(t s_you)" "$(t q_name)" "$error"
     full_name=$(gum input --placeholder "Livio Muster" --char-limit 64)
     valid_full_name "$full_name" && break
     error=$(t e_name)
@@ -128,7 +128,7 @@ ask_you() {
     error=$(tf e_user "$user_name")
   done
 
-  password=$(ask_secret 4 "$(t s_you)" "$(t q_password)" "$(t h_password)")
+  password=$(ask_secret 4 "$(t s_you)" "$(t q_password)" "")
   (
     umask 077
     printf '%s\n' "$password" >"$password_file"
@@ -146,7 +146,7 @@ ask_secret() {
       error=$(t e_short)
       continue
     fi
-    draw_question "$index" "$section" "$question" "" "$(t h_again)" >&2
+    draw_question "$index" "$section" "$question" "" >&2
     second=$(gum input --password --placeholder "$(t ph_again)")
     [ "$first" = "$second" ] && break
     error=$(t e_mismatch)
@@ -157,7 +157,7 @@ ask_secret() {
 ask_computer_name() {
   local error=""
   while true; do
-    draw_question 5 "$(t s_computer)" "$(t q_computer)" "$error" "$(t h_computer)"
+    draw_question 5 "$(t s_computer)" "$(t q_computer)" "$error"
     host_name=$(gum input --value "$DISTRO_ID" --char-limit 63)
     valid_host_name "$host_name" && break
     error=$(t e_computer)
@@ -177,7 +177,7 @@ ask_disk() {
   done
 
   draw_question 6 "$(t s_disk)" "$(tf q_disk "$DISTRO_NAME")" "" \
-    "$(t h_disk_whole)" "$(t h_disk_dual)"
+    "$(t h_disk_whole)"
   choice=$(gum choose "${labels[@]}")
   for i in "${!labels[@]}"; do
     if [ "${labels[$i]}" = "$choice" ]; then
@@ -191,7 +191,7 @@ ask_disk() {
 ask_encryption() {
   local passphrase
   draw_question 7 "$(t s_encryption)" "$(t q_encrypt)" "" \
-    "$(t h_encrypt_why)" "$(t h_encrypt_cost)"
+    "$(t h_encrypt_cost)"
   if gum confirm --default=true --affirmative "$(t b_encrypt)" --negative "$(t b_no_encrypt)" ""; then
     encrypt=true
     passphrase=$(ask_secret 7 "$(t s_encryption)" "$(t q_passphrase)" "$(t h_passphrase)")
@@ -214,7 +214,7 @@ ask_hibernation() {
   fi
   is_laptop && default=true
   draw_question 8 "$(t s_hibernation)" "$(t q_hibernate)" "" \
-    "$(t h_hibernate_what)" "$(tf h_hibernate_cost $(($(ram_gib) + 1)))"
+    "$(tf h_hibernate_cost $(($(ram_gib) + 1)))"
   if gum confirm --default=$default --affirmative "$(t b_allow)" --negative "$(t b_no)" ""; then
     hibernation=true
   else
@@ -282,7 +282,7 @@ ensure_network() {
   network_ok && return 0
   draw_header 2 "$question_total" "$(t s_network)"
   printf '\n  %s%s%s\n' "$c_bold" "$(t q_network)" "$c_reset"
-  printf '  %s%s%s\n\n' "$c_faint" "$(t h_network)" "$c_reset"
+  printf '\n'
   if gum confirm --affirmative "$(t b_network)" --negative "$(t b_cancel)" ""; then
     nmtui
   fi

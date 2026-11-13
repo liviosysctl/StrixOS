@@ -171,6 +171,7 @@ draw_question() {
   draw_header "$index" "$question_total" "$section"
   printf '\n  %s%s%s\n' "$c_bold" "$question" "$c_reset"
   for line in "$@"; do
+    [ -n "$line" ] || continue
     printf '  %s%s%s\n' "$c_faint" "$line" "$c_reset"
   done
   if [ -n "$error" ]; then

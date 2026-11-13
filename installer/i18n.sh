@@ -14,7 +14,6 @@ declare -A tr_en=(
 
   [s_language]="Language"
   [q_language]="Which language should the system use?"
-  [h_language]="This installer switches to it right away."
 
   [s_keyboard]="Keyboard"
   [q_keyboard]="Which keyboard do you use?"
@@ -36,33 +35,27 @@ declare -A tr_en=(
 
   [s_you]="You"
   [q_name]="What is your name?"
-  [h_name]="Shown at login."
   [e_name]="Please enter a name."
   [q_user]="Pick a user name"
   [h_user]="Lowercase letters, digits, - and _. You log in with it."
   [e_user]="\"%s\" does not work. Start with a letter and use only a-z, 0-9, - and _."
   [q_password]="Choose a password"
-  [h_password]="For logging in and for sudo."
   [ph_secret]="At least 8 characters"
   [e_short]="At least 8 characters, please."
-  [h_again]="Once more, to rule out a typo."
   [ph_again]="Again"
   [e_mismatch]="The two entries did not match. Try again."
 
   [s_computer]="Computer"
   [q_computer]="Name this computer"
-  [h_computer]="How it appears on the network."
   [e_computer]="Use lowercase letters, digits and - only."
 
   [s_disk]="Disk"
   [q_disk]="Where should %s go?"
   [h_disk_whole]="The whole disk is used and everything on it is deleted."
-  [h_disk_dual]="Dual boot next to Windows is not supported."
   [e_no_disk]="No disk with at least 32 GiB found."
 
   [s_encryption]="Encryption"
   [q_encrypt]="Encrypt the disk?"
-  [h_encrypt_why]="Protects your files if the computer is stolen."
   [h_encrypt_cost]="You type a passphrase at every start."
   [b_encrypt]="Encrypt"
   [b_no_encrypt]="Don't encrypt"
@@ -71,7 +64,6 @@ declare -A tr_en=(
 
   [s_hibernation]="Hibernation"
   [q_hibernate]="Allow hibernation?"
-  [h_hibernate_what]="Saves the open session to the disk and powers off completely."
   [h_hibernate_cost]="Takes a swap file as large as the memory, %s GiB here."
   [b_allow]="Allow"
   [b_no]="No"
@@ -96,7 +88,6 @@ declare -A tr_en=(
 
   [s_network]="Network"
   [q_network]="No internet connection"
-  [h_network]="The installation downloads part of the system."
   [b_network]="Open network settings"
   [b_cancel]="Cancel"
   [e_network]="Still no internet connection. Connect and start the installer again."
@@ -141,7 +132,6 @@ declare -A tr_de=(
 
   [s_language]="Sprache"
   [q_language]="Welche Sprache soll das System verwenden?"
-  [h_language]="Dieser Installer wechselt sofort in diese Sprache."
 
   [s_keyboard]="Tastatur"
   [q_keyboard]="Welche Tastatur verwendest du?"
@@ -163,33 +153,27 @@ declare -A tr_de=(
 
   [s_you]="Du"
   [q_name]="Wie heisst du?"
-  [h_name]="Wird beim Anmelden angezeigt."
   [e_name]="Bitte gib einen Namen ein."
   [q_user]="Wähle einen Benutzernamen"
   [h_user]="Kleinbuchstaben, Ziffern, - und _. Damit meldest du dich an."
   [e_user]="\"%s\" geht nicht. Beginne mit einem Buchstaben und verwende nur a-z, 0-9, - und _."
   [q_password]="Wähle ein Passwort"
-  [h_password]="Zum Anmelden und für sudo."
   [ph_secret]="Mindestens 8 Zeichen"
   [e_short]="Bitte mindestens 8 Zeichen."
-  [h_again]="Noch einmal, um Tippfehler auszuschliessen."
   [ph_again]="Nochmals"
   [e_mismatch]="Die beiden Eingaben stimmen nicht überein. Versuche es nochmals."
 
   [s_computer]="Computer"
   [q_computer]="Gib diesem Computer einen Namen"
-  [h_computer]="So erscheint er im Netzwerk."
   [e_computer]="Nur Kleinbuchstaben, Ziffern und - verwenden."
 
   [s_disk]="Festplatte"
   [q_disk]="Wohin soll %s?"
   [h_disk_whole]="Die ganze Festplatte wird verwendet, alles darauf wird gelöscht."
-  [h_disk_dual]="Dual Boot neben Windows wird nicht unterstützt."
   [e_no_disk]="Keine Festplatte mit mindestens 32 GiB gefunden."
 
   [s_encryption]="Verschlüsselung"
   [q_encrypt]="Festplatte verschlüsseln?"
-  [h_encrypt_why]="Schützt deine Dateien, wenn der Computer gestohlen wird."
   [h_encrypt_cost]="Du tippst bei jedem Start eine Passphrase."
   [b_encrypt]="Verschlüsseln"
   [b_no_encrypt]="Nicht verschlüsseln"
@@ -198,7 +182,6 @@ declare -A tr_de=(
 
   [s_hibernation]="Ruhezustand"
   [q_hibernate]="Ruhezustand erlauben?"
-  [h_hibernate_what]="Speichert die offene Sitzung auf die Festplatte und schaltet ganz aus."
   [h_hibernate_cost]="Braucht eine Auslagerungsdatei so gross wie der Arbeitsspeicher, hier %s GiB."
   [b_allow]="Erlauben"
   [b_no]="Nein"
@@ -223,7 +206,6 @@ declare -A tr_de=(
 
   [s_network]="Netzwerk"
   [q_network]="Keine Internetverbindung"
-  [h_network]="Die Installation lädt einen Teil des Systems herunter."
   [b_network]="Netzwerkeinstellungen öffnen"
   [b_cancel]="Abbrechen"
   [e_network]="Immer noch keine Internetverbindung. Verbinde dich und starte den Installer neu."
@@ -268,7 +250,6 @@ declare -A tr_fr=(
 
   [s_language]="Langue"
   [q_language]="Quelle langue le système doit-il utiliser ?"
-  [h_language]="Cet installateur passe tout de suite à cette langue."
 
   [s_keyboard]="Clavier"
   [q_keyboard]="Quel clavier utilises-tu ?"
@@ -290,33 +271,27 @@ declare -A tr_fr=(
 
   [s_you]="Toi"
   [q_name]="Comment t'appelles-tu ?"
-  [h_name]="Affiché à la connexion."
   [e_name]="Indique un nom, s'il te plaît."
   [q_user]="Choisis un nom d'utilisateur"
   [h_user]="Minuscules, chiffres, - et _. Tu te connectes avec."
   [e_user]="« %s » ne marche pas. Commence par une lettre et utilise seulement a-z, 0-9, - et _."
   [q_password]="Choisis un mot de passe"
-  [h_password]="Pour te connecter et pour sudo."
   [ph_secret]="Au moins 8 caractères"
   [e_short]="Au moins 8 caractères, s'il te plaît."
-  [h_again]="Encore une fois, pour éviter une faute de frappe."
   [ph_again]="Encore"
   [e_mismatch]="Les deux saisies ne correspondent pas. Réessaie."
 
   [s_computer]="Ordinateur"
   [q_computer]="Donne un nom à cet ordinateur"
-  [h_computer]="C'est ainsi qu'il apparaît sur le réseau."
   [e_computer]="Utilise seulement des minuscules, des chiffres et -."
 
   [s_disk]="Disque"
   [q_disk]="Où installer %s ?"
   [h_disk_whole]="Tout le disque est utilisé et tout ce qu'il contient est effacé."
-  [h_disk_dual]="Le double démarrage avec Windows n'est pas pris en charge."
   [e_no_disk]="Aucun disque d'au moins 32 Gio trouvé."
 
   [s_encryption]="Chiffrement"
   [q_encrypt]="Chiffrer le disque ?"
-  [h_encrypt_why]="Protège tes fichiers si l'ordinateur est volé."
   [h_encrypt_cost]="Tu tapes une phrase secrète à chaque démarrage."
   [b_encrypt]="Chiffrer"
   [b_no_encrypt]="Ne pas chiffrer"
@@ -325,7 +300,6 @@ declare -A tr_fr=(
 
   [s_hibernation]="Hibernation"
   [q_hibernate]="Autoriser l'hibernation ?"
-  [h_hibernate_what]="Enregistre la session ouverte sur le disque et éteint complètement."
   [h_hibernate_cost]="Demande un fichier d'échange aussi grand que la mémoire, ici %s Gio."
   [b_allow]="Autoriser"
   [b_no]="Non"
@@ -350,7 +324,6 @@ declare -A tr_fr=(
 
   [s_network]="Réseau"
   [q_network]="Pas de connexion internet"
-  [h_network]="L'installation télécharge une partie du système."
   [b_network]="Ouvrir les réglages réseau"
   [b_cancel]="Annuler"
   [e_network]="Toujours pas de connexion internet. Connecte-toi et relance l'installateur."
@@ -395,7 +368,6 @@ declare -A tr_it=(
 
   [s_language]="Lingua"
   [q_language]="Quale lingua deve usare il sistema?"
-  [h_language]="Questo installatore passa subito a questa lingua."
 
   [s_keyboard]="Tastiera"
   [q_keyboard]="Quale tastiera usi?"
@@ -417,33 +389,27 @@ declare -A tr_it=(
 
   [s_you]="Tu"
   [q_name]="Come ti chiami?"
-  [h_name]="Mostrato all'accesso."
   [e_name]="Inserisci un nome, per favore."
   [q_user]="Scegli un nome utente"
   [h_user]="Lettere minuscole, cifre, - e _. Con questo accedi."
   [e_user]="\"%s\" non va. Inizia con una lettera e usa solo a-z, 0-9, - e _."
   [q_password]="Scegli una password"
-  [h_password]="Per accedere e per sudo."
   [ph_secret]="Almeno 8 caratteri"
   [e_short]="Almeno 8 caratteri, per favore."
-  [h_again]="Ancora una volta, per escludere un errore di battitura."
   [ph_again]="Di nuovo"
   [e_mismatch]="Le due voci non coincidono. Riprova."
 
   [s_computer]="Computer"
   [q_computer]="Dai un nome a questo computer"
-  [h_computer]="Così appare nella rete."
   [e_computer]="Usa solo lettere minuscole, cifre e -."
 
   [s_disk]="Disco"
   [q_disk]="Dove installare %s?"
   [h_disk_whole]="Viene usato tutto il disco e tutto ciò che contiene viene cancellato."
-  [h_disk_dual]="Il dual boot accanto a Windows non è supportato."
   [e_no_disk]="Nessun disco da almeno 32 GiB trovato."
 
   [s_encryption]="Cifratura"
   [q_encrypt]="Cifrare il disco?"
-  [h_encrypt_why]="Protegge i tuoi file se il computer viene rubato."
   [h_encrypt_cost]="A ogni avvio digiti una passphrase."
   [b_encrypt]="Cifra"
   [b_no_encrypt]="Non cifrare"
@@ -452,7 +418,6 @@ declare -A tr_it=(
 
   [s_hibernation]="Ibernazione"
   [q_hibernate]="Consentire l'ibernazione?"
-  [h_hibernate_what]="Salva la sessione aperta sul disco e spegne del tutto."
   [h_hibernate_cost]="Richiede un file di swap grande quanto la memoria, qui %s GiB."
   [b_allow]="Consenti"
   [b_no]="No"
@@ -477,7 +442,6 @@ declare -A tr_it=(
 
   [s_network]="Rete"
   [q_network]="Nessuna connessione internet"
-  [h_network]="L'installazione scarica una parte del sistema."
   [b_network]="Apri le impostazioni di rete"
   [b_cancel]="Annulla"
   [e_network]="Ancora nessuna connessione internet. Collegati e riavvia l'installatore."
