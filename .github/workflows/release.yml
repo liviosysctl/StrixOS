@@ -120,9 +120,20 @@ jobs:
           path: out/
           retention-days: 7
 
-      # Installed machines follow stable. A plain push, because the tag is
-      # normally ahead of stable; force only matters if stable was ever moved
-      # by hand.
+      # Installed machines follow stable. The tag is normally ahead of stable,
+      # force only matters if stable was ever moved by hand. GITHUB_TOKEN may
+      # not move a branch to a commit that changes workflow files, so this
+      # step needs STABLE_PUSH_TOKEN: a fine-grained token for this repository
+      # with Contents and Workflows "Read and write".
       - name: Move stable to this release
         if: github.event_name == 'push'
-        run: git push --force origin "HEAD:refs/heads/stable"
+        env:
+          TOKEN: ${{ secrets.STABLE_PUSH_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::error::No secret STABLE_PUSH_TOKEN: the release is out, but stable still points at the last one. Move it by hand: git push --force origin $GITHUB_SHA:refs/heads/stable"
+            exit 1
+          fi
+          # Without the header of actions/checkout, which would send GITHUB_TOKEN instead
+          git -c http.https://github.com/.extraheader= push --force \
+            "https://x-access-token:$TOKEN@github.com/$GITHUB_REPOSITORY" "HEAD:refs/heads/stable"
