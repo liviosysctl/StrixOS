@@ -19,7 +19,7 @@
     { self, nixpkgs, disko, strixui, ... }:
     let
       # The only place with the version number. bump_version.py replaces exactly this line.
-      version = "0.3.0";
+      version = "0.4.0";
 
       # Where installed machines get updates from. Machines installed from a
       # release ISO follow ref (stable, moved by the release workflow). The dev

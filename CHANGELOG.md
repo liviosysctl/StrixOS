@@ -2,6 +2,13 @@
 
 All notable changes to this project. Versions follow [Semantic Versioning](https://semver.org); entries are generated from [Conventional Commits](https://www.conventionalcommits.org) with git-cliff.
 
+## v0.4.0 — 2026-11-13
+
+Symbols that move and colour themselves under the pointer.
+
+### Added
+- Let symbols move and take their colour under the pointer
+
 ## v0.3.0 — 2026-11-13
 
 A single signed ISO again and Neovim in the colours of the theme.
