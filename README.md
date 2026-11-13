@@ -1,8 +1,42 @@
-# Strix
+![Strix, nocte vigilat](docs/images/banner.jpg)
 
-Strix is a NixOS-based Linux distribution for people coming from Windows. The goal is NixOS without the terminal: create the install stick on Windows with one click, install apps from a store with one click, and switch the look of the whole desktop with a theme.
+Strix is a NixOS-based system for people coming from Windows: NixOS without the terminal. You create the install stick on Windows with one click, install apps from the Store with one click, and change the look of the whole desktop with a theme.
 
-This is an early work in progress. Nothing here builds a usable system yet.
+```
+Version :: 0.1.0, the desktop comes with 0.2.0
+Base :: NixOS unstable
+Desktop :: Hyprland, the shell in Quickshell
+Themes :: the eight Roman gods of StrixUI, Saturnus first
+State :: work in progress, tested on an old laptop
+```
+
+## The look
+
+![The desktop under Saturnus](docs/images/desktop.jpg)
+
+*Saturnus with his sickle. Engraved by Hendrick Goltzius after Polidoro da Caravaggio, 1592*
+
+The look comes from [StrixUI](https://github.com/liviosysctl/StrixUI), the design system of Strix: near-black surfaces, old engravings of Roman gods as the ground, one accent colour that belongs to the god on the wallpaper, type from an old printing house beside a quiet monospace. Each god is a theme. Another god comes every 10 minutes unless you keep the one you have, and the lock screen shows a new one at every lock.
+
+| | |
+|---|---|
+| ![The lock screen under Janus](docs/images/lock-screen.jpg) | ![The theme picker](docs/images/theme-picker.jpg) |
+| *The lock screen* | *The theme picker* |
+| ![Search](docs/images/search.jpg) | ![The eight gods](docs/images/gods.jpg) |
+| *Search, one field for everything* | *Saturnus, Janus, Apollo, Mars, Vulcanus, Neptunus, Pluto and Bacchus* |
+
+### More screens
+
+| | |
+|---|---|
+| ![The dock](docs/images/dock.jpg) | ![The terminal](docs/images/terminal.jpg) |
+| *The dock* | *The terminal, Ghostty in the theme's colours* |
+| ![The cheat sheet](docs/images/cheat-sheet.jpg) | ![Settings, hotkeys](docs/images/settings-hotkeys.jpg) |
+| *The cheat sheet, Super K* | *Settings, hotkeys* |
+| ![The boot splash](docs/images/boot-splash.jpg) | ![The QML components under Saturnus](docs/images/qml-gallery.jpg) |
+| *The boot splash* | *The QML components under Saturnus* |
+
+These are renderings of the design from StrixUI; the shell in this repository is built from the same components. The dock is designed but not built yet. Sources and licences of every picture are in [docs/images/README.md](docs/images/README.md).
 
 ## Branches
 
@@ -24,11 +58,13 @@ Changes that matter for both go into both branches. When M245 is over, `personal
 | `modules/boot-splash.nix` | Graphical boot with Plymouth: wordmark, progress line, a styled passphrase field. |
 | `modules/theme.nix` | The theme engine on the system: the `strix-theme` command, the service that applies the theme at boot, the boot splash that follows it. |
 | `themes/` | `default.nix`, the theme a new installation starts with (`saturnus`). The themes are the eight Roman gods of [StrixUI](https://github.com/liviosysctl/StrixUI), a flake input. [themes/README.md](themes/README.md) describes the format and the theme repositories. |
-| `packages/theme-engine/` | The theme engine in Rust: reads and checks themes, switches them at runtime, fetches and checks theme repositories. |
+| `packages/theme-engine/` | The theme engine in Rust: reads and checks themes, switches them at runtime, fetches and checks theme repositories, writes the colours for Hyprland, Ghostty and GTK. |
+| `packages/search/`, `modules/search.nix` | The search service behind Search and the cheat sheet: apps, the actions of `menu.toml`, every row of Settings, commands; it also makes the Hyprland keys and keeps the user's own keys. |
+| `packages/store/`, `modules/store.nix` | The Store (`main` only): an index of the channel's packages, search, install and remove through `strix-apps`; proprietary apps ask first. |
 | `packages/ui/`, `modules/ui.nix` | The design system of StrixUI on the machine: the QML module for Quickshell, the wallpapers, the fonts. |
 | `modules/desktop.nix` | The desktop: Hyprland as a UWSM session, the login of Strix under greetd (or tuigreet), PipeWire, the apps of the cheat sheet, the shell as a user service, hypridle, and the session's theme service: another god every 10 minutes unless kept, Hyprland and Ghostty follow. |
 | `shell/hypr/hyprland.lua` | The Hyprland configuration (Lua, Hyprland 0.55 and later): measures and motion of StrixUI; it requires `machine.lua`, `theme.lua` and `bindings.lua`, which Nix and the theme engine write. |
-| `shell/qml/` | The shell in Quickshell from StrixUI's QML module: wallpaper, top bar (network, volume, battery), lock screen, Search, cheat sheet, notifications, OSD for volume and brightness, clipboard history, theme picker, Settings. `qs -c strix ipc show` lists what Hyprland can call. |
+| `shell/qml/` | The shell in Quickshell from StrixUI's QML module: wallpaper, top bar (network, volume, battery, what is playing), lock screen, Search, cheat sheet, notifications, OSD for volume and brightness, clipboard history, theme picker, Settings, Store. `qs -c strix ipc show` lists what Hyprland can call. |
 | `shell/greeter/` | The login screen in Quickshell, run by greetd in cage; it starts the same UWSM session. |
 | `shell/settings.toml` | The pages and rows of Settings as Search finds them. |
 | `shell/menu.toml` | The system menu of Search and every key of the cheat sheet; `strix-search bindings` makes the Hyprland keybindings from it. |
@@ -53,8 +89,10 @@ Changes that matter for both go into both branches. When M245 is over, `personal
 | `sudo strix-apps add\|remove <package>`, `strix-apps list` | Installs or removes a package from nixpkgs. This is what the Store calls. |
 | `sudo strix-theme set <theme>`, `strix-theme list` | Switches the theme without a rebuild, see [themes/README.md](themes/README.md). |
 | `sudo strix-theme repos add <owner/repo>`, `strix-theme repos list` | Connects a theme repository; `strix-rebuild switch` builds its themes in, every `strix-update` brings new versions |
-| `strix-settings [PAGE [ROW]]` | Opens Settings: `themes`, `hotkeys`, `about` |
+| `strix-settings [PAGE [ROW]]` | Opens Settings: `themes`, `network`, `bluetooth`, `sound`, `display`, `power`, `hotkeys`, `about` |
 | `strix-capture region\|window\|screen\|record\|colour` | Screenshots to `~/Pictures/Screenshots` and the clipboard, a recording to `~/Videos/Recordings`, the colour picker; Print and its modifiers call it |
+| Super Space | Search: apps, actions, settings and commands in one field; "Store" opens the Store |
+| Super K | The cheat sheet with every key; change them in Settings › Hotkeys |
 | Super V | The clipboard history |
 | Super Ctrl Space | The theme picker; K keeps the theme, otherwise another god comes every 10 minutes |
 
@@ -62,10 +100,10 @@ SSH is on: `ssh <user>@<address>` with the user's password. Root cannot log in. 
 
 ## Planned
 
-- The desktop, step by step (12-desktop in the plan): Hyprland, keys, theme colors, the shell, the theme picker with the 10-minute cycle, the own login and a first Settings app are done; release v0.2.0 after the VMware cases
-- Theme engine for the desktop: Quickshell, Ghostty, GTK and Qt follow the theme (the engine, the console, the boot splash, `tokens.json`, theme repositories and the QML module are done)
-- Store: install packages from nixpkgs with one click
-- Bootstick app for Windows (separate repository)
+- Release 0.2.0 with the desktop, after the tests on the laptop
+- The bootstick app for Windows (a repository of its own)
+- A signed ISO, so it boots with Secure Boot on
+- A graphical installer in Quickshell, after the proof of concept
 
 ## Building the ISO
 
