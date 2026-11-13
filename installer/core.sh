@@ -241,12 +241,34 @@ install_from_answers() {
   install -D -m 0600 "$log_file" "/mnt/var/log/${DISTRO_ID}-install.log"
 
   step 9
+  setup_secure_boot
   sync
   if [ "$unmount" -eq 1 ]; then
     release_disk
     mounted=0
   fi
   printf '\nDone.\n' >>"$log_file"
+}
+
+# Only machines with modules/secure-boot.nix (main) have this tool, so the
+# same installer works on every branch. It points a firmware boot entry at
+# shim and, with Secure Boot on, asks MokManager to enroll the machine's key
+# at the next start; the done screen shows the code to type there.
+mok_code=""
+mok_from_disk=0
+setup_secure_boot() {
+  local tool="${DISTRO_ID}-secure-boot" code
+  nixos-enter --root /mnt -c "command -v $tool" >/dev/null 2>&1 || return 0
+  run nixos-enter --root /mnt -c "$tool boot-entry" ||
+    log "No boot entry for shim, the firmware will start the fallback path EFI/BOOT/BOOTX64.EFI."
+  secure_boot_enabled || return 0
+  code=$(shuf -i 1000-9999 -n 1)
+  if run nixos-enter --root /mnt -c "$tool enroll --code $code"; then
+    mok_code=$code
+  else
+    log "Could not ask MokManager to enroll the key, it can still be enrolled from disk."
+    mok_from_disk=1
+  fi
 }
 
 # The passphrase is only needed while formatting

@@ -123,6 +123,10 @@ declare -A tr_en=(
   [d_title]="%s is installed."
   [d_remove]="Remove the USB stick, then restart."
   [d_passphrase]="At every start you type the disk passphrase first."
+  [d_mok]="Secure Boot: a blue screen asks once at the next start."
+  [d_mok_steps]="Press a key, then Enroll MOK, Continue, Yes, the code below, Reboot."
+  [d_mok_code]="Code:"
+  [d_mok_disk]="Choose Enroll key from disk there, then the file %s.cer."
   [b_restart]="Restart"
   [b_stay]="Stay here"
 
@@ -246,6 +250,10 @@ declare -A tr_de=(
   [d_title]="%s ist installiert."
   [d_remove]="Zieh den USB-Stick ab und starte neu."
   [d_passphrase]="Bei jedem Start tippst du zuerst die Passphrase der Festplatte."
+  [d_mok]="Secure Boot: beim nächsten Start fragt einmal ein blauer Bildschirm."
+  [d_mok_steps]="Eine Taste drücken, dann Enroll MOK, Continue, Yes, den Code unten, Reboot."
+  [d_mok_code]="Code:"
+  [d_mok_disk]="Wähle dort Enroll key from disk, dann die Datei %s.cer."
   [b_restart]="Neu starten"
   [b_stay]="Hier bleiben"
 
@@ -369,6 +377,10 @@ declare -A tr_fr=(
   [d_title]="%s est installé."
   [d_remove]="Retire la clé USB, puis redémarre."
   [d_passphrase]="À chaque démarrage, tu tapes d'abord la phrase secrète du disque."
+  [d_mok]="Secure Boot : au prochain démarrage, un écran bleu pose une seule question."
+  [d_mok_steps]="Appuie sur une touche, puis Enroll MOK, Continue, Yes, le code ci-dessous, Reboot."
+  [d_mok_code]="Code :"
+  [d_mok_disk]="Choisis-y Enroll key from disk, puis le fichier %s.cer."
   [b_restart]="Redémarrer"
   [b_stay]="Rester ici"
 
@@ -492,6 +504,10 @@ declare -A tr_it=(
   [d_title]="%s è installato."
   [d_remove]="Togli la chiavetta USB, poi riavvia."
   [d_passphrase]="A ogni avvio digiti prima la passphrase del disco."
+  [d_mok]="Secure Boot: al prossimo avvio una schermata blu chiede una volta sola."
+  [d_mok_steps]="Premi un tasto, poi Enroll MOK, Continue, Yes, il codice qui sotto, Reboot."
+  [d_mok_code]="Codice:"
+  [d_mok_disk]="Scegli lì Enroll key from disk, poi il file %s.cer."
   [b_restart]="Riavvia"
   [b_stay]="Resta qui"
 

@@ -220,5 +220,15 @@ draw_done() {
   if [ "${encrypt:-false}" = true ]; then
     printf '  %s%s%s\n' "$c_faint" "$(t d_passphrase)" "$c_reset"
   fi
+  # MokManager has its own screen at the next start, the code is the one
+  # thing that must not be missed
+  if [ -n "${mok_code:-}" ]; then
+    printf '\n  %s%s%s\n' "$c_bold" "$(t d_mok)" "$c_reset"
+    printf '  %s%s%s\n' "$c_faint" "$(t d_mok_steps)" "$c_reset"
+    printf '  %s %s%s%s%s\n' "$(t d_mok_code)" "$c_accent" "$c_bold" "$mok_code" "$c_reset"
+  elif [ "${mok_from_disk:-0}" -eq 1 ]; then
+    printf '\n  %s%s%s\n' "$c_bold" "$(t d_mok)" "$c_reset"
+    printf '  %s%s%s\n' "$c_faint" "$(tf d_mok_disk "$DISTRO_ID")" "$c_reset"
+  fi
   printf '\n'
 }

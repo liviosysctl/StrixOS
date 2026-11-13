@@ -14,6 +14,7 @@
     ./tools.nix
     ./apps.nix
     ./store.nix
+    ./secure-boot.nix
     ./search.nix
     ./storage/btrfs.nix
   ];

@@ -203,6 +203,12 @@ check_uefi() {
     die "$(tf e_uefi "$DISTRO_NAME")"
 }
 
+# Secure Boot is on when the firmware variable SecureBoot is 1
+secure_boot_enabled() {
+  local var=/sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c
+  [ -r "$var" ] && [ "$(od -An -t u1 -j 4 -N 1 "$var" | tr -d ' ')" = 1 ]
+}
+
 check_ram() {
   [ "$(ram_kib)" -ge "$min_ram_kib" ] ||
     die "$(tf e_ram "$DISTRO_NAME")"
