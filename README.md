@@ -146,6 +146,6 @@ nix build .#tests.install -L                          # install on an empty disk
 
 ### Releasing
 
-Same flow as the other repositories (CONTRIBUTING.md): bump the version in `flake.nix`, commit `chore(release): vX.Y.Z`, push an annotated tag. The release workflow then creates the release with the notes, builds and signs the ISO, attaches it with `SHA256SUMS`, and moves `stable` to the tag. An ISO larger than 2 GiB is attached in parts below 2 GiB; join them with `cat strix-*.iso.part* > strix.iso` and check with `sha256sum -c SHA256SUMS`.
+Same flow as the other repositories (CONTRIBUTING.md): bump the version in `flake.nix`, commit `chore(release): vX.Y.Z`, push an annotated tag. The release workflow then creates the release with the notes, builds and signs the ISO, attaches it with `SHA256SUMS`, and moves `stable` to the tag. The ISO stays below 2 GiB, the most GitHub takes per file, because it does not carry the installed system: the installer downloads it. Should it ever grow past that, the workflow attaches it in parts; join them with `cat strix-*.iso.part* > strix.iso` and check with `sha256sum -c SHA256SUMS`.
 
 Before tagging, try the packaging without a release: Actions, "Release", "Run workflow". The files land in the run as an artifact.

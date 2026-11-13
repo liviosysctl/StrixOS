@@ -34,11 +34,12 @@ in
     # Boot menu: "Strix 0.1.0 Installer"
     appendToMenuLabel = " Installer";
 
-    # Put the installed system and the flake sources into the store up front.
-    # nixos-install copies whatever already exists in the live store instead of
-    # downloading it, so a real installation only builds a few small parts.
+    # The flake sources and the formatting tools come along, the installed
+    # system does not: with it the ISO grew past 2 GiB, the most GitHub takes
+    # per release file, and had to be split. nixos-install downloads the system
+    # straight onto the target disk (--store /mnt), from cache.nixos.org and
+    # the distro's binary cache; the installation needs the network anyway.
     storeContents = [
-      reference.config.system.build.toplevel
       # sgdisk, cryptsetup, mkfs.btrfs and friends for formatting
       reference.config.system.build.diskoScript
       distroFlake.outPath

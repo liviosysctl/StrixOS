@@ -148,7 +148,7 @@
           ];
         };
 
-        # Made-up machine for CI and the ISO's store
+        # Made-up machine for CI, the binary cache and the formatting tools of the ISO
         "${branding.id}-reference" = mkSystem {
           modules = [ ./hosts/reference ];
           apps = ./templates/machine/apps.json;
