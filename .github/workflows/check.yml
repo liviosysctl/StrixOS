@@ -1,15 +1,13 @@
+# The proof of concept for M245 (branch m245-poc).
+#
 # On every push and pull request: the fast checks (L0). Every machine, the ISO
 # and the installer functions evaluate, plus the assertions in tests/eval.nix.
 #
-# On every push to main, once the checks pass: build the ISO (iso-dev, the
-# faster compression) and attach it to the run as a download. Find it under
-# Actions, the run, "Artifacts". The ISO comes from a clean checkout with
-# flake.lock, so machines installed from it are pinned to that commit.
-#
-# On every push to main and personal: the cache job builds the distro's own
-# packages and the reference system and pushes them to the binary cache
-# (modules/cache.nix), so installed machines download them instead of
-# compiling. It needs the secret CACHIX_AUTH_TOKEN and does nothing without it.
+# On every push to m245-poc: the cache job pushes the own packages and the
+# reference system to the binary cache (modules/cache.nix), then the ISO is
+# built, signed for Secure Boot and published as the pre-release poc with
+# manifest.json, where the bootstick app downloads it. Releases (vX.Y.Z) only
+# come from main.
 name: Check
 
 on:
@@ -43,7 +41,7 @@ jobs:
     needs: flake
     if: >-
       github.event_name != 'pull_request' &&
-      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/personal')
+      github.ref == 'refs/heads/m245-poc'
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:
@@ -80,9 +78,12 @@ jobs:
     # After the cache job, so the own packages come from the cache
     if: >-
       !cancelled() && needs.flake.result == 'success' && needs.cache.result != 'failure' &&
-      github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+      github.ref == 'refs/heads/m245-poc' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 180
+    # Replaces the pre-release poc
+    permissions:
+      contents: write
     steps:
       # The runner has about 14 GB free, the ISO build needs more. Removing
       # these toolchains takes seconds and frees about 30 GB.
@@ -101,35 +102,36 @@ jobs:
           cachix-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
       - name: Build the ISO
-        run: nix build .#iso-dev -L
+        run: nix build .#iso -L
 
       # Secure Boot: shim in front, GRUB and the kernel signed with the key
-      # from the secret SECURE_BOOT_KEY (secure-boot/README.md). Without the
-      # secret or the certificate the dev ISO stays unsigned and only boots
-      # with Secure Boot off.
+      # from the secret SECURE_BOOT_KEY (secure-boot/README.md). The bootstick
+      # app promises Secure Boot can stay on, so an unsigned ISO is an error.
       - name: Sign the ISO
         id: sign
         env:
           KEY_PEM: ${{ secrets.SECURE_BOOT_KEY }}
+          REQUIRE_SIGNATURE: true
         run: ./.github/scripts/sign-iso.sh result/iso/*.iso signed
 
-      - name: Name the file after the commit
-        id: name
+      - name: Split, checksum, manifest
+        env:
+          SECURE_BOOT_SIGNED: ${{ steps.sign.outputs.signed }}
         run: |
-          src=${{ steps.sign.outputs.iso }}
-          base=$(basename "$src" .iso)
-          name="$base-${GITHUB_SHA::7}"
-          mkdir out
-          if [[ $src == signed/* ]]; then mv "$src" "out/$name.iso"; else cp "$src" "out/$name.iso"; fi
-          (cd out && sha256sum "$name.iso" > "$name.iso.sha256")
-          echo "name=$name" >> "$GITHUB_OUTPUT"
-          ls -lh out
+          version=$(nix eval --raw .#lib.version)
+          DISTRO_NAME=$(nix eval --raw --file branding.nix name)
+          export DISTRO_NAME
+          ./.github/scripts/package-iso.sh "v$version" "${{ steps.sign.outputs.iso }}" out/
 
-      - uses: actions/upload-artifact@v7
-        with:
-          name: ${{ steps.name.outputs.name }}
-          path: out/
-          retention-days: 14
-          # The ISO is already compressed
-          compression-level: 0
-          if-no-files-found: error
+      # The bootstick app reads releases/download/poc/manifest.json. The old
+      # pre-release goes first, so the tag moves to this commit and no file
+      # of an older ISO stays behind.
+      - name: Replace the pre-release poc
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete poc --yes --cleanup-tag || true
+          gh release create poc out/* \
+            --prerelease --latest=false --target "$GITHUB_SHA" \
+            --title "$(nix eval --raw --file branding.nix name), proof of concept (M245)" \
+            --notes "The ISO of the branch m245-poc at ${GITHUB_SHA::7}, signed for Secure Boot. The bootstick app writes it to a stick; the releases of the distribution are the vX.Y.Z ones."

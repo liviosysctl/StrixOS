@@ -21,16 +21,14 @@
       # The only place with the version number. bump_version.py replaces exactly this line.
       version = "0.2.0";
 
-      # Where installed machines get updates from. Machines installed from a
-      # release ISO follow ref (stable, moved by the release workflow). The dev
-      # ISO from every push follows devRef, so test machines get fixes before
-      # a release. The branches differ between main (school proof of concept)
-      # and personal.
+      # Where installed machines get updates from. The proof of concept has no
+      # releases: every machine installed from its ISO follows the branch
+      # m245-poc, so strix-update brings what CI last built.
       upstream = {
         owner = "liviosysctl";
         repo = "strixos";
-        ref = "stable";
-        devRef = "main";
+        ref = "m245-poc";
+        devRef = "m245-poc";
       };
 
       branding = import ./branding.nix;

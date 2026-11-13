@@ -42,10 +42,8 @@ These are renderings of the design from StrixUI; the shell in this repository is
 
 | Branch | Content |
 |---|---|
-| `main` | The proof of concept for the school module M245: Windows bootstick app, app store, signed ISO. |
-| `personal` | The distribution as I use it myself, without the store and the beginner parts. |
-
-Changes that matter for both go into both branches. When M245 is over, `personal` becomes `main` and the proof of concept moves to its own branch.
+| `m245-poc` | This branch: the proof of concept for the school module M245. Windows bootstick app, app store, signed ISO, as little terminal as possible. Every push builds the signed ISO and publishes it as the pre-release `poc`, where the bootstick app downloads it; installed machines follow this branch. |
+| `main` | The distribution itself. Releases (vX.Y.Z) come from there. |
 
 ## What is in the repository
 
@@ -115,7 +113,7 @@ nix build .#iso -L        # release compression
 ls -lh result/iso/
 ```
 
-Machines installed from `iso` follow the branch `stable`, which only moves when a release is published. Machines installed from `iso-dev` follow `main` and get every fix with `strix-update`. CI builds an `iso-dev` on every push to `main` (Actions, the run, "Artifacts").
+Machines installed from either ISO follow the branch `m245-poc` and get every change with `strix-update`. CI builds, signs and publishes the ISO on every push to `m245-poc` (the pre-release `poc`).
 
 The ISO boots on UEFI with Secure Boot off. Write it to a USB stick as a raw image, not by copying files onto a FAT32 stick.
 
@@ -148,8 +146,6 @@ nix build .#tests.theme -L                            # the theme engine in a VM
 nix build .#tests.install -L                          # install on an empty disk and boot it, needs KVM
 ```
 
-### Releasing
+### The pre-release `poc`
 
-Same flow as the other repositories (CONTRIBUTING.md): bump the version in `flake.nix`, commit `chore(release): vX.Y.Z`, push an annotated tag. The release workflow then creates the release with the notes, builds the ISO, attaches it with `SHA256SUMS` and `manifest.json` (the bootstick app reads that), and moves `stable` to the tag. An ISO larger than 2 GiB is attached in parts, `manifest.json` lists them.
-
-Before tagging, try the packaging without a release: Actions, "Release", "Run workflow". The files land in the run as an artifact.
+No version tags on this branch. Every push to `m245-poc` replaces the pre-release `poc`: the signed ISO (in parts if larger than 2 GiB), `SHA256SUMS` and `manifest.json`, which the bootstick app reads. Releases of the distribution come from `main`.
