@@ -1,7 +1,8 @@
 # Creates the GitHub release for every pushed version tag (v1.2.3).
 # The notes come from cliff.toml, so they look exactly like CHANGELOG.md.
 #
-# Then builds the ISO and attaches what the bootstick app downloads: the ISO
+# Then builds the ISO, signs it for Secure Boot and attaches what the
+# bootstick app downloads: the ISO
 # (in parts below 2 GiB if it is larger), SHA256SUMS and manifest.json. Only
 # after that, stable moves to the tag, so installed machines never see a
 # release without an ISO.
@@ -95,10 +96,20 @@ jobs:
             exit 1
           fi
 
+      # A release is always signed for Secure Boot (secure-boot/README.md).
+      # The dry run by hand also works without the key, with a warning.
+      - name: Sign the ISO
+        id: sign
+        env:
+          KEY_PEM: ${{ secrets.SECURE_BOOT_KEY }}
+          REQUIRE_SIGNATURE: ${{ github.event_name == 'push' }}
+        run: ./.github/scripts/sign-iso.sh result/iso/*.iso signed
+
       - name: Split, checksum, manifest
         env:
           DISTRO_NAME: ${{ steps.version.outputs.name }}
-        run: ./.github/scripts/package-iso.sh "${{ steps.version.outputs.tag }}" result/iso/*.iso out/
+          SECURE_BOOT_SIGNED: ${{ steps.sign.outputs.signed }}
+        run: ./.github/scripts/package-iso.sh "${{ steps.version.outputs.tag }}" "${{ steps.sign.outputs.iso }}" out/
 
       - name: Attach to the release
         if: github.event_name == 'push'

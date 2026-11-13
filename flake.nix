@@ -183,6 +183,16 @@
         # The Store service (main only)
         store = pkgs.callPackage ./packages/store { };
 
+        # Secure Boot (main only): shim and MokManager signed by Microsoft and
+        # Debian, GRUB with an SBAT section for the ISO, the script that signs
+        # the ISO (CI, key from a secret), and the one that makes that key
+        shim = pkgs.callPackage ./packages/shim { };
+        grub-sb = pkgs.callPackage ./packages/grub-sb {
+          homepage = "https://github.com/${upstream.owner}/${upstream.repo}";
+        };
+        sign-iso = pkgs.callPackage ./packages/sign-iso { inherit (self.packages.${system}) shim; };
+        secure-boot-key = pkgs.callPackage ./packages/secure-boot-key { };
+
         # The design system: QML module, wallpapers, fonts
         ui = pkgs.callPackage ./packages/ui { src = strixui; };
 

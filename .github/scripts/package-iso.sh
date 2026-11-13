@@ -8,7 +8,8 @@
 #   SHA256SUMS      the whole ISO and every part, for sha256sum -c
 #   manifest.json   what the bootstick app reads, see the plan (05-ci-releases)
 #
-# DISTRO_NAME is the display name for the manifest. PART_BYTES and
+# DISTRO_NAME is the display name for the manifest, SECURE_BOOT_SIGNED=true
+# when the ISO was signed (then it boots with Secure Boot on). PART_BYTES and
 # SPLIT_ABOVE only exist to test the splitting with a small file.
 set -euo pipefail
 
@@ -57,13 +58,14 @@ jq -n \
   --argjson size "$size" \
   --arg sha256 "$iso_sha" \
   --argjson parts "$parts" \
+  --argjson signed "${SECURE_BOOT_SIGNED:-false}" \
   '{
     format: 1,
     name: $name,
     version: $version,
     released: $released,
     iso: { file: $file, size: $size, sha256: $sha256, parts: $parts },
-    requirements: { uefi: true, secureBootOff: true, ramGiB: 4, diskGiB: 32 }
+    requirements: { uefi: true, secureBootOff: ($signed | not), ramGiB: 4, diskGiB: 32 }
   }' >manifest.json
 
 ls -l

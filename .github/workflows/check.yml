@@ -103,14 +103,24 @@ jobs:
       - name: Build the ISO
         run: nix build .#iso-dev -L
 
+      # Secure Boot: shim in front, GRUB and the kernel signed with the key
+      # from the secret SECURE_BOOT_KEY (secure-boot/README.md). Without the
+      # secret or the certificate the dev ISO stays unsigned and only boots
+      # with Secure Boot off.
+      - name: Sign the ISO
+        id: sign
+        env:
+          KEY_PEM: ${{ secrets.SECURE_BOOT_KEY }}
+        run: ./.github/scripts/sign-iso.sh result/iso/*.iso signed
+
       - name: Name the file after the commit
         id: name
         run: |
-          src=$(ls result/iso/*.iso)
+          src=${{ steps.sign.outputs.iso }}
           base=$(basename "$src" .iso)
           name="$base-${GITHUB_SHA::7}"
           mkdir out
-          cp "$src" "out/$name.iso"
+          if [[ $src == signed/* ]]; then mv "$src" "out/$name.iso"; else cp "$src" "out/$name.iso"; fi
           (cd out && sha256sum "$name.iso" > "$name.iso.sha256")
           echo "name=$name" >> "$GITHUB_OUTPUT"
           ls -lh out

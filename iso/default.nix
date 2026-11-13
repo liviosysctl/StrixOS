@@ -58,6 +58,15 @@ in
     serviceConfig.Type = "oneshot";
   };
 
+  # Secure Boot: GRUB with an SBAT section and the CVE fixes it claims, so
+  # shim accepts it once the ISO is signed (packages/grub-sb, sign-iso). The
+  # ISO from nix build is unsigned and boots with Secure Boot off; CI signs it.
+  nixpkgs.overlays = [
+    (final: prev: {
+      grub2_efi = distroFlake.packages.${system}.grub-sb;
+    })
+  ];
+
   # The installer works with flakes (nix eval, disko --flake, nixos-install --flake)
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
@@ -80,6 +89,8 @@ in
   environment.systemPackages = [
     distroFlake.packages.${system}.${if config.${branding.id}.iso.dev then "installer-dev" else "installer"}
     distroFlake.inputs.disko.packages.${system}.disko
+    # mokutil --sb-state, --list-enrolled: what shim trusts on this machine
+    pkgs.mokutil
   ];
 
   # Hint on the console after autologin
