@@ -1,5 +1,4 @@
-// The Store (main, the school proof of concept): find an app in nixpkgs, install or remove it with
-// one click. The service strix-store (Backend "store") searches the package index and runs
+// The Store: find an app in nixpkgs, install or remove it. The service strix-store (Backend "store") searches the package index and runs
 // strix-apps, which writes apps.json and rebuilds; its output streams into the window. Proprietary
 // apps are shown and marked; installing one asks first (Q7), and the service refuses it otherwise.
 // Opened from Search (Apps › Store) or with `qs -c strix ipc call store open`.

@@ -5,8 +5,8 @@
 # The colors come from the default theme: the theme engine writes them into
 # the file in THEME_FILE while the ISO is built (lib/themes.nix). They depend
 # on the terminal: the console of the live system knows 16 colors (the
-# theme's palette, set by the theme service), an SSH session from Windows
-# Terminal knows 256 or true color.
+# theme's palette, set by the theme service), an SSH session from another
+# computer usually 256 or true color.
 #
 # Only characters the console font of the live system (ter-v16n, set in
 # iso/default.nix) contains: █ ▒ ─ ■ » ·, ASCII and the accented letters of

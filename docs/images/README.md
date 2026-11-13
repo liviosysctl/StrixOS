@@ -2,7 +2,7 @@
 
 | File | What | Source |
 |---|---|---|
-| `banner.jpg` | The wordmark, the motto and the plate of Saturnus | Drawn for this repository from StrixUI's fonts and wallpaper |
+| `banner.jpg` | The wordmark, the motto, one line on what Strix is and the plate of Saturnus | Drawn for this repository from StrixUI's fonts and wallpaper |
 | `desktop.jpg` | The desktop with the top bar, Saturnus | Rendering `docs/renders/Desktop.png` of [StrixUI](https://github.com/liviosysctl/StrixUI) |
 | `lock-screen.jpg` | The lock screen, Janus | Rendering `docs/renders/LockScreen.png` of StrixUI |
 | `search.jpg` | Search | Rendering `docs/renders/Search.png` of StrixUI |
@@ -15,7 +15,7 @@
 | `boot-splash.jpg` | The boot splash | Rendering `docs/renders/BootSplash.png` of StrixUI |
 | `qml-gallery.jpg` | The QML components under Saturnus | Rendering `docs/renders/qml-saturnus.png` of StrixUI |
 
-The renderings come from StrixUI at commit `4aec975`, the version this repository takes as its flake input. They show the design; the shell in `shell/qml` is built from the same components.
+The renderings come from StrixUI (`qml-gallery.jpg` from commit `76cccc4`, the others from `4aec975`). They show the design; the shell in `shell/qml` is built from the same components.
 
 ## The engravings
 

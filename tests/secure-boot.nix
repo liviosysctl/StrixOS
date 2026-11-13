@@ -85,7 +85,7 @@ let
         export SECURE_BOOT_KEY=${testKey}/key.pem SECURE_BOOT_CERT=${testKey}/cert.pem
         sign-iso ${iso}/iso/*.iso $out
 
-        # The layout the bootstick writes and the firmware reads
+        # The layout on the stick that the firmware reads
         xorriso -osirrox on -indev $out -extract /boot/efi.img efi.img
         mdir -i efi.img ::/EFI/BOOT | tee listing
         for f in BOOTX64 grubx64 mmx64; do grep -qi "^$f *efi" listing; done

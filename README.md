@@ -43,7 +43,7 @@ These are renderings of the design from StrixUI; the shell in this repository is
 | Branch | Content |
 |---|---|
 | `main` | The distribution. Releases come from here. |
-| `m245-poc` | The proof of concept for the school module M245, based on 0.2.0: installer, signed ISO, Store and a minimal desktop, for the Windows bootstick app. Its ISOs are built from the branch, not released. |
+| `m245-poc` | The proof of concept for the school module M245, based on 0.2.0. Its ISOs are built from the branch, not released. |
 
 ## What is in the repository
 
@@ -113,7 +113,7 @@ ls -lh result/iso/
 
 Machines installed from `iso` follow the branch `stable`, which only moves when a release is published. Machines installed from `iso-dev` follow `main` and get every fix with `strix-update`. CI builds an `iso-dev` on every push to `main` (Actions, the run, "Artifacts").
 
-The ISO boots on UEFI. Release ISOs are signed and also boot with Secure Boot on: the first start shows MokManager once, choose "Enroll key from disk" and `strix.cer` from the stick ([secure-boot/README.md](secure-boot/README.md)). An ISO from `nix build` is unsigned and needs Secure Boot off. Write it to a USB stick as a raw image (`dd`, or Rufus in DD mode), not by copying files onto a FAT32 stick.
+The ISO boots on UEFI. Release ISOs are signed and also boot with Secure Boot on: the first start shows MokManager once, choose "Enroll key from disk" and `strix.cer` from the stick ([secure-boot/README.md](secure-boot/README.md)). An ISO from `nix build` is unsigned and needs Secure Boot off. Write it to a USB stick as a raw image (`dd`), not by copying files onto a FAT32 stick.
 
 Commit and push before building a release ISO. Only an ISO from a clean tree with a `flake.lock` pins the installed system to its own commit; from a dirty tree the installer locks during the install and needs the network for it.
 

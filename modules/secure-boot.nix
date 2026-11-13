@@ -1,4 +1,4 @@
-# Secure Boot on installed machines (main only, the school proof of concept).
+# Secure Boot on installed machines.
 #
 # The machine boots shim (signed by Microsoft) -> systemd-boot -> kernel, the
 # same way the signed ISO boots shim -> GRUB -> kernel. systemd-boot and the
@@ -12,7 +12,7 @@
 #
 # The initrd is not checked (shim checks only PE images), the same trade-off
 # as on the ISO. Lanzaboote would cover it, but needs own keys in the
-# firmware's db instead of the MOK list, which a beginner cannot be asked to do.
+# firmware's db instead of the MOK list (setup mode), which shim does not need.
 { config, lib, pkgs, distroFlake, ... }:
 
 let

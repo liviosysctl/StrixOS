@@ -1,6 +1,6 @@
-# The Store (main only, the school proof of concept): find an app in nixpkgs and install or remove
-# it with one click. The window is shell/qml/Store.qml, the service <id>-store behind it; both
-# install through <id>-apps, which writes apps.json and rebuilds.
+# The Store: find an app in nixpkgs, install or remove it. The window is shell/qml/Store.qml,
+# the service <id>-store behind it; both install through <id>-apps, which writes apps.json and
+# rebuilds.
 #
 # The package index comes from the channel's package list (packages.json.br, made by Hydra for
 # every channel update): reading all of nixpkgs with nix-env needs more memory than an old laptop
@@ -25,7 +25,7 @@ in
       type = lib.types.bool;
       default = config.${id}.desktop.enable;
       defaultText = lib.literalExpression "config.${id}.desktop.enable";
-      description = "The Store: apps from nixpkgs with one click.";
+      description = "The Store: find, install and remove apps from nixpkgs.";
     };
 
     packageList = lib.mkOption {
