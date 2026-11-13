@@ -6,7 +6,7 @@
 # Actions, the run, "Artifacts". The ISO comes from a clean checkout with
 # flake.lock, so machines installed from it are pinned to that commit.
 #
-# On every push to main and personal: the cache job builds the distro's own
+# On every push to main and m245-poc: the cache job builds the distro's own
 # packages and the reference system and pushes them to the binary cache
 # (modules/cache.nix), so installed machines download them instead of
 # compiling. It needs the secret CACHIX_AUTH_TOKEN and does nothing without it.
@@ -43,7 +43,7 @@ jobs:
     needs: flake
     if: >-
       github.event_name != 'pull_request' &&
-      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/personal')
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/m245-poc')
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:

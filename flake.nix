@@ -24,8 +24,7 @@
       # Where installed machines get updates from. Machines installed from a
       # release ISO follow ref (stable, moved by the release workflow). The dev
       # ISO from every push follows devRef, so test machines get fixes before
-      # a release. The branches differ between main (school proof of concept)
-      # and personal.
+      # a release. The branch m245-poc (school proof of concept) follows itself.
       upstream = {
         owner = "liviosysctl";
         repo = "strixos";

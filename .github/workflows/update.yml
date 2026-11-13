@@ -1,10 +1,11 @@
-# Every week and on demand: move everything to the newest versions, on main
-# and on personal.
+# Every week and on demand: move everything on main to the newest versions.
+# m245-poc stays on its versions until the module is over.
 #
 #   nix flake update                      nixpkgs, disko, StrixUI (the design system
 #                                         and the god themes) and the other inputs
 #   cargo update (packages/theme-engine)  the crates of the theme engine
 #   cargo update (packages/search)        the crates of the search service
+#   cargo update (packages/store)         the crates of the Store
 #
 # The update is committed locally first (the install test needs a committed
 # tree for the machine lock), then nix flake check and the install test run.
@@ -28,7 +29,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        branch: [main, personal]
+        branch: [main]
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
@@ -67,6 +68,7 @@ jobs:
           nix flake update 2>&1 | tee update.log
           (cd packages/theme-engine && cargo update 2>&1) | tee -a update.log
           (cd packages/search && cargo update 2>&1) | tee -a update.log
+          (cd packages/store && cargo update 2>&1) | tee -a update.log
           if git diff --quiet; then
             echo "Everything is already up to date."
             echo "changed=false" >> "$GITHUB_OUTPUT"
