@@ -1,6 +1,6 @@
 [package]
 name = "store"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 description = "The Store: a package index of nixpkgs, search, install and remove through the apps tool"
 license = "MIT"

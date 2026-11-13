@@ -2,6 +2,37 @@
 
 All notable changes to this project. Versions follow [Semantic Versioning](https://semver.org); entries are generated from [Conventional Commits](https://www.conventionalcommits.org) with git-cliff.
 
+## v0.2.0 — 2026-11-13
+
+The desktop with Hyprland, the shell, the Store and Settings, a binary cache, and an ISO that starts with Secure Boot on.
+
+### Added
+- Add the search for apps, actions, settings and commands
+- Fetch, check and pin theme repositories
+- Fetch every theme repository with each update
+- Allow bare commands and sub-commands of several words
+- Run the session's theme with the 10-minute cycle
+- Add Hyprland, the shell, the login and Settings
+- Bind the volume, brightness and media keys
+- Add laptop parts, capture and the clipboard history
+- Search, install and remove apps from nixpkgs
+- Add network, Bluetooth, sound, display and power pages
+- Give GTK apps the god's colors and show media in the bar
+- Ask before installing proprietary apps
+- Download the distro's own packages from a binary cache
+- Sign the installer ISO for Secure Boot
+- Boot installed machines through shim with Secure Boot on
+
+### Changed
+- Make the Hyprland keys and Settings findable
+
+### Fixed
+- Find the certificate when signing in CI
+
+### Breaking
+- Take the eight gods of StrixUI as the themes — the themes chamber and neutral are gone; a machine.nix that sets strix.theme.default to one of them must name a god, e.g. saturnus
+- Remove everything for VMware — a machine.nix that sets virtualisation.vmware.guest.enable keeps it, but loses the hibernation fix for VMware
+
 ## v0.1.0 — 2026-11-10
 
 First release: an ISO that installs Strix from a few questions in the console, with encryption, hibernation and updates.
