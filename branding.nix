@@ -8,6 +8,9 @@ rec {
   # file system label. Lowercase letters, digits and hyphens only.
   id = "strix";
 
+  # The line under the wordmark: boot menu, about page.
+  motto = "nocte vigilat";
+
   # Prefix for D-Bus names (D-Bus requires a reversed domain).
   dbus = "org.${id}";
 }

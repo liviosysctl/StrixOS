@@ -33,8 +33,10 @@ in
     # written raw to the stick, FAT32 labels only allow 11 characters.
     volumeID = lib.toUpper "${branding.id}-${lib.replaceStrings [ "." ] [ "_" ] version}";
 
-    # Boot menu: "Strix 0.1.0 Installer"
+    # Boot menu: "Strix 0.1.0 Installer", drawn like the boot menu of an
+    # installed machine in the default theme
     appendToMenuLabel = " Installer";
+    grubTheme = config.${branding.id}.theme.grubTheme;
 
     # Put the installed system and the flake sources into the store up front.
     # nixos-install copies whatever already exists in the live store instead of
