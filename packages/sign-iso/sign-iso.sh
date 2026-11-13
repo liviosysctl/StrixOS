@@ -35,6 +35,9 @@ key=${SECURE_BOOT_KEY:?set SECURE_BOOT_KEY to the private key (PEM)}
 cert=${SECURE_BOOT_CERT:?set SECURE_BOOT_CERT to the certificate (PEM)}
 [ -r "$key" ] || die "cannot read the key $key"
 [ -r "$cert" ] || die "cannot read the certificate $cert"
+# Absolute, the work below happens in a temporary folder
+key=$(realpath "$key")
+cert=$(realpath "$cert")
 
 # A key that does not belong to the certificate would give an ISO that no
 # enrolled machine accepts. Compare the public keys.
