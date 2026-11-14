@@ -19,6 +19,8 @@ in
     # The console in the colors of the default theme. No splash on the ISO,
     # so nothing is written to the EFI variables of the machine.
     ../modules/theme.nix
+    # The slim desktop with the graphical installer in front
+    ./live.nix
   ];
 
   # File name: strix-0.1.0-x86_64.iso. iso-image.nix sets baseName
@@ -64,8 +66,34 @@ in
   nixpkgs.overlays = [
     (final: prev: {
       grub2_efi = distroFlake.packages.${system}.grub-sb;
+
+      # The ISO stays under 2 GiB with the live desktop by leaving out firmware no PC this
+      # installer runs on needs: the SoCs of ARM laptops and phones (qcom), switches and
+      # data-centre network cards. Every Wi-Fi, Bluetooth, GPU and sound firmware stays; the
+      # installed system gets the whole package as before.
+      linux-firmware = final.runCommand prev.linux-firmware.name
+        {
+          inherit (prev.linux-firmware) meta;
+          passthru = prev.linux-firmware.passthru or { };
+        }
+        ''
+          cp -r ${prev.linux-firmware} $out
+          chmod -R u+w $out
+          cd $out/lib/firmware
+          rm -rf qcom mellanox mrvl/prestera netronome qed dpaa2 liquidio cxgb4 bnx2x
+          # Links into what is gone would dangle
+          find . -xtype l -delete
+        '';
     })
   ];
+
+  # The ISO must stay under 2 GiB, the most GitHub takes per release file; the live desktop
+  # costs about 800 MB. Room comes from the firmware above, speech and gvfs (live.nix), and:
+  # - the copy of nixpkgs as a channel: the installation uses the flake inputs on the ISO
+  system.installer.channel.enable = false;
+  # - documentation beyond man pages (installation-device.nix turns it on)
+  documentation.doc.enable = lib.mkForce false;
+  documentation.nixos.enable = lib.mkForce false;
 
   # The installer works with flakes (nix eval, disko --flake, nixos-install --flake)
   nix.settings.experimental-features = [ "nix-command" "flakes" ];

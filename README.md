@@ -71,7 +71,9 @@ These are renderings of the design from StrixUI; the shell in this repository is
 | `templates/machine/` | Template for `/etc/nixos` that the installer fills in. |
 | `hosts/` | A made-up machine for CI and testing: `reference`. |
 | `iso/default.nix` | The installer ISO, built on the minimal NixOS installer. |
+| `iso/live.nix` | The live session of the ISO: a slim Strix desktop, logged in at once, the graphical installer in front. |
 | `installer/` | `strix-install`: asks a few questions in the console, then partitions, encrypts and installs. `--core --answers FILE` installs without asking. |
+| `installer/gui/` | The graphical installer, built like Fedora's: a window in Quickshell with StrixUI that only asks, and a back end (`backend.py`) that knows the computer and runs `strix-install --core`. |
 | `tests/` | Checks for `nix flake check`. |
 | `flake.nix` | Version, modules, machines, the ISO, checks and a dev shell. |
 
@@ -101,7 +103,6 @@ SSH is on: `ssh <user>@<address>` with the user's password. Root cannot log in. 
 - Release 0.2.0 with the desktop, after the tests on the laptop
 - The bootstick app for Windows (a repository of its own)
 - A signed ISO, so it boots with Secure Boot on
-- A graphical installer in Quickshell, after the proof of concept
 
 ## Building the ISO
 
@@ -115,19 +116,23 @@ ls -lh result/iso/
 
 Machines installed from either ISO follow the branch `m245-poc` and get every change with `strix-update`. CI builds, signs and publishes the ISO on every push to `m245-poc` (the pre-release `poc`).
 
+The ISO starts into a slim Strix desktop with the installer's window in front. Closing the window only hides it: the card in the middle of the desktop, or Search ("Install"), opens it again. The console installer is still there: `sudo strix-install` on another console (Ctrl+Alt+F2).
+
 The ISO boots on UEFI with Secure Boot off. Write it to a USB stick as a raw image, not by copying files onto a FAT32 stick.
 
 Commit and push before building a release ISO. Only an ISO from a clean tree with a `flake.lock` pins the installed system to its own commit; from a dirty tree the installer locks during the install and needs the network for it.
 
 ## Installing
 
-Boot the ISO, then:
+Boot the ISO: the installer's window opens by itself. Language and keyboard, the network (Wi-Fi right there if there is no cable), time zone, disk with encryption and hibernation, you and the computer, a summary; it only starts after you tick that the disk will be erased. The whole disk is used. The window shows each step, and at the end the code for Secure Boot when it is on.
+
+The same questions in the console, for SSH or a machine without graphics:
 
 ```sh
 sudo strix-install
 ```
 
-It asks for the language first, and every screen after that is in German, French, Italian or English. Then keyboard, time zone, name, user, password, computer name, disk, encryption and hibernation, a summary, and it only starts after you type the disk's name. The whole disk is used. The log ends up in `/var/log/strix-install.log` on the installed system.
+It asks for the language first, and every screen after that is in German, French, Italian or English. Then keyboard, time zone, name, user, password, computer name, disk, encryption and hibernation, a summary, and it only starts after you type the disk's name. Both installers end the same way (`strix-install --core`). The log ends up in `/var/log/strix-install.log` on the installed system.
 
 SSH already runs on the live system. To install over SSH, set a password with `passwd`, look up the address with `ip -4 addr` and connect with `ssh nixos@<address>`.
 
