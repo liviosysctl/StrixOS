@@ -248,6 +248,8 @@ install_from_answers() {
     mounted=0
   fi
   printf '\nDone.\n' >>"$log_file"
+  # For a graphical front end reading the output: what the done screen shows
+  [ "$ui_fancy" -eq 1 ] || printf 'MOK %s %s\n' "${mok_code:--}" "$mok_from_disk" >&2
 }
 
 # Only machines with modules/secure-boot.nix (main) have this tool, so the

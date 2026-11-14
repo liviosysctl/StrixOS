@@ -124,6 +124,33 @@ declare -A tr_en=(
   [e_root]="Run the installer with sudo: sudo %s-install"
   [e_uefi]="%s needs UEFI. Switch the firmware from Legacy/CSM to UEFI."
   [e_ram]="%s needs at least 4 GiB of memory to install."
+
+  # The graphical installer (installer/gui)
+  [b_next]="Next"
+  [b_back]="Back"
+  [b_install]="Erase and install"
+  [g_welcome]="Welcome to %s"
+  [g_intro]="A few questions, then %s is installed on this computer. Nothing changes before the last step."
+  [g_online]="Connected to the internet."
+  [g_offline]="The installation downloads the system. Connect to a network to go on."
+  [g_wifi]="Wi-Fi networks"
+  [g_no_wifi]="No Wi-Fi network found. Plug in a network cable or search again."
+  [b_rescan]="Search again"
+  [b_connect]="Connect"
+  [l_password]="Password"
+  [l_passphrase]="Passphrase"
+  [l_again]="Repeat"
+  [e_connect]="Could not connect. Check the password and try again."
+  [ph_search_tz]="Search a city or region"
+  [g_erase]="I understand that everything on %s will be deleted."
+  [g_no_hibernation]="Hibernation needs more space on this disk."
+  [g_secure_boot]="Secure Boot is on: at the next start a blue screen asks once to trust %s."
+  [g_log_show]="Show details"
+  [g_log_hide]="Hide details"
+  [b_retry]="Back to the summary"
+  [b_reopen]="Install %s"
+  [g_reopen]="The installer is closed. Open it again here."
+  [g_running]="Installing, %s %%"
 )
 
 # shellcheck disable=SC2034
@@ -242,6 +269,33 @@ declare -A tr_de=(
   [e_root]="Starte den Installer mit sudo: sudo %s-install"
   [e_uefi]="%s braucht UEFI. Stelle die Firmware von Legacy/CSM auf UEFI um."
   [e_ram]="%s braucht mindestens 4 GiB Arbeitsspeicher für die Installation."
+
+  # The graphical installer (installer/gui)
+  [b_next]="Weiter"
+  [b_back]="Zurück"
+  [b_install]="Löschen und installieren"
+  [g_welcome]="Willkommen bei %s"
+  [g_intro]="Ein paar Fragen, dann wird %s auf diesem Computer installiert. Bis zum letzten Schritt ändert sich nichts."
+  [g_online]="Mit dem Internet verbunden."
+  [g_offline]="Die Installation lädt das System herunter. Verbinde dich mit einem Netzwerk, um weiterzumachen."
+  [g_wifi]="WLAN-Netzwerke"
+  [g_no_wifi]="Kein WLAN gefunden. Schliesse ein Netzwerkkabel an oder suche noch einmal."
+  [b_rescan]="Noch einmal suchen"
+  [b_connect]="Verbinden"
+  [l_password]="Passwort"
+  [l_passphrase]="Passphrase"
+  [l_again]="Wiederholen"
+  [e_connect]="Verbinden hat nicht geklappt. Prüfe das Passwort und versuche es noch einmal."
+  [ph_search_tz]="Stadt oder Region suchen"
+  [g_erase]="Mir ist klar, dass alles auf %s gelöscht wird."
+  [g_no_hibernation]="Für den Ruhezustand braucht es mehr Platz auf dieser Festplatte."
+  [g_secure_boot]="Secure Boot ist an: Beim nächsten Start fragt ein blauer Bildschirm einmal, ob %s vertraut werden soll."
+  [g_log_show]="Details zeigen"
+  [g_log_hide]="Details ausblenden"
+  [b_retry]="Zurück zur Übersicht"
+  [b_reopen]="%s installieren"
+  [g_reopen]="Der Installer ist zu. Hier öffnest du ihn wieder."
+  [g_running]="Installation läuft, %s %%"
 )
 
 # shellcheck disable=SC2034
@@ -360,6 +414,33 @@ declare -A tr_fr=(
   [e_root]="Lance l'installateur avec sudo : sudo %s-install"
   [e_uefi]="%s a besoin d'UEFI. Passe le firmware de Legacy/CSM à UEFI."
   [e_ram]="%s a besoin d'au moins 4 Gio de mémoire pour l'installation."
+
+  # The graphical installer (installer/gui)
+  [b_next]="Suivant"
+  [b_back]="Retour"
+  [b_install]="Effacer et installer"
+  [g_welcome]="Bienvenue dans %s"
+  [g_intro]="Quelques questions, puis %s est installé sur cet ordinateur. Rien ne change avant la dernière étape."
+  [g_online]="Connecté à Internet."
+  [g_offline]="L'installation télécharge le système. Connecte-toi à un réseau pour continuer."
+  [g_wifi]="Réseaux Wi-Fi"
+  [g_no_wifi]="Aucun réseau Wi-Fi trouvé. Branche un câble réseau ou cherche à nouveau."
+  [b_rescan]="Chercher à nouveau"
+  [b_connect]="Se connecter"
+  [l_password]="Mot de passe"
+  [l_passphrase]="Phrase secrète"
+  [l_again]="Répéter"
+  [e_connect]="La connexion a échoué. Vérifie le mot de passe et réessaie."
+  [ph_search_tz]="Chercher une ville ou une région"
+  [g_erase]="Je comprends que tout ce qui se trouve sur %s sera supprimé."
+  [g_no_hibernation]="La mise en veille prolongée demande plus de place sur ce disque."
+  [g_secure_boot]="Secure Boot est activé : au prochain démarrage, un écran bleu demande une fois de faire confiance à %s."
+  [g_log_show]="Afficher les détails"
+  [g_log_hide]="Masquer les détails"
+  [b_retry]="Retour au résumé"
+  [b_reopen]="Installer %s"
+  [g_reopen]="L'installateur est fermé. Rouvre-le ici."
+  [g_running]="Installation en cours, %s %%"
 )
 
 # shellcheck disable=SC2034
@@ -478,6 +559,33 @@ declare -A tr_it=(
   [e_root]="Avvia l'installatore con sudo: sudo %s-install"
   [e_uefi]="%s richiede UEFI. Passa il firmware da Legacy/CSM a UEFI."
   [e_ram]="%s richiede almeno 4 GiB di memoria per l'installazione."
+
+  # The graphical installer (installer/gui)
+  [b_next]="Avanti"
+  [b_back]="Indietro"
+  [b_install]="Cancella e installa"
+  [g_welcome]="Benvenuto in %s"
+  [g_intro]="Qualche domanda, poi %s viene installato su questo computer. Nulla cambia prima dell'ultimo passo."
+  [g_online]="Connesso a Internet."
+  [g_offline]="L'installazione scarica il sistema. Collegati a una rete per continuare."
+  [g_wifi]="Reti Wi-Fi"
+  [g_no_wifi]="Nessuna rete Wi-Fi trovata. Collega un cavo di rete o cerca di nuovo."
+  [b_rescan]="Cerca di nuovo"
+  [b_connect]="Connetti"
+  [l_password]="Password"
+  [l_passphrase]="Passphrase"
+  [l_again]="Ripeti"
+  [e_connect]="Connessione non riuscita. Controlla la password e riprova."
+  [ph_search_tz]="Cerca una città o una regione"
+  [g_erase]="Ho capito che tutto ciò che si trova su %s verrà cancellato."
+  [g_no_hibernation]="L'ibernazione richiede più spazio su questo disco."
+  [g_secure_boot]="Secure Boot è attivo: al prossimo avvio una schermata blu chiede una volta di fidarsi di %s."
+  [g_log_show]="Mostra dettagli"
+  [g_log_hide]="Nascondi dettagli"
+  [b_retry]="Torna al riepilogo"
+  [b_reopen]="Installa %s"
+  [g_reopen]="Il programma di installazione è chiuso. Riaprilo qui."
+  [g_running]="Installazione in corso, %s %%"
 )
 
 t() {
@@ -490,6 +598,19 @@ tf() {
   shift
   # shellcheck disable=SC2059 # the translated text is the format
   printf "$(t "$key")" "$@"
+}
+
+# Every language as one JSON object: { "en": { "key": "text", ... }, ... }
+texts_json() {
+  local lang key
+  for lang in en de fr it; do
+    local -n table="tr_$lang"
+    for key in "${!table[@]}"; do
+      printf '%s\t%s\t%s\n' "$lang" "$key" "${table[$key]}"
+    done
+    unset -n table
+  done | jq -Rn '[inputs | split("\t") | { lang: .[0], key: .[1], text: .[2] }]
+    | reduce .[] as $t ({}; .[$t.lang][$t.key] = $t.text)'
 }
 
 # Locale from the language screen -> language of the installer texts
