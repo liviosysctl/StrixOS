@@ -46,6 +46,25 @@ in
           ${pkgs.terminus_font}/share/consolefonts/${iso.console.font}.psf.gz | tee $out
       '';
 
+  # The live session: logged in at once, the installer's back end and window start with it,
+  # the window floats, and the ISO leaves out what would push it over 2 GiB
+  iso-live =
+    let
+      user = iso.systemd.user.services;
+    in
+    assert iso.services.greetd.settings.initial_session.user == "nixos";
+    assert iso.${branding.id}.desktop.live;
+    assert lib.elem "graphical-session.target" user."${branding.id}-installer".wantedBy;
+    assert lib.elem "graphical-session.target" user."${branding.id}-installer-ui".wantedBy;
+    assert user."${branding.id}-installer-ui".serviceConfig.Restart == "always";
+    assert lib.hasInfix "-c ${branding.id}-installer" user."${branding.id}-installer-ui".serviceConfig.ExecStart;
+    assert lib.hasInfix "^Installer$" iso.${branding.id}.desktop.extraConfig;
+    assert !iso.programs.firefox.enable;
+    assert !iso.system.installer.channel.enable;
+    assert !iso.services.speechd.enable;
+    assert !(user ? hypridle);
+    ok "iso-live";
+
   # Guest tools must never end up on the installer medium
   iso-clean =
     assert !iso.virtualisation.vmware.guest.enable;

@@ -189,6 +189,16 @@ in
       description = "The desktop: Hyprland, the login, sound and the apps of the cheat sheet.";
     };
 
+    live = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      internal = true;
+      description = ''
+        The live session of the ISO (iso/live.nix): logged in at once as nixos, never locked,
+        without the apps of an installed machine.
+      '';
+    };
+
     extraConfig = lib.mkOption {
       type = lib.types.lines;
       default = "";
@@ -254,6 +264,11 @@ in
     # The login. Both start the same UWSM session as the session file of Hyprland.
     services.greetd = {
       enable = true;
+      # The live session starts without asking; logging out leads to the normal login
+      settings.initial_session = lib.mkIf cfg.live {
+        user = "nixos";
+        command = sessionCommand;
+      };
       settings.default_session = {
         user = "greeter";
         command =
@@ -299,7 +314,7 @@ in
     environment.etc."xdg/${id}/lid".text = cfg.lid + "\n";
     security.polkit.enable = true;
 
-    programs.firefox.enable = true;
+    programs.firefox.enable = !cfg.live;
     programs.dconf = {
       enable = true;
       # Every god is dark: GTK and libadwaita apps follow. adw-gtk3 makes GTK 3 apps look like
@@ -330,12 +345,16 @@ in
       settingsCommand
       captureCommand
       libnotify
-      cliphist
       quickshell
       ghostty
+    ]
+    ++ lib.optionals (!cfg.live) [
+      cliphist
       nautilus
       gnome-text-editor
       amberol
+    ]
+    ++ [
       adwaita-icon-theme
       adw-gtk3
       wl-clipboard
@@ -363,7 +382,7 @@ in
     };
 
     # The clipboard history behind Super V: text and pictures, kept by cliphist
-    systemd.user.services."${id}-clipboard" = {
+    systemd.user.services."${id}-clipboard" = lib.mkIf (!cfg.live) {
       description = "Keep a history of the clipboard";
       partOf = [ "graphical-session.target" ];
       after = [ "graphical-session.target" ];
@@ -379,7 +398,8 @@ in
       };
     };
 
-    systemd.user.services.hypridle = {
+    # Nothing to lock in the live session: the user has no password
+    systemd.user.services.hypridle = lib.mkIf (!cfg.live) {
       description = "Lock and dim when idle";
       partOf = [ "graphical-session.target" ];
       after = [ "graphical-session.target" ];

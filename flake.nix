@@ -221,6 +221,7 @@
         theme = import ./tests/theme-vm.nix { inherit self pkgs; };
         # Hyprland after the login, a window in the theme's colors, a switch while it runs
         desktop = import ./tests/desktop-vm.nix { inherit self pkgs; };
+        live = import ./tests/live-vm.nix { inherit self pkgs; };
         # The installer on an empty disk, then the installed disk booted.
         # Needs a clean, committed tree. nix build .#tests.install -L
         install = import ./tests/install.nix { inherit self pkgs; };
