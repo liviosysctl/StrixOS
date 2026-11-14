@@ -2,6 +2,19 @@
 
 All notable changes to this project. Versions follow [Semantic Versioning](https://semver.org); entries are generated from [Conventional Commits](https://www.conventionalcommits.org) with git-cliff.
 
+## v0.5.0 — 2026-11-14
+
+A graphical installer in a live desktop, and GRUB in the theme that finds Windows.
+
+### Added
+- Draw the GRUB menu in the look of StrixUI and the theme
+- Add texts, facts and secrets for other front ends
+- Add a graphical installer in the look of StrixUI
+- Start into a live desktop with the graphical installer
+
+### Changed
+- Replace systemd-boot with GRUB and list Windows in the menu
+
 ## v0.4.0 — 2026-11-13
 
 Symbols that move and colour themselves under the pointer.
