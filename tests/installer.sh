@@ -190,6 +190,30 @@ keyboards_ok() {
 check "every keyboard on the screen is known" 'keyboards_ok'
 check "label of a key" '[ "$(label_of fr_CH.UTF-8 "${languages[@]}")" = "Français (Suisse)" ]'
 
+# The graphical installer reads the texts as JSON: every language, every key
+texts_ok() {
+  local json
+  json=$(texts_json)
+  [ "$(jq -c 'keys' <<<"$json")" = '["de","en","fr","it"]' ] || return 1
+  [ "$(jq '[.[] | keys] | unique | length' <<<"$json")" = 1 ] || return 1
+  [ "$(jq -r '.de.b_next' <<<"$json")" = Weiter ]
+}
+check "texts as JSON for the graphical installer" 'texts_ok'
+
+# Its secrets file becomes the files the core reads, and is gone afterwards
+secrets_ok() {
+  local dir
+  dir=$(mktemp -d)
+  work_dir=$dir/work password_file=$dir/work/user.pass luks_key_file=$dir/luks.key
+  printf '{"password": "secret 12", "passphrase": "pass phrase"}' >"$dir/secrets.json"
+  take_secrets "$dir/secrets.json"
+  [ ! -e "$dir/secrets.json" ] &&
+    [ "$(cat "$password_file")" = "secret 12" ] &&
+    [ "$(cat "$luks_key_file")" = "pass phrase" ] &&
+    [ "$(stat -c %a "$password_file")" = 600 ]
+}
+check "secrets of the graphical installer" 'secrets_ok'
+
 # The logo: only letter, shadow and empty pixels
 check "logo characters" '! grep -q "[^#s.]" "$LOGO_FILE"'
 

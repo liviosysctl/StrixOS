@@ -203,6 +203,44 @@ check_uefi() {
     die "$(tf e_uefi "$DISTRO_NAME")"
 }
 
+# For a front end that is not this script (installer/gui): the computer and
+# its disks as JSON. Disks as candidate_disks lists them, with the path that
+# stays the same between boots.
+facts_json() {
+  local disks="[]" path size model tran
+  while IFS=$'\t' read -r path size model tran; do
+    [ -n "$path" ] || continue
+    disks=$(jq -c --arg path "$path" --arg stable "$(stable_disk_path "$path")" \
+      --argjson size "$size" --arg model "$model" --arg tran "$tran" \
+      '. + [{ path: $path, stablePath: $stable, bytes: $size, model: $model, transport: $tran }]' <<<"$disks")
+  done < <(candidate_disks)
+  jq -n --argjson disks "$disks" --argjson ram "$(ram_gib)" \
+    --argjson uefi "$([ -d /sys/firmware/efi/efivars ] && echo true || echo false)" \
+    --argjson secureBoot "$(secure_boot_enabled && echo true || echo false)" \
+    --argjson laptop "$(is_laptop && echo true || echo false)" \
+    --argjson minRam $((min_ram_kib / 1048576)) --argjson minFree "$min_free_gib" \
+    --arg name "$DISTRO_NAME" --arg id "$DISTRO_ID" --arg version "$DISTRO_VERSION" \
+    '{ name: $name, id: $id, version: $version, ramGib: $ram, minRamGib: $minRam,
+       minFreeGib: $minFree, uefi: $uefi, secureBoot: $secureBoot, laptop: $laptop,
+       disks: $disks }'
+}
+
+# The password and the passphrase from a JSON file of a front end, into the
+# files the core reads; the JSON file is deleted
+take_secrets() {
+  local file=$1 password passphrase
+  [ -s "$file" ] || die "No secrets in $file"
+  password=$(jq -r '.password // ""' "$file")
+  passphrase=$(jq -r '.passphrase // ""' "$file")
+  shred -u "$file" 2>/dev/null || rm -f "$file"
+  install -d -m 0700 "$work_dir"
+  (
+    umask 077
+    [ -z "$password" ] || printf '%s\n' "$password" >"$password_file"
+    [ -z "$passphrase" ] || printf '%s' "$passphrase" >"$luks_key_file"
+  )
+}
+
 # Secure Boot is on when the firmware variable SecureBoot is 1
 secure_boot_enabled() {
   local var=/sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c

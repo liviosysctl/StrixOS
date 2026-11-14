@@ -7,6 +7,12 @@ Without options, asks a few questions and installs ${DISTRO_NAME} on a disk.
   --core --answers FILE   Install from an answers file without asking.
                           The password must be in $password_file,
                           with encryption the passphrase in $luks_key_file.
+  --secrets FILE          With --core: take the password and the passphrase
+                          from FILE ({"password": ..., "passphrase": ...})
+                          instead; FILE is deleted after reading.
+  --facts                 Print what a front end needs to know about this
+                          computer as JSON (memory, disks, Secure Boot).
+  --texts                 Print the texts of every language as JSON.
   --hardware-nix FILE     Use this hardware.nix instead of detecting one (tests).
   --no-unmount            Leave /mnt mounted at the end (tests).
   --version               Print the version.
@@ -14,7 +20,7 @@ EOF
 }
 
 main() {
-  local mode=frontend hardware_nix="" unmount=1
+  local mode=frontend hardware_nix="" unmount=1 secrets=""
   answers_file=""
 
   while [ "$#" -gt 0 ]; do
@@ -24,6 +30,18 @@ main() {
         return 0
         ;;
       --core) mode=core ;;
+      --facts)
+        facts_json
+        return 0
+        ;;
+      --texts)
+        texts_json
+        return 0
+        ;;
+      --secrets)
+        secrets=${2:?--secrets needs a file}
+        shift
+        ;;
       --answers)
         answers_file=${2:?--answers needs a file}
         shift
@@ -47,6 +65,7 @@ main() {
 
   if [ "$mode" = core ]; then
     [ -n "$answers_file" ] || die "--core needs --answers FILE"
+    [ -z "$secrets" ] || take_secrets "$secrets"
     install_from_answers "$hardware_nix" "$unmount"
   else
     answers_file="$work_dir/answers.json"
