@@ -113,7 +113,11 @@
       # The themes of StrixUI with the default from themes/default.nix
       themes = import ./lib/themes.nix {
         inherit pkgs;
-        builtin = "${strixui}/design-system/themes";
+        builtin = builtins.path {
+          name = "${branding.id}-themes-builtin";
+          path = "${strixui}/design-system/themes";
+        };
+        inherit strixui;
       };
     in
     {

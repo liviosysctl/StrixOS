@@ -10,8 +10,8 @@
   extraThemes ? { },
   # The theme a new installation starts with, <theme> or <theme>:<variant>
   default ? import ../themes/default.nix,
-  # StrixUI itself, for fonts and the wallpapers of the gods (builtin is its design-system/themes)
-  strixui ? dirOf (dirOf builtin),
+  # StrixUI itself, at build time only: fonts and the wallpapers of the gods
+  strixui,
 }:
 
 let

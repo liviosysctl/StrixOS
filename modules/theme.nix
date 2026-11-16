@@ -20,7 +20,12 @@ let
   branding = import ../branding.nix;
   cfg = config.${branding.id}.theme;
 
-  builtin = "${distroFlake.inputs.strixui}/design-system/themes";
+  # Only the themes of StrixUI, copied on their own: a path into the source itself would pull the
+  # whole repository (previews, CSS, build tools) into the system
+  builtin = builtins.path {
+    name = "${branding.id}-themes-builtin";
+    path = "${distroFlake.inputs.strixui}/design-system/themes";
+  };
   builtinIds = builtins.attrNames (
     lib.filterAttrs (_: type: type == "directory") (builtins.readDir builtin)
   );
@@ -60,6 +65,7 @@ let
 
   themes = import ../lib/themes.nix {
     inherit pkgs builtin;
+    inherit (distroFlake.inputs) strixui;
     inherit (cfg) default;
     extraThemes = removeAttrs repoThemes (builtins.attrNames cfg.extraThemes) // cfg.extraThemes;
   };

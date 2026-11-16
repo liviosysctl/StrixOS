@@ -129,6 +129,7 @@ in
   themes =
     (import ../lib/themes.nix {
       inherit pkgs;
+      inherit (self.inputs) strixui;
       builtin = "${self.inputs.strixui}/design-system/themes";
     }).dir;
 
