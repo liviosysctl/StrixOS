@@ -24,7 +24,7 @@ stdenvNoCC.mkDerivation {
     runHook preInstall
     share=$out/share/${branding.id}-ui
     mkdir -p $share $out/share/fonts/truetype $out/share/licenses/${branding.id}-ui
-    cp -r ${ds}/qml ${ds}/assets ${ds}/themes ${ds}/tokens.json ${ds}/tokens.css ${ds}/README.md $share/
+    cp -r ${ds}/qml ${ds}/assets ${ds}/themes ${ds}/tokens.json $share/
 
     # The design system ships WOFF2 for the web; fontconfig gets TrueType
     for font in ${ds}/fonts/*.woff2; do
