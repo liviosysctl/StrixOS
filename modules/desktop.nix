@@ -8,9 +8,10 @@
 #
 # The session has its own theme on top of the machine's (Q14): the user service
 # <id>-theme-session (`<id>-theme session`) shows another god every 10 minutes unless kept,
-# writes tokens.json, hyprland.lua and ghostty into $XDG_RUNTIME_DIR/<id>/theme and reloads
-# Hyprland and Ghostty. Choosing a theme by hand in the picker sets the machine's theme through
-# pkexec; polkit lets the active local session do that, and only that, without a password.
+# writes tokens.json, hyprland.lua, ghostty and btop.theme into $XDG_RUNTIME_DIR/<id>/theme and
+# reloads Hyprland, Ghostty and btop. Choosing a theme by hand in the picker sets the machine's
+# theme through pkexec; polkit lets the active local session do that, and only that, without a
+# password.
 #
 # The shell is Quickshell with shell/qml, installed as /etc/xdg/quickshell/<id> and started by
 # the user service <id>-shell (`qs -c <id>`); it imports the QML module of StrixUI. hypridle
@@ -62,6 +63,7 @@ let
       sleep 3
     done
     ${pkgs.procps}/bin/pkill -USR2 -x ghostty || true
+    ${pkgs.procps}/bin/pkill -USR2 -x btop || true
   '';
 
   machineLua = pkgs.writeText "machine.lua" (
@@ -113,6 +115,22 @@ let
       config.programs.hyprland.package
     ];
     text = builtins.readFile ../shell/bin/capture.sh;
+  };
+
+  # The system monitor of the bar's load figures: <id>-monitor (btop in Ghostty)
+  monitorCommand = pkgs.writeShellApplication {
+    name = "${id}-monitor";
+    runtimeInputs = with pkgs; [
+      btop
+      ghostty
+      jq
+      coreutils
+      gnused
+      uwsm
+      config.programs.hyprland.package
+    ];
+    runtimeEnv.ID = id;
+    text = builtins.readFile ../shell/bin/monitor.sh;
   };
 
   # Settings at a page and a row, for Search and people: <id>-settings [PAGE [ROW]]
@@ -344,6 +362,8 @@ in
     environment.systemPackages = with pkgs; [
       settingsCommand
       captureCommand
+      monitorCommand
+      btop
       libnotify
       quickshell
       ghostty

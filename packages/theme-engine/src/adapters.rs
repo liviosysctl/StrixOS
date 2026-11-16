@@ -91,6 +91,80 @@ pub fn ghostty(theme: &Theme, variant: &Variant) -> String {
     out
 }
 
+/// btop.theme: the system monitor in the colors of the theme. The boxes and lines are the
+/// borders, figures that need attention the accent; loads run from quiet text to the accent,
+/// temperatures from success over warning to error.
+pub fn btop(theme: &Theme, variant: &Variant) -> String {
+    let background = variant.color("background");
+    let text = variant.color("text");
+    let muted = variant.color("text-muted");
+    let faint = extra_or(variant, "text-faint", "text-muted");
+    let border = variant.color("border");
+    let raised = extra_or(variant, "surface-raised", "surface");
+    let accent = variant.color("accent");
+    let accent_text = extra_or(variant, "accent-text", "accent");
+    let success = extra_or(variant, "success", "accent");
+    let warning = variant.color("warning");
+    let error = variant.color("error");
+    let info = extra_or(variant, "info", "text-muted");
+    let palette = &variant.terminal.palette;
+    let rows: [(&str, Rgb); 45] = [
+        ("main_bg", background),
+        ("main_fg", text),
+        ("title", text),
+        ("hi_fg", accent_text),
+        ("selected_bg", raised),
+        ("selected_fg", text),
+        ("inactive_fg", faint),
+        ("graph_text", muted),
+        ("meter_bg", border),
+        ("proc_misc", accent_text),
+        ("cpu_box", border),
+        ("mem_box", border),
+        ("net_box", border),
+        ("proc_box", border),
+        ("div_line", border),
+        ("temp_start", success),
+        ("temp_mid", warning),
+        ("temp_end", error),
+        ("cpu_start", faint),
+        ("cpu_mid", muted),
+        ("cpu_end", accent),
+        ("free_start", faint),
+        ("free_mid", muted),
+        ("free_end", success),
+        ("cached_start", faint),
+        ("cached_mid", muted),
+        ("cached_end", info),
+        ("available_start", faint),
+        ("available_mid", muted),
+        ("available_end", palette[6]),
+        ("used_start", faint),
+        ("used_mid", muted),
+        ("used_end", accent),
+        ("download_start", faint),
+        ("download_mid", muted),
+        ("download_end", info),
+        ("upload_start", faint),
+        ("upload_mid", muted),
+        ("upload_end", accent_text),
+        ("process_start", faint),
+        ("process_mid", muted),
+        ("process_end", accent),
+        ("graph_bg", background),
+        ("box_bg", background),
+        ("cursor", accent),
+    ];
+    let mut out = format!(
+        "# The colors of {} ({}:{}), written by the theme engine.\n",
+        theme.name, theme.id, variant.id
+    );
+    for (name, color) in rows {
+        out.push_str(&format!("theme[{name}]=\"{}\"\n", color.hex()));
+    }
+    out
+}
+
 /// The named colors of libadwaita (and adw-gtk3) for one variant, in the order they are written
 fn gtk_colors(variant: &Variant) -> Vec<(&'static str, Rgb)> {
     let background = variant.color("background");
@@ -343,6 +417,10 @@ mod tests {
         assert!(ghostty.contains("palette = 1=#c8102e\n"));
         assert!(ghostty.contains("palette = 15=#ffffff\n"));
         assert_eq!(ghostty.matches("palette = ").count(), 16);
+        let btop = btop(&theme, variant);
+        assert!(btop.contains("theme[main_bg]=\"#000000\"\n"));
+        assert!(btop.contains("theme[cpu_end]=\"#c8102e\"\n"));
+        assert_eq!(btop.matches("theme[").count(), 45);
     }
 
     #[test]
