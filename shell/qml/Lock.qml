@@ -1,5 +1,4 @@
-// The lock screen (LockScreen in StrixUI, left layout). Every lock shows another god than the
-// desktop and the lock before; after unlocking the desktop's theme comes back from ThemeFile.
+// The lock screen (LockScreen in StrixUI, left layout), in the desktop's own theme.
 // Locked by `loginctl lock-session` (Super Escape, hypridle) through ipc: lock lock.
 // The password goes to PAM, service strix-lock.
 import QtQuick
@@ -14,7 +13,6 @@ Scope {
 
     /// ThemeFile of the shell, read again after unlocking
     property var themeFile
-    property string lastGod: ""
     property string password: ""
     property string error: ""
     property int tries: 0
@@ -26,10 +24,6 @@ Scope {
 
     function lock() {
         if (sessionLock.locked) return
-        const choices = Theme.order.filter(g => g !== Theme.current && g !== root.lastGod)
-        const god = choices[Math.floor(Math.random() * choices.length)]
-        root.lastGod = god
-        Theme.preview(god)
         root.error = ""
         root.tries = 0
         root.password = ""

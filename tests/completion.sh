@@ -55,16 +55,17 @@ fish_complete() {
 }
 
 commands="apply current help list repos set show status"
-gods="apollo apollo:dark bacchus bacchus:dark janus janus:dark mars mars:dark neptunus neptunus:dark pluto pluto:dark saturnus saturnus:dark vulcanus vulcanus:dark"
+# The proof of concept has one theme (lib/builtin-themes.nix)
+gods="saturnus saturnus:dark"
 repos="add check list remove update"
 
 check bash "$name " "$commands" "$(bash_complete "$name ")"
 check bash "$name s" "set show status" "$(bash_complete "$name s")"
 check bash "$name set " "$gods" "$(bash_complete "$name set ")"
-check bash "$name set ja" "janus janus:dark" "$(bash_complete "$name set ja")"
+check bash "$name set sa" "saturnus saturnus:dark" "$(bash_complete "$name set sa")"
 # bash replaces only the part after ':', so only that part comes back
-check bash "$name set janus:" "dark" "$(bash_complete "$name set janus:")"
-check bash "$name set janus:d" "dark" "$(bash_complete "$name set janus:d")"
+check bash "$name set saturnus:" "dark" "$(bash_complete "$name set saturnus:")"
+check bash "$name set saturnus:d" "dark" "$(bash_complete "$name set saturnus:d")"
 check bash "$name show sat" "saturnus saturnus:dark" "$(bash_complete "$name show sat")"
 check bash "$name list " "" "$(bash_complete "$name list ")"
 check bash "$name set saturnus " "" "$(bash_complete "$name set saturnus ")"
@@ -78,8 +79,8 @@ check zsh "$name list <3>" "" "$(zsh_complete 3 "$name" list "")"
 check zsh "$name repos <3>" "$repos" "$(zsh_complete 3 "$name" repos "")"
 
 check fish "$name " "$commands" "$(fish_complete "$name ")"
-check fish "$name set ja" "janus janus:dark" "$(fish_complete "$name set ja")"
-check fish "$name set janus:" "janus:dark" "$(fish_complete "$name set janus:")"
+check fish "$name set sa" "saturnus saturnus:dark" "$(fish_complete "$name set sa")"
+check fish "$name set saturnus:" "saturnus:dark" "$(fish_complete "$name set saturnus:")"
 check fish "$name show " "$gods" "$(fish_complete "$name show ")"
 check fish "$name set saturnus " "" "$(fish_complete "$name set saturnus ")"
 check fish "$name repos " "$repos" "$(fish_complete "$name repos ")"

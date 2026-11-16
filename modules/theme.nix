@@ -20,7 +20,7 @@ let
   branding = import ../branding.nix;
   cfg = config.${branding.id}.theme;
 
-  builtin = "${distroFlake.inputs.strixui}/design-system/themes";
+  builtin = import ../lib/builtin-themes.nix distroFlake.inputs.strixui;
   builtinIds = builtins.attrNames (
     lib.filterAttrs (_: type: type == "directory") (builtins.readDir builtin)
   );
@@ -60,6 +60,7 @@ let
 
   themes = import ../lib/themes.nix {
     inherit pkgs builtin;
+    inherit (distroFlake.inputs) strixui;
     inherit (cfg) default;
     extraThemes = removeAttrs repoThemes (builtins.attrNames cfg.extraThemes) // cfg.extraThemes;
   };
