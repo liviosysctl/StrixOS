@@ -68,6 +68,15 @@ hl.animation({ leaf = "workspaces", enabled = true, speed = 3.6, bezier = "ease-
 hl.animation({ leaf = "specialWorkspace", enabled = true, speed = 3.6, bezier = "ease-out", style = "slidefadevert 20%" })
 
 hl.window_rule({
+    -- The system monitor of the bar (strix-monitor) floats in the middle
+    name = "system-monitor",
+    match = { class = "^strix\\.monitor$" },
+    float = true,
+    center = true,
+    size = "1100 700",
+})
+
+hl.window_rule({
     -- Apps do not maximize themselves over the tiling
     name = "suppress-maximize-events",
     match = { class = ".*" },

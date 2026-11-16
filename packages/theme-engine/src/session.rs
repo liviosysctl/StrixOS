@@ -363,7 +363,7 @@ fn read_kept(file: &Path) -> bool {
         .unwrap_or(false)
 }
 
-/// tokens.json, hyprland.lua, ghostty and the GTK files for one theme; tokens.json last, so
+/// tokens.json, hyprland.lua, ghostty, btop.theme and the GTK files for one theme; tokens.json last, so
 /// whoever watches it finds the others already new
 pub fn write_output(dir: &Path, theme: &Theme, variant: &Variant) -> Result<(), String> {
     let tokens = serde_json::to_string_pretty(&adapters::tokens(theme, variant))
@@ -372,6 +372,7 @@ pub fn write_output(dir: &Path, theme: &Theme, variant: &Variant) -> Result<(), 
     let files = [
         ("hyprland.lua", adapters::hyprland(theme, variant)),
         ("ghostty", adapters::ghostty(theme, variant)),
+        ("btop.theme", adapters::btop(theme, variant)),
         ("gtk3.css", adapters::gtk3(theme, variant)),
         ("gtk4.css", adapters::gtk4(theme, variant)),
         ("tokens.json", tokens),
@@ -668,6 +669,7 @@ mod tests {
         assert!(tokens.contains("\"theme\": \"janus\""), "{tokens}");
         assert!(base.join("session/hyprland.lua").is_file());
         assert!(base.join("session/ghostty").is_file());
+        assert!(base.join("session/btop.theme").is_file());
         assert!(base.join("session/gtk3.css").is_file());
         assert!(base.join("session/gtk4.css").is_file());
 

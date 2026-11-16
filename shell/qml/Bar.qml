@@ -1,9 +1,11 @@
 // The top bar (TopBar in StrixUI): no surface of its own, small text and symbols straight on the
-// wallpaper. Left: search and the clock, then CPU and memory, then what is playing (a click on the
-// title opens the media player under it). Middle: the workspaces of Hyprland.
+// wallpaper. Left: search and the clock, then CPU and memory (one button for the system monitor),
+// then what is playing (a click on the title opens the media player under it). Middle: the
+// workspaces of Hyprland.
 // Right: the network (a click opens nmtui), the volume, the battery when there is one, the bell
 // with its count and power. Super Shift Space hides it (ipc: bar toggle).
 import QtQuick
+import QtQuick.Templates as T
 import Quickshell
 import Quickshell.Io
 import Quickshell.Hyprland
@@ -136,8 +138,32 @@ Scope {
                     anchors.verticalCenter: parent.verticalCenter
                     text: Qt.formatDateTime(clock.date, "ddd d MMM  HH:mm")
                 }
-                Meter { label: "CPU"; value: root.cpu; valueText: Math.round(root.cpu * 100) + "%"; anchors.verticalCenter: parent.verticalCenter }
-                Meter { label: "MEM"; value: root.memory; valueText: Math.round(root.memory * 100) + "%"; anchors.verticalCenter: parent.verticalCenter }
+                // CPU and memory are one button: the system monitor (btop, strix-monitor)
+                T.AbstractButton {
+                    id: load
+                    anchors.verticalCenter: parent.verticalCenter
+                    implicitWidth: loadRow.implicitWidth + 2 * Theme.space2
+                    implicitHeight: Theme.controlSm
+                    hoverEnabled: true
+                    focusPolicy: Qt.StrongFocus
+                    onClicked: Quickshell.execDetached(["strix-monitor"])
+                    contentItem: Item {
+                        Row {
+                            id: loadRow
+                            x: Theme.space2
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: Theme.space4
+                            Meter { label: "CPU"; value: root.cpu }
+                            Meter { label: "MEM"; value: root.memory }
+                        }
+                    }
+                    background: Rectangle {
+                        radius: Theme.radiusSm
+                        color: load.hovered ? Theme.surfaceRaised : "transparent"
+                        FocusRing { target: load }
+                    }
+                    ToolTip { text: "System monitor"; visible: load.hovered }
+                }
 
                 Row {
                     id: playing

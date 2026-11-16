@@ -34,7 +34,7 @@ Build and boot:
                           Check every theme in DIR, exit 1 on any problem
   render KIND THEME [--themes DIR]
                           Print what an adapter needs: tokens, installer,
-                          plymouth, palette, hyprland, ghostty
+                          plymouth, palette, hyprland, ghostty, btop
   boot-select             In the initrd: pick the boot splash of the stored theme
 
 Theme repositories (themes from outside, layout 1):
@@ -374,6 +374,7 @@ fn apply_tokens(config: &Config, theme: &Theme, variant: &Variant) -> Outcome {
     let files = [
         ("hyprland.lua", adapters::hyprland(theme, variant)),
         ("ghostty", adapters::ghostty(theme, variant)),
+        ("btop.theme", adapters::btop(theme, variant)),
         ("tokens.json", json),
     ];
     let result = fs::create_dir_all(runtime_dir)
@@ -625,9 +626,10 @@ fn render(config: &Config, kind: &str, text: &str, themes: Option<&Path>) -> Res
         "palette" => adapters::palette_lines(variant).join("\n") + "\n",
         "hyprland" => adapters::hyprland(theme, variant),
         "ghostty" => adapters::ghostty(theme, variant),
+        "btop" => adapters::btop(theme, variant),
         other => {
             return Err(format!(
-                "unknown kind \"{other}\" (known: tokens, installer, plymouth, palette, hyprland, ghostty)"
+                "unknown kind \"{other}\" (known: tokens, installer, plymouth, palette, hyprland, ghostty, btop)"
             ));
         }
     };
