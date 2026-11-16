@@ -1,16 +1,14 @@
 # The desktop (12-desktop in the plan): Hyprland as a systemd session through UWSM, the login of
-# Strix (shell/greeter, Quickshell in cage under greetd; tuigreet if chosen), PipeWire, and the
-# apps of the cheat sheet.
+# Strix (shell/greeter, Quickshell in cage under greetd; tuigreet if chosen), PipeWire, and a
+# few apps. The proof of concept keeps it simple: one theme, no cheat sheet, no clipboard history.
 #
 # Hyprland reads the configuration of Strix from /etc/xdg/strix/hypr (HYPRLAND_CONFIG):
 # shell/hypr/hyprland.lua, machine.lua from this module, bindings.lua made by strix-search from
 # shell/menu.toml, and theme.lua, which reads the colors of the session's theme.
 #
-# The session has its own theme on top of the machine's (Q14): the user service
-# <id>-theme-session (`<id>-theme session`) shows another god every 10 minutes unless kept,
-# writes tokens.json, hyprland.lua and ghostty into $XDG_RUNTIME_DIR/<id>/theme and reloads
-# Hyprland and Ghostty. Choosing a theme by hand in the picker sets the machine's theme through
-# pkexec; polkit lets the active local session do that, and only that, without a password.
+# The user service <id>-theme-session (`<id>-theme session`) writes the session's tokens.json,
+# hyprland.lua and ghostty into $XDG_RUNTIME_DIR/<id>/theme. The proof of concept has a single
+# theme (lib/builtin-themes.nix), so it never moves on to another one.
 #
 # The shell is Quickshell with shell/qml, installed as /etc/xdg/quickshell/<id> and started by
 # the user service <id>-shell (`qs -c <id>`); it imports the QML module of StrixUI. hypridle
@@ -359,7 +357,6 @@ in
       ghostty
     ]
     ++ lib.optionals (!cfg.live) [
-      cliphist
       nautilus
       gnome-text-editor
       # The editor of the proof of concept: plain to use, in the theme's colors
@@ -391,23 +388,6 @@ in
         ExecStart = "${lib.getExe' pkgs.quickshell "qs"} -c ${id}";
         Restart = "on-failure";
         RestartSec = 1;
-      };
-    };
-
-    # The clipboard history behind Super V: text and pictures, kept by cliphist
-    systemd.user.services."${id}-clipboard" = lib.mkIf (!cfg.live) {
-      description = "Keep a history of the clipboard";
-      partOf = [ "graphical-session.target" ];
-      after = [ "graphical-session.target" ];
-      wantedBy = [ "graphical-session.target" ];
-      path = [ pkgs.wl-clipboard pkgs.cliphist ];
-      script = ''
-        wl-paste --type text --watch cliphist store &
-        exec wl-paste --type image --watch cliphist store
-      '';
-      serviceConfig = {
-        Restart = "on-failure";
-        RestartSec = 2;
       };
     };
 

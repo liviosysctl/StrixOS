@@ -1,9 +1,7 @@
 # The desktop in a VM: log in through the login of Strix (Quickshell in cage), Hyprland starts as a UWSM session with the
 # configuration of Strix and the shell on it, Super Return opens Ghostty, the window border has
-# the color of the theme, `strix-theme set janus` changes it while Hyprland runs, the lock screen
-# locks and takes the password, Search and the cheat sheet open, the session's theme moves on by
-# itself and stays when kept, the theme picker opens and sets the machine's theme through polkit,
-# Settings opens at a page.
+# the color of the theme (the proof of concept has only Saturnus, and the session keeps it), the
+# lock screen locks and takes the password, Search opens, Settings opens at a page.
 # Screenshots of each.
 #
 #   nix build .#tests.desktop -L
@@ -160,8 +158,10 @@ pkgs.testers.runNixOSTest {
             raise
         targets = as_alice("qs -c ${id} ipc show")
         print(targets)
-        for target in ["bar", "lock", "search", "cheatsheet", "notifications"]:
+        for target in ["bar", "lock", "search", "notifications", "settings", "store"]:
             assert f"target {target}" in targets, target
+        for gone in ["cheatsheet", "clipboard", "theme"]:
+            assert f"target {gone}" not in targets, gone
         machine.wait_for_unit("${id}-search.service", "alice")
         machine.sleep(10)
         machine.screenshot("desktop")
@@ -169,7 +169,7 @@ pkgs.testers.runNixOSTest {
         colors = len(image.getcolors(1 << 24) or [])
         assert colors > 200, f"the screen has {colors} colors, the wallpaper is missing"
 
-    with subtest("Search and the cheat sheet open"):
+    with subtest("Search opens"):
         machine.send_key("meta_l-spc")
         try:
             alice_until("qs -c ${id} ipc call search ready | grep -qx true", timeout=300)
@@ -200,12 +200,6 @@ pkgs.testers.runNixOSTest {
         machine.send_key("esc")
         machine.send_key("esc")
         alice_until("qs -c ${id} ipc call search isOpen | grep -qx false", timeout=300)
-        machine.send_key("meta_l-k")
-        alice_until("qs -c ${id} ipc call cheatsheet isOpen | grep -qx true", timeout=300)
-        alice_until("qs -c ${id} ipc call cheatsheet count | grep -qvx 0", timeout=300)
-        machine.sleep(5)
-        machine.screenshot("cheatsheet")
-        machine.send_key("esc")
 
     with subtest("Super Return opens Ghostty, framed in Saturnus"):
         machine.send_key("meta_l-ret")
@@ -213,66 +207,20 @@ pkgs.testers.runNixOSTest {
         machine.sleep(10)
         expect_border("saturnus", "#712829")
 
-    with subtest("a theme switch reaches the running desktop"):
-        print(machine.succeed("${id}-theme set janus"))
-        try:
-            machine.wait_until_succeeds(
-                f"runuser -u alice -- env {env} hyprctl -j getoption general:col.active_border | grep -qi 3f5149",
-                timeout=600,
-            )
-        except Exception:
-            print(as_alice("hyprctl -j getoption general:col.active_border"))
-            print(machine.execute(f"cat {run}/${id}/theme/hyprland.lua")[1])
-            print(machine.execute("journalctl -b --no-pager _UID=$(id -u alice) -t strix-theme -t ${id}-theme-reload | tail -n 30")[1])
-            print(machine.execute("journalctl -b --no-pager --user-unit ${id}-theme-session | tail -n 30")[1])
-            raise
-        expect_border("janus", "#3f5149")
-
-    with subtest("the session's theme moves on and stays when kept"):
+    with subtest("the session keeps its one theme"):
         machine.wait_for_unit("${id}-theme-session.service", "alice")
-        state = session("state")
-        assert state["theme"] == "janus", state
-        assert state["system"] == "janus:dark", state
         state = session("next")
-        god = state["theme"]
-        assert god != "janus", state
-        print(f"the session moved on to {god}")
-        expect_border(f"next-{god}", border_of(god))
-        machine.succeed("${id}-theme current | grep -x janus:dark")
-        state = session("keep", '{"keep": true}')
-        assert state["keep"], state
-        machine.succeed("grep -q true /home/alice/.local/state/${id}/theme-session.json")
-
-    with subtest("the theme picker opens and sets the machine's theme"):
-        machine.send_key("meta_l-ctrl-spc")
-        alice_until("qs -c ${id} ipc call theme ready | grep -qx true", timeout=300)
-        machine.sleep(3)
-        machine.screenshot("picker")
-        before = as_alice("qs -c ${id} ipc call theme shown").strip()
-        machine.send_key("right")
-        alice_until(f"qs -c ${id} ipc call theme shown | grep -vqx {before}", timeout=300)
-        machine.sleep(3)
-        machine.screenshot("picker-next")
-        machine.send_key("esc")
-        alice_until("qs -c ${id} ipc call theme isOpen | grep -qx false", timeout=300)
-        # The choice by hand goes through pkexec and the polkit rule, without a password
-        state = session("set", '{"theme": "mars"}')
-        assert state["theme"] == "mars", state
-        machine.succeed("${id}-theme current | grep -x mars:dark")
-        expect_border("mars", border_of("mars"))
-        # Any other pkexec still asks
-        machine.fail("runuser -u alice -- pkexec --disable-internal-agent true")
+        assert state["theme"] == "saturnus", state
+        expect_border("still-saturnus", "#712829")
 
     with subtest("Settings opens at a page"):
-        as_alice("${id}-settings hotkeys")
-        alice_until("qs -c ${id} ipc call settings page | grep -qx hotkeys", timeout=120)
+        as_alice("${id}-settings power")
+        alice_until("qs -c ${id} ipc call settings page | grep -qx power", timeout=120)
         machine.sleep(5)
-        machine.screenshot("settings-hotkeys")
-        as_alice("${id}-settings themes repositories")
-        alice_until("qs -c ${id} ipc call settings page | grep -qx themes", timeout=300)
-        machine.sleep(5)
-        machine.screenshot("settings-themes")
-        assert as_alice("qs -c ${id} ipc call settings repositories").strip() == "0"
+        machine.screenshot("settings-power")
+        # A page that is gone opens the first one
+        as_alice("${id}-settings themes")
+        alice_until("qs -c ${id} ipc call settings page | grep -qx network", timeout=300)
         as_alice("qs -c ${id} ipc call settings close")
 
     with subtest("the lock screen locks and takes the password"):

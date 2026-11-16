@@ -4,12 +4,6 @@
 open = ["{id}-settings", "{page}", "{row}"]
 
 [[page]]
-id = "themes"
-title = "Themes"
-symbol = "palette"
-words = ["theme", "look", "god", "colours", "wallpaper", "appearance"]
-
-[[page]]
 id = "network"
 title = "Network"
 symbol = "wifi"
@@ -40,41 +34,10 @@ symbol = "zap"
 words = ["battery", "energy", "lid", "suspend", "hibernate", "profile"]
 
 [[page]]
-id = "hotkeys"
-title = "Hotkeys"
-symbol = "keyboard"
-words = ["keys", "shortcuts", "bindings", "keyboard"]
-
-[[page]]
 id = "about"
 title = "About"
 symbol = "info"
 words = ["version", "system", "release"]
-
-[[row]]
-id = "theme"
-page = "themes"
-title = "Theme"
-description = "The god the machine starts with, also on the boot splash"
-type = "choice"
-words = ["colours", "look", "god", "picker"]
-value = ["{id}-theme", "current"]
-
-[[row]]
-id = "keep"
-page = "themes"
-title = "Keep this theme"
-description = "No change to another god every 10 minutes"
-type = "switch"
-words = ["cycle", "rotate", "change", "interval", "keep"]
-
-[[row]]
-id = "repositories"
-page = "themes"
-title = "Theme repositories"
-description = "Themes from outside: connect, update now, remove"
-type = "action"
-words = ["repository", "repo", "git", "github", "connect", "outside", "more themes"]
 
 [[row]]
 id = "wifi"
@@ -128,14 +91,6 @@ page = "bluetooth"
 title = "Bluetooth"
 type = "switch"
 words = ["headphones", "pair"]
-
-[[row]]
-id = "all"
-page = "hotkeys"
-title = "All hotkeys"
-description = "Every key of Strix; click one to change it"
-type = "keys"
-words = ["cheat sheet", "shortcuts", "bindings"]
 
 [[row]]
 id = "version"

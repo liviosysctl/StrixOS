@@ -58,7 +58,8 @@ fn place(e: &Entry) -> String {
 fn golden_queries() {
     let i = index();
     let cases: [(&str, Option<Kind>, &str, Kind, &str); 7] = [
-        ("theme", None, "Theme", Kind::Action, "Style"),
+        // The proof of concept has no Style menu: the theme is fixed
+        ("theme", None, "Theme", Kind::Setting, "Settings \u{203a} Appearance"),
         (
             "nl",
             None,
@@ -162,9 +163,7 @@ fn the_top_level_and_menus() {
         top,
         [
             "Apps",
-            "Style",
             "Capture",
-            "Clipboard",
             "Settings",
             "Update",
             "System",
@@ -172,17 +171,13 @@ fn the_top_level_and_menus() {
             "Commands"
         ]
     );
-    let theme = i.get("action:theme").unwrap();
-    assert!(theme.enter && theme.run == Run::None);
+    // A menu inside a menu: the screenshots under Capture
     let inside: Vec<&str> = i
-        .browse(Some("action:theme"), None)
+        .browse(Some("menu:capture"), None)
         .iter()
         .map(|e| e.title.as_str())
         .collect();
-    assert_eq!(
-        &inside[..3],
-        ["Theme picker", "Keep this theme", "Saturnus"]
-    );
+    assert_eq!(&inside[..2], ["Region screenshot", "Screen screenshot"]);
     let night = i.get("setting:display/night-light").unwrap();
     assert_eq!(
         (night.value.as_deref(), night.detail.as_deref()),
@@ -432,7 +427,7 @@ fn calls_over_the_socket() {
         json!({"id": 2, "method": "activate", "params": {"id": "action:shut-down", "dry_run": true}}),
     );
     assert_eq!(r["result"]["ran"], json!(["systemctl", "poweroff"]));
-    let r = ask(json!({"id": 3, "method": "activate", "params": {"id": "menu:style"}}));
+    let r = ask(json!({"id": 3, "method": "activate", "params": {"id": "menu:capture"}}));
     assert_eq!(r["result"]["enter"], true);
     let r = ask(json!({"id": 4, "method": "run", "params": {"text": "ls -l", "dry_run": true}}));
     assert_eq!(

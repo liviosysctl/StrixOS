@@ -24,22 +24,10 @@ symbol = "layout-grid"
 words = ["programs", "launcher"]
 
 [[group]]
-id = "style"
-title = "Style"
-symbol = "swatch-book"
-words = ["look", "appearance"]
-
-[[group]]
 id = "capture"
 title = "Capture"
 symbol = "scan"
 words = ["screenshot", "record"]
-
-[[group]]
-id = "clipboard"
-title = "Clipboard"
-symbol = "clipboard"
-words = ["copy", "paste"]
 
 [[group]]
 id = "settings"
@@ -71,7 +59,7 @@ title = "Commands"
 symbol = "square-terminal"
 words = ["terminal", "shell"]
 
-# ------------------------------------------------------------------ Style
+# ------------------------------------------------------------------ Apps
 
 [[action]]
 id = "store"
@@ -80,121 +68,6 @@ group = "apps"
 symbol = "download"
 words = ["install", "remove", "uninstall", "apps", "programs", "software", "packages", "nixpkgs"]
 run = ["qs", "-c", "{id}", "ipc", "call", "store", "open"]
-
-[[action]]
-id = "theme"
-title = "Theme"
-group = "style"
-symbol = "palette"
-words = ["theme", "picker", "look", "colours", "wallpaper", "god"]
-
-[[action]]
-id = "theme-picker"
-title = "Theme picker"
-group = "theme"
-symbol = "palette"
-words = ["choose", "carousel"]
-keys = "Super Ctrl Space"
-run = ["qs", "-c", "{id}", "ipc", "call", "theme", "picker"]
-
-[[action]]
-id = "keep-theme"
-title = "Keep this theme"
-group = "theme"
-symbol = "lock"
-words = ["pin", "stop", "change", "cycle", "rotate", "god"]
-keys = "K"
-scope = "picker"
-run = ["qs", "-c", "{id}", "ipc", "call", "theme", "keep"]
-
-[[action]]
-id = "theme-saturnus"
-title = "Saturnus"
-group = "theme"
-symbol = "swatch-book"
-words = ["god", "wallpaper", "red", "default", "saturn", "time", "sickle"]
-run = ["qs", "-c", "{id}", "ipc", "call", "theme", "set", "saturnus"]
-
-[[action]]
-id = "theme-janus"
-title = "Janus"
-group = "theme"
-symbol = "swatch-book"
-words = ["god", "wallpaper", "patina", "green", "door"]
-run = ["qs", "-c", "{id}", "ipc", "call", "theme", "set", "janus"]
-
-[[action]]
-id = "theme-apollo"
-title = "Apollo"
-group = "theme"
-symbol = "swatch-book"
-words = ["god", "wallpaper", "antique", "gold", "brass", "sun"]
-run = ["qs", "-c", "{id}", "ipc", "call", "theme", "set", "apollo"]
-
-[[action]]
-id = "theme-mars"
-title = "Mars"
-group = "theme"
-symbol = "swatch-book"
-words = ["god", "wallpaper", "rust", "war"]
-run = ["qs", "-c", "{id}", "ipc", "call", "theme", "set", "mars"]
-
-[[action]]
-id = "theme-vulcanus"
-title = "Vulcanus"
-group = "theme"
-symbol = "swatch-book"
-words = ["god", "wallpaper", "olive", "forge", "smith", "fire"]
-run = ["qs", "-c", "{id}", "ipc", "call", "theme", "set", "vulcanus"]
-
-[[action]]
-id = "theme-neptunus"
-title = "Neptunus"
-group = "theme"
-symbol = "swatch-book"
-words = ["god", "wallpaper", "sea", "water", "blue", "trident"]
-run = ["qs", "-c", "{id}", "ipc", "call", "theme", "set", "neptunus"]
-
-[[action]]
-id = "theme-pluto"
-title = "Pluto"
-group = "theme"
-symbol = "swatch-book"
-words = ["god", "wallpaper", "heather", "plum", "violet", "underworld"]
-run = ["qs", "-c", "{id}", "ipc", "call", "theme", "set", "pluto"]
-
-[[action]]
-id = "theme-bacchus"
-title = "Bacchus"
-group = "theme"
-symbol = "swatch-book"
-words = ["god", "wallpaper", "claret", "wine"]
-run = ["qs", "-c", "{id}", "ipc", "call", "theme", "set", "bacchus"]
-
-[[action]]
-id = "light"
-title = "Switch to light"
-group = "style"
-symbol = "sun"
-words = ["variant", "light", "dark", "appearance"]
-run = ["qs", "-c", "{id}", "ipc", "call", "theme", "variant", "light"]
-
-[[action]]
-id = "next-wallpaper"
-title = "Next wallpaper"
-group = "style"
-symbol = "images"
-words = ["background", "cycle"]
-run = ["qs", "-c", "{id}", "ipc", "call", "theme", "next"]
-
-[[action]]
-id = "toggle-bar"
-title = "Toggle the top bar"
-group = "style"
-symbol = "app-window"
-words = ["bar", "hide", "show", "panel"]
-keys = "Super Shift Space"
-run = ["qs", "-c", "{id}", "ipc", "call", "bar", "toggle"]
 
 # ------------------------------------------------------------------ Capture
 
@@ -208,15 +81,6 @@ keys = "Print"
 run = ["{id}-capture", "region"]
 
 [[action]]
-id = "window-screenshot"
-title = "Window screenshot"
-group = "capture"
-symbol = "app-window"
-words = ["screenshot", "window"]
-keys = "Shift Print"
-run = ["{id}-capture", "window"]
-
-[[action]]
 id = "screen-screenshot"
 title = "Screen screenshot"
 group = "capture"
@@ -224,43 +88,6 @@ symbol = "monitor"
 words = ["screenshot", "full", "display"]
 keys = "Ctrl Print"
 run = ["{id}-capture", "screen"]
-
-[[action]]
-id = "record-region"
-title = "Record a region"
-group = "capture"
-symbol = "video"
-words = ["screencast", "recording", "video"]
-keys = "Alt Print"
-run = ["{id}-capture", "record"]
-
-[[action]]
-id = "colour-picker"
-title = "Colour picker"
-group = "capture"
-symbol = "pipette"
-words = ["color", "hex", "eyedropper"]
-keys = "Super Print"
-run = ["{id}-capture", "colour"]
-
-# ------------------------------------------------------------------ Clipboard
-
-[[action]]
-id = "clipboard-history"
-title = "History"
-group = "clipboard"
-symbol = "history"
-words = ["clipboard", "paste", "copied"]
-keys = "Super V"
-run = ["qs", "-c", "{id}", "ipc", "call", "clipboard", "toggle"]
-
-[[action]]
-id = "clipboard-clear"
-title = "Clear history"
-group = "clipboard"
-symbol = "trash-2"
-words = ["clipboard", "delete", "wipe"]
-run = ["qs", "-c", "{id}", "ipc", "call", "clipboard", "clear"]
 
 # ------------------------------------------------------------------ Update
 
@@ -362,15 +189,6 @@ run = ["qs", "-c", "{id}", "ipc", "call", "notifications", "quiet"]
 # ------------------------------------------------------------------ Learn
 
 [[action]]
-id = "all-hotkeys"
-title = "All hotkeys"
-group = "learn"
-symbol = "keyboard"
-words = ["cheat", "sheet", "shortcuts", "keybindings", "keys"]
-keys = "Super K"
-run = ["qs", "-c", "{id}", "ipc", "call", "cheatsheet", "toggle"]
-
-[[action]]
 id = "manual"
 title = "Manual"
 group = "learn"
@@ -453,40 +271,12 @@ keys = "Super T"
 hypr = 'hl.dsp.window.float({ action = "toggle" })'
 
 [[binding]]
-id = "split-direction"
-title = "Split direction"
-group = "Windows"
-target = "Window"
-keys = "Super J"
-hypr = 'hl.dsp.layout("togglesplit")'
-
-[[binding]]
 id = "move-focus"
 title = "Move focus"
 group = "Windows"
 target = "Window"
 keys = "Super Arrows"
 hypr = 'hl.dsp.focus({ direction = "{key}" })'
-
-[[binding]]
-id = "swap-windows"
-title = "Swap windows"
-group = "Windows"
-target = "Window"
-keys = "Super Shift Arrows"
-hypr = 'hl.dsp.window.swap({ direction = "{key}" })'
-
-[[binding]]
-id = "grow-or-shrink"
-title = "Grow or shrink"
-group = "Windows"
-target = "Window"
-keys = "Super = -"
-hypr = [
-  "hl.dsp.window.resize({ x = 40, y = 40, relative = true })",
-  "hl.dsp.window.resize({ x = -40, y = -40, relative = true })",
-]
-repeat = true
 
 [[binding]]
 id = "go-to-workspace"
@@ -511,17 +301,6 @@ group = "Workspaces"
 target = "Workspace"
 keys = "Super Tab"
 hypr = 'hl.dsp.focus({ workspace = "e+1" })'
-
-[[binding]]
-id = "scratchpad"
-title = "Scratchpad"
-group = "Workspaces"
-target = "Special workspace"
-keys = "Super S"
-hypr = 'hl.dsp.workspace.toggle_special("scratchpad")'
-
-# The keys of a laptop or a media keyboard. They work on the lock screen too (locked) and repeat
-# while held; the OSD of the shell shows volume and brightness.
 
 [[binding]]
 id = "volume-up"

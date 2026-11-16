@@ -9,7 +9,8 @@ let
   configs = self.nixosConfigurations;
   iso = configs."${branding.id}-iso".config;
   reference = configs."${branding.id}-reference";
-  gods = [ "apollo" "bacchus" "janus" "mars" "neptunus" "pluto" "saturnus" "vulcanus" ];
+  # The proof of concept has one theme (lib/builtin-themes.nix)
+  gods = [ "saturnus" ];
 
   # A check passes if this derivation can be evaluated at all.
   ok = name: pkgs.runCommand "check-${name}" { } "touch $out";
@@ -151,13 +152,13 @@ in
       ''
         export HOME=$TMPDIR XDG_RUNTIME_DIR=$TMPDIR/run QT_QPA_PLATFORM=offscreen
         mkdir -p -m 0700 $XDG_RUNTIME_DIR
-        THEMES_DIR=${themes} ${engine} show janus > tokens.json
+        THEMES_DIR=${themes} ${engine} show saturnus > tokens.json
         cp ${./ui-load.qml} shell.qml
         TOKENS=$PWD/tokens.json GALLERY=file://${ui}/share/${branding.id}-ui/qml/gallery.qml \
           QML_IMPORT_PATH=${ui}/share/${branding.id}-ui/qml \
           timeout 60 quickshell -p $PWD/shell.qml > log.txt 2>&1 || true
         cat log.txt
-        grep -q "STRIX-RESULT gallery=1 theme=janus" log.txt
+        grep -q "STRIX-RESULT gallery=1 theme=saturnus" log.txt
         if grep -E "ERROR|WARN.*qml|\.qml:[0-9]+" log.txt; then
           echo "QML problems, see above"
           exit 1
@@ -182,7 +183,7 @@ in
           cp -L ${hypr}/hyprland.lua ${hypr}/machine.lua ${hypr}/bindings.lua ${hypr}/theme.lua ${name}/
           # theme.lua reads the session's colors, which the session service writes
           mkdir -p $XDG_RUNTIME_DIR/${branding.id}/theme
-          THEMES_DIR=${themes} ${engine} render hyprland janus > $XDG_RUNTIME_DIR/${branding.id}/theme/hyprland.lua
+          THEMES_DIR=${themes} ${engine} render hyprland saturnus > $XDG_RUNTIME_DIR/${branding.id}/theme/hyprland.lua
           for part in machine theme bindings hyprland; do
             log=$(Hyprland --verify-config -c $PWD/${name}/$part.lua 2>&1) || { echo "$log"; echo "FAIL ${name} $part.lua"; exit 1; }
             echo "$log" | grep -q "config ok" || { echo "$log"; echo "FAIL ${name} $part.lua"; exit 1; }
@@ -215,7 +216,8 @@ in
         export HOME=$TMPDIR XDG_RUNTIME_DIR=$TMPDIR/run
         mkdir -p -m 0700 $XDG_RUNTIME_DIR
         ${check "reference" reference'}
-        test "$(grep -c '^hl.bind' reference/bindings.lua)" -ge 50
+        # Fewer keys than on main: no theme, clipboard or cheat sheet keys
+        test "$(grep -c '^hl.bind' reference/bindings.lua)" -ge 30
         echo ok > $out
       '';
 
@@ -233,7 +235,9 @@ in
     assert cfg.systemd.user.services ? "${branding.id}-shell";
     assert cfg.security.pam.services ? "${branding.id}-lock";
     assert cfg.${branding.id}.search.enable;
-    assert cfg.systemd.user.services ? "${branding.id}-clipboard";
+    # The proof of concept keeps it simple: no clipboard history, one theme
+    assert !(cfg.systemd.user.services ? "${branding.id}-clipboard");
+    assert builtins.attrNames (builtins.readDir cfg.system.build.themes) == [ "saturnus" ];
     assert cfg.services.upower.enable;
     pkgs.runCommand "check-shell"
       {
@@ -332,13 +336,12 @@ in
         bash ${./completion.sh} ${reference.config.${branding.id}.theme.package} ${branding.id}-theme | tee $out
       '';
 
-  # Another default theme changes the splash, its default variant is used
+  # The one theme, written with its variant, gives the same splash
   theme-default =
     let
       with' = default: (reference.extendModules { modules = [ { ${branding.id}.theme.default = default; } ]; }).config;
     in
-    assert (with' "janus").boot.plymouth.theme == "${branding.id}-janus-dark";
-    assert (with' "pluto:dark").boot.plymouth.theme == "${branding.id}-pluto-dark";
+    assert (with' "saturnus:dark").boot.plymouth.theme == "${branding.id}-saturnus-dark";
     ok "theme-default";
 
   # Theme repositories: mkSystem finds themes.json beside apps.json, the copied
@@ -376,7 +379,7 @@ in
   # A default theme that does not exist stops the build
   theme-default-unknown = mustFail "theme-default-unknown" (toplevelWith { ${branding.id}.theme.default = "nope"; });
   theme-default-unknown-variant = mustFail "theme-default-unknown-variant" (
-    toplevelWith { ${branding.id}.theme.default = "janus:light"; }
+    toplevelWith { ${branding.id}.theme.default = "saturnus:light"; }
   );
 
   # The ISO: console colors and the command, but no splash and so no EFI variable
