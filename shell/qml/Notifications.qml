@@ -40,11 +40,39 @@ PanelWindow {
         width: parent.width
         spacing: Theme.space2
 
+        // A new message slides in from the right edge; the others make room smoothly
+        add: Transition {
+            ParallelAnimation {
+                NumberAnimation { property: "x"; from: 32; to: 0; duration: Theme.durSlow; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOut }
+                NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Theme.durBase; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOut }
+            }
+        }
+        move: Transition {
+            NumberAnimation { property: "y"; duration: Theme.durBase; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOut }
+        }
+
         Repeater {
             model: win.shown
             Notification {
+                id: note
                 required property var modelData
                 width: column.width
+
+                /// Slide out to the right, then let `done` remove the message
+                function leave(done) {
+                    if (out.running) return
+                    out.done = done
+                    out.restart()
+                }
+                SequentialAnimation {
+                    id: out
+                    property var done
+                    ParallelAnimation {
+                        NumberAnimation { target: note; property: "x"; to: 32; duration: Theme.durBase; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeIn }
+                        NumberAnimation { target: note; property: "opacity"; to: 0; duration: Theme.durBase; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeIn }
+                    }
+                    ScriptAction { script: out.done() }
+                }
                 iconName: modelData.urgency === NotificationUrgency.Critical ? "triangle-alert" : "bell"
                 title: modelData.summary
                 body: modelData.body
@@ -56,11 +84,11 @@ PanelWindow {
                 Timer {
                     running: !Notifs.open && modelData.urgency !== NotificationUrgency.Critical
                     interval: modelData.expireTimeout > 0 ? modelData.expireTimeout * 1000 : 6000
-                    onTriggered: win.fresh = win.fresh.filter(n => n !== modelData)
+                    onTriggered: note.leave(() => win.fresh = win.fresh.filter(n => n !== modelData))
                 }
                 onDismissed: {
-                    if (Notifs.open || modelData.urgency === NotificationUrgency.Critical) modelData.dismiss()
-                    else win.fresh = win.fresh.filter(n => n !== modelData)
+                    if (Notifs.open || modelData.urgency === NotificationUrgency.Critical) note.leave(() => modelData.dismiss())
+                    else note.leave(() => win.fresh = win.fresh.filter(n => n !== modelData))
                 }
             }
         }

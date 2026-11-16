@@ -149,6 +149,18 @@ Scope {
                 spacing: Theme.space1
                 model: root.results
                 currentIndex: root.selected
+                // Results come in one after the other, rising a little
+                populate: Transition {
+                    id: cascade
+                    SequentialAnimation {
+                        PropertyAction { property: "opacity"; value: 0 }
+                        PauseAnimation { duration: Math.min(cascade.ViewTransition.index, 8) * Theme.stagger + 1 }
+                        ParallelAnimation {
+                            NumberAnimation { property: "opacity"; to: 1; duration: Theme.durBase; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOut }
+                            NumberAnimation { property: "y"; from: cascade.ViewTransition.destination.y + 6; to: cascade.ViewTransition.destination.y; duration: Theme.durBase; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOut }
+                        }
+                    }
+                }
                 delegate: Item {
                     required property var modelData
                     required property int index
@@ -159,6 +171,7 @@ Scope {
                         anchors.fill: parent
                         radius: Theme.radiusSm
                         color: index === root.selected ? Theme.surfaceRaised : "transparent"
+                        Behavior on color { ColorAnimation { duration: Theme.durFast } }
                     }
                     MouseArea { anchors.fill: parent; onClicked: root.selected = index }
 

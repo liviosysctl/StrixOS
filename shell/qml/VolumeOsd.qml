@@ -49,6 +49,7 @@ Scope {
     }
 
     function flash() {
+        if (!root.shown) rise.play()
         root.shown = true
         hide.restart()
     }
@@ -73,6 +74,8 @@ Scope {
                 : root.sink && root.sink.audio && root.sink.audio.muted ? "x" : "volume-2"
             value: root.kind === "brightness" ? root.brightness
                 : root.sink && root.sink.audio ? root.sink.audio.volume : 0
+            // the pill comes up from below each time it appears
+            Entrance { id: rise; auto: false; distance: 12; duration: Theme.durBase }
         }
     }
 }

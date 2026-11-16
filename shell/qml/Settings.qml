@@ -116,15 +116,28 @@ Scope {
                     anchors { fill: parent; margins: Theme.space4 }
                     spacing: Theme.space1
                     Label { textStyle: "title"; color: Theme.text; text: "Settings"; bottomPadding: Theme.space3 }
-                    Repeater {
-                        model: root.pages
-                        ListRow {
-                            required property var modelData
+                    // The selection glides from page to page
+                    Item {
+                        width: parent.width
+                        height: nav.height
+                        Glide { target: navRows.itemAt(root.pages.findIndex(p => p.id === root.page)); caretX: 7 }
+                        Column {
+                            id: nav
                             width: parent.width
-                            text: modelData.title
-                            iconName: modelData.icon
-                            selected: root.page === modelData.id
-                            onClicked: root.page = modelData.id
+                            spacing: Theme.space1
+                            Repeater {
+                                id: navRows
+                                model: root.pages
+                                ListRow {
+                                    required property var modelData
+                                    width: parent.width
+                                    text: modelData.title
+                                    iconName: modelData.icon
+                                    selected: root.page === modelData.id
+                                    glide: true
+                                    onClicked: root.page = modelData.id
+                                }
+                            }
                         }
                     }
                 }
@@ -140,6 +153,24 @@ Scope {
                     id: content
                     x: Theme.space6
                     y: Theme.space6
+                    // A new page comes in from the side it lies on in the list
+                    transform: Translate { id: pageShift }
+                    property int lastIndex: 0
+                    Connections {
+                        target: root
+                        function onPageChanged() {
+                            const now = root.pages.findIndex(p => p.id === root.page)
+                            pageIn.direction = now >= content.lastIndex ? 1 : -1
+                            content.lastIndex = now
+                            pageIn.restart()
+                        }
+                    }
+                    ParallelAnimation {
+                        id: pageIn
+                        property int direction: 1
+                        NumberAnimation { target: pageShift; property: "y"; from: pageIn.direction * 12; to: 0; duration: Theme.durBase; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOut }
+                        NumberAnimation { target: content; property: "opacity"; from: 0; to: 1; duration: Theme.durBase; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOut }
+                    }
                     width: parent.width - Theme.space6 * 2
                     spacing: Theme.space4
 
