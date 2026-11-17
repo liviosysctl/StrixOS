@@ -2,6 +2,29 @@
 
 All notable changes to this project. Versions follow [Semantic Versioning](https://semver.org); entries are generated from [Conventional Commits](https://www.conventionalcommits.org) with git-cliff.
 
+## v0.6.0 — 2026-11-17
+
+One Rust program installs, the owl shows up wherever Strix shows itself, Zen is the browser, and main has no Store.
+
+### Added
+- Open btop from the load figures of the bar
+- Animate search, settings, lock screen and notifications
+- Show the owl in fastfetch
+- Let the fastfetch owl follow the theme
+- Reveal new themes and animate the remaining panels
+- Let the owl blink in the splash and on the lock screen
+- Draw the boot pictures in Rust, complete outside themes
+- Let theme repositories join the change of gods
+- Show the owl in the login, in About and in the README
+
+### Fixed
+- Ship only the themes of StrixUI, not its whole repository
+
+### Breaking
+- Rewrite the installer in Rust, drop the console UI — there is no interactive console installer any more. Without a screen, run strix-install --core --answers FILE (README).
+- Make Zen the only browser — Firefox is no longer installed.
+- Remove the Store from main — there is no Store window or strix-store service on machines that follow main.
+
 ## v0.5.0 — 2026-11-14
 
 A graphical installer in a live desktop, and GRUB in the theme that finds Windows.

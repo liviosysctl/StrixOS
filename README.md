@@ -3,7 +3,7 @@
 Strix is a NixOS-based desktop distribution: Hyprland with a shell of its own in Quickshell, own services in Rust, and one theme that reaches every part of the system, from the boot splash to the terminal. The machine is described in `/etc/nixos`, three commands rebuild, update and add apps, and Neovim is the editor for all of it.
 
 ```
-Version :: 0.2.0
+Version :: 0.6.0
 Base :: NixOS unstable
 Desktop :: Hyprland, the shell in Quickshell
 Themes :: the eight Roman gods of StrixUI, Saturnus first
