@@ -40,7 +40,8 @@
       "inputs": {
         "disko": "disko",
         "nixpkgs": "nixpkgs",
-        "strixui": "strixui"
+        "strixui": "strixui",
+        "zen-browser": "zen-browser"
       }
     },
     "strixui": {
@@ -56,6 +57,27 @@
       "original": {
         "owner": "liviosysctl",
         "repo": "StrixUI",
+        "type": "github"
+      }
+    },
+    "zen-browser": {
+      "inputs": {
+        "home-manager": [],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1794898407,
+        "narHash": "sha256-u3qknsQ63fQ0GDO65fLsZHFt7G5c2SWZcjajkV+BwjM=",
+        "owner": "0xc000022070",
+        "repo": "zen-browser-flake",
+        "rev": "54310da1c2e1d4bcd413c6914a0d274afbd4f30b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "0xc000022070",
+        "repo": "zen-browser-flake",
         "type": "github"
       }
     }

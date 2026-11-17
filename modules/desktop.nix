@@ -22,6 +22,9 @@ let
   branding = import ../branding.nix;
   id = branding.id;
   cfg = config.${id}.desktop;
+
+  # The browser: Zen, the only one installed (flake input zen-browser, not in nixpkgs)
+  zen = distroFlake.inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default;
   xkb = config.services.xserver.xkb;
   runtimeDir = "/run/${id}/theme";
   luaString = s: builtins.toJSON s;
@@ -223,7 +226,7 @@ in
       default = "";
       example = ''
         hl.config({ general = { gaps_out = 4 } })
-        hl.bind("SUPER + B", hl.dsp.exec_cmd("uwsm app -- firefox"))
+        hl.bind("SUPER + B", hl.dsp.exec_cmd("uwsm app -- zen-beta"))
       '';
       description = ''
         Own Hyprland settings in Lua, read after the ones of ${branding.name}. Each user can also
@@ -338,7 +341,6 @@ in
     environment.etc."xdg/${id}/lid".text = cfg.lid + "\n";
     security.polkit.enable = true;
 
-    programs.firefox.enable = !cfg.live;
     programs.dconf = {
       enable = true;
       # Every god is dark: GTK and libadwaita apps follow. adw-gtk3 makes GTK 3 apps look like
@@ -365,6 +367,18 @@ in
     # The password of the lock screen
     security.pam.services."${id}-lock" = { };
 
+    # Links, web pages and PDFs open in Zen; the live session of the ISO has no browser
+    xdg.mime.defaultApplications = lib.mkIf (!cfg.live) (
+      lib.genAttrs [
+        "text/html"
+        "application/xhtml+xml"
+        "application/pdf"
+        "x-scheme-handler/http"
+        "x-scheme-handler/https"
+      ] (_: "zen-beta.desktop")
+    );
+    environment.sessionVariables.BROWSER = lib.mkIf (!cfg.live) "zen-beta";
+
     environment.systemPackages = with pkgs; [
       settingsCommand
       captureCommand
@@ -375,6 +389,7 @@ in
       ghostty
     ]
     ++ lib.optionals (!cfg.live) [
+      zen
       cliphist
       nautilus
       gnome-text-editor

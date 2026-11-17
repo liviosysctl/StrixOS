@@ -13,6 +13,13 @@
       url = "github:liviosysctl/StrixUI";
       flake = false;
     };
+    # Zen, the browser of Strix (not in nixpkgs). Its Home Manager module is not used, so that
+    # input points nowhere.
+    zen-browser = {
+      url = "github:0xc000022070/zen-browser-flake";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.home-manager.follows = "";
+    };
   };
 
   outputs =
