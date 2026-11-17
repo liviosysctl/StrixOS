@@ -1,40 +1,19 @@
-# The graphical installer of the live session: the back end (backend.py) as
-# <id>-installer-backend, and the window (qml/) as a Quickshell config. The
-# back end runs the console installer's core (`<id>-install --core`), so both
-# installers install the same way.
-{
-  lib,
-  runCommand,
-  makeWrapper,
-  python3,
-  networkmanager,
-  systemd,
-  # The console installer (installer/package.nix)
-  installer,
-}:
+# The window of the graphical installer (qml/) as a Quickshell config, with its texts (texts.json)
+# as Texts.js. The back end is the installer itself (`<id>-install --serve`, iso/live.nix), so the
+# window and an automated install go through the same core.
+{ runCommand }:
 
 let
   branding = import ../../branding.nix;
 in
-runCommand "${branding.id}-installer-gui"
+runCommand "${branding.id}-installer-window" { } ''
+  mkdir -p $out/share/${branding.id}-installer
+  cp -r ${./qml} $out/share/${branding.id}-installer/qml
+  chmod u+w $out/share/${branding.id}-installer/qml
   {
-    nativeBuildInputs = [ makeWrapper ];
-    meta.mainProgram = "${branding.id}-installer-backend";
-    passthru.qml = ./qml;
-  }
-  ''
-    install -D -m 0644 ${./backend.py} $out/share/${branding.id}-installer/backend.py
-    makeWrapper ${lib.getExe python3} $out/bin/${branding.id}-installer-backend \
-      --add-flags $out/share/${branding.id}-installer/backend.py \
-      --set INSTALL_COMMAND ${lib.getExe installer} \
-      --set NMCLI ${networkmanager}/bin/nmcli \
-      --prefix PATH : ${lib.makeBinPath [ systemd ]}
-    cp -r ${./qml} $out/share/${branding.id}-installer/qml
-    chmod u+w $out/share/${branding.id}-installer/qml
-    {
-      echo '.pragma library'
-      printf 'var all = '
-      ${lib.getExe installer} --texts
-      echo ';'
-    } > $out/share/${branding.id}-installer/qml/Texts.js
-  ''
+    echo '.pragma library'
+    printf 'var all = '
+    cat ${./texts.json}
+    echo ';'
+  } > $out/share/${branding.id}-installer/qml/Texts.js
+''

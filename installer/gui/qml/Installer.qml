@@ -1,14 +1,14 @@
 // The graphical installer: the window's content, a wizard in the manner of Fedora's installer.
 // Steps on the left, one question per page on the right, Back and Next below. It only asks; the
-// back end (backend.py, through `backend`) knows the computer and installs.
+// back end (`strix-install --serve`, through `backend`) knows the computer and installs.
 //
-// Plain QtQuick and the Strix module, so a test can load it without Quickshell (test/preview.py).
+// Plain QtQuick and the Strix module, so a test can load it without Quickshell (test/preview.sh).
 // Texts.js comes from the build (installer/gui/default.nix) or the test.
 //   backend.call(method, params, done)   and the signal backend.event(name, data)
 import QtQuick
 import Strix
-// Every text of the installer in every language, written when the package is built
-// (`<id>-install --texts`), so the window has its words before the back end answers
+// Every text of the installer in every language (texts.json), written when the package is built,
+// so the window has its words before the back end answers
 import "Texts.js" as Texts
 
 Item {

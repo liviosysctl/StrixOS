@@ -18,7 +18,8 @@
   outputs =
     { self, nixpkgs, disko, strixui, ... }:
     let
-      # The only place with the version number. bump_version.py replaces exactly this line.
+      # The version of the distribution. A release commit changes it here and in every
+      # Cargo.toml together (CONTRIBUTING.md).
       version = "0.5.0";
 
       # Where installed machines get updates from. Machines installed from a
@@ -105,7 +106,6 @@
           inherit (disko.packages.${system}) disko;
           machineTemplate = machineTemplate ref;
           machineLock = machineLock ref;
-          themeFile = themes.installer;
         };
 
       iso = self.nixosConfigurations."${branding.id}-iso";

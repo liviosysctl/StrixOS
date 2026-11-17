@@ -1,4 +1,4 @@
-// A back end for the preview (preview.py): canned answers, no computer touched.
+// A back end for the preview (preview.sh): canned answers, no computer touched.
 import QtQuick
 
 QtObject {

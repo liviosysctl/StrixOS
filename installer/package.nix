@@ -1,76 +1,76 @@
-# The installer: sudo strix-install on the ISO.
-# lib.sh, i18n.sh, ui.sh, core.sh and frontend.sh only define functions, main.sh runs them.
+# The installer, installed as <id>-install: the core that installs from an answers file and the
+# back end of the graphical installer (installer/gui). The crate has a neutral name; only the
+# installed program carries the distro's. The unit tests run while building.
 {
   lib,
-  writeShellApplication,
+  rustPlatform,
+  makeWrapper,
   coreutils,
-  curl,
   cryptsetup,
+  curl,
   disko,
-  findutils,
-  gawk,
-  gnugrep,
-  gnused,
-  gum,
-  jq,
-  kbd,
+  networkmanager,
   nix,
-  ncurses,
   nixos-install-tools,
-  callPackage,
   systemd,
   util-linux,
   version,
   machineTemplate,
   machineLock ? null,
-  # Colors of the default theme, from lib/themes.nix
-  themeFile,
 }:
 
 let
   branding = import ../branding.nix;
-
-  logo = callPackage ./logo.nix { };
+  cargo = lib.importTOML ./Cargo.toml;
 in
-writeShellApplication {
-  name = "${branding.id}-install";
+rustPlatform.buildRustPackage {
+  pname = "${branding.id}-install";
+  inherit version;
 
-  runtimeInputs = [
-    coreutils
-    curl
-    cryptsetup
-    disko
-    findutils
-    gawk
-    gnugrep
-    gnused
-    gum
-    jq
-    kbd
-    ncurses
-    nix
-    nixos-install-tools
-    systemd
-    util-linux
-  ];
-
-  runtimeEnv = {
-    DISTRO_ID = branding.id;
-    DISTRO_NAME = branding.name;
-    DISTRO_VERSION = version;
-    STATE_VERSION = lib.trivial.release;
-    TEMPLATE_DIR = machineTemplate;
-    LOGO_FILE = logo;
-    MACHINE_LOCK = if machineLock == null then "" else machineLock;
-    THEME_FILE = themeFile;
+  # The tests read the machine.nix template, so the source starts at the repo root
+  src = lib.fileset.toSource {
+    root = ../.;
+    fileset = lib.fileset.unions [
+      ./Cargo.toml
+      ./Cargo.lock
+      ./src
+      ../templates/machine/machine.nix
+    ];
   };
+  buildAndTestSubdir = "installer";
+  cargoRoot = "installer";
+  cargoLock.lockFile = ./Cargo.lock;
 
-  text = lib.concatMapStringsSep "\n" builtins.readFile [
-    ./lib.sh
-    ./i18n.sh
-    ./ui.sh
-    ./core.sh
-    ./frontend.sh
-    ./main.sh
-  ];
+  nativeBuildInputs = [ makeWrapper ];
+
+  postInstall = ''
+    mv $out/bin/installer $out/bin/${branding.id}-install
+    wrapProgram $out/bin/${branding.id}-install \
+      --set DISTRO_ID ${branding.id} \
+      --set DISTRO_NAME ${lib.escapeShellArg branding.name} \
+      --set DISTRO_VERSION ${version} \
+      --set STATE_VERSION ${lib.trivial.release} \
+      --set TEMPLATE_DIR ${machineTemplate} \
+      --set MACHINE_LOCK ${if machineLock == null then "''" else machineLock} \
+      --set-default NMCLI ${networkmanager}/bin/nmcli \
+      --set-default INSTALL_COMMAND $out/bin/${branding.id}-install \
+      --prefix PATH : ${
+        lib.makeBinPath [
+          coreutils
+          cryptsetup
+          curl
+          disko
+          nix
+          nixos-install-tools
+          systemd
+          util-linux
+        ]
+      }
+  '';
+
+  meta = {
+    description = cargo.package.description;
+    mainProgram = "${branding.id}-install";
+    platforms = lib.platforms.linux;
+  };
 }

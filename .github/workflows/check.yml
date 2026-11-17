@@ -1,5 +1,5 @@
 # On every push and pull request: the fast checks (L0). Every machine, the ISO
-# and the installer functions evaluate, plus the assertions in tests/eval.nix.
+# evaluate, plus the assertions in tests/eval.nix and the unit tests of every crate.
 #
 # On every push to main, once the checks pass: build the ISO (iso-dev, the
 # faster compression) and attach it to the run as a download. Find it under

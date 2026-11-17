@@ -4,7 +4,6 @@
 # greetd logs nixos in at once; the installer window opens as soon as the
 # session is up. Closing it only hides it: a card in the middle of the desktop
 # ("Install Strix") opens it again, and so does Search (Super Space, "Install").
-# The console installer stays: sudo strix-install on any console (Ctrl+Alt+F2).
 { config, lib, pkgs, distroFlake, ... }:
 
 let
@@ -12,7 +11,7 @@ let
   id = branding.id;
   system = pkgs.stdenv.hostPlatform.system;
   installer = distroFlake.packages.${system}.${if config.${id}.iso.dev then "installer-dev" else "installer"};
-  gui = pkgs.callPackage ../installer/gui { inherit installer; };
+  gui = pkgs.callPackage ../installer/gui { };
   qs = lib.getExe' pkgs.quickshell "qs";
   open = "${qs} -c ${id}-installer ipc call installer open";
 in
@@ -52,7 +51,8 @@ in
 
   environment.etc."xdg/quickshell/${id}-installer".source = "${gui}/share/${id}-installer/qml";
 
-  # The back end: knows the computer, installs through sudo (the live user may)
+  # The back end: the installer itself, knows the computer and installs through sudo (the live
+  # user may)
   systemd.user.services."${id}-installer" = {
     description = "The back end of the graphical installer";
     partOf = [ "graphical-session.target" ];
@@ -61,7 +61,7 @@ in
     unitConfig.ConditionUser = "nixos";
     environment.SOCKET = "%t/${id}/install.sock";
     serviceConfig = {
-      ExecStart = lib.getExe gui;
+      ExecStart = "${lib.getExe installer} --serve";
       Restart = "on-failure";
       RestartSec = 1;
     };

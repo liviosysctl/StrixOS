@@ -74,8 +74,8 @@ These are renderings of the design from StrixUI; the shell in this repository is
 | `hosts/` | A made-up machine for CI and testing: `reference`. |
 | `iso/default.nix` | The installer ISO, built on the minimal NixOS installer. |
 | `iso/live.nix` | The live session of the ISO: a slim Strix desktop, logged in at once, the graphical installer in front. |
-| `installer/` | `strix-install`: asks a few questions in the console, then partitions, encrypts and installs. `--core --answers FILE` installs without asking. |
-| `installer/gui/` | The graphical installer, built like Fedora's: a window in Quickshell with StrixUI that only asks, and a back end (`backend.py`) that knows the computer and runs `strix-install --core`. |
+| `installer/` | `strix-install` (Rust): the back end of the graphical installer (`--serve`), which knows the computer, and the core that partitions, encrypts and installs from an answers file (`--core --answers FILE`). |
+| `installer/gui/` | The window of the graphical installer, built like Fedora's: Quickshell with StrixUI, it only asks. |
 | `tests/` | Checks for `nix flake check`. |
 | `flake.nix` | Version, modules, machines, the ISO, checks and a dev shell. |
 
@@ -116,7 +116,7 @@ ls -lh result/iso/
 
 Machines installed from `iso` follow the branch `stable`, which only moves when a release is published. Machines installed from `iso-dev` follow `main` and get every fix with `strix-update`. CI builds an `iso-dev` on every push to `main` (Actions, the run, "Artifacts").
 
-The ISO starts into a slim Strix desktop with the installer's window in front. Closing the window only hides it: the card in the middle of the desktop, or Search ("Install"), opens it again. The console installer is still there: `sudo strix-install` on another console (Ctrl+Alt+F2).
+The ISO starts into a slim Strix desktop with the installer's window in front. Closing the window only hides it: the card in the middle of the desktop, or Search ("Install"), opens it again.
 
 The ISO boots on UEFI. Release ISOs are signed and also boot with Secure Boot on: the first start shows MokManager once, choose "Enroll key from disk" and `strix.cer` from the stick ([secure-boot/README.md](secure-boot/README.md)). An ISO from `nix build` is unsigned and needs Secure Boot off. Write it to a USB stick as a raw image (`dd`), not by copying files onto a FAT32 stick.
 
@@ -126,15 +126,22 @@ Commit and push before building a release ISO. Only an ISO from a clean tree wit
 
 Boot the ISO: the installer's window opens by itself. Language and keyboard, the network (Wi-Fi right there if there is no cable), time zone, disk with encryption and hibernation, you and the computer, a summary; it only starts after you tick that the disk will be erased. The whole disk is used. The window shows each step, and at the end the code for Secure Boot when it is on.
 
-The same questions in the console, for SSH or a machine without graphics:
+The window speaks German, French, Italian and English. Underneath it runs `strix-install --core`, which installs from an answers file without asking; the log ends up in `/var/log/strix-install.log` on the installed system.
+
+Without a screen, over SSH (set a password with `passwd`, find the address with `ip -4 addr`, connect with `ssh nixos@<address>`), the core runs on its own. The answers are the window's, the password goes into `/run/strix-install/user.pass` and, with encryption, the passphrase into `/tmp/strix-luks.key`:
 
 ```sh
-sudo strix-install
+strix-install --facts                       # the disks, memory and Secure Boot of this computer
+sudo strix-install --core --answers answers.json
 ```
 
-It asks for the language first, and every screen after that is in German, French, Italian or English. Then keyboard, time zone, name, user, password, computer name, disk, encryption and hibernation, a summary, and it only starts after you type the disk's name. Both installers end the same way (`strix-install --core`). The log ends up in `/var/log/strix-install.log` on the installed system.
-
-SSH already runs on the live system. To install over SSH, set a password with `passwd`, look up the address with `ip -4 addr` and connect with `ssh nixos@<address>`.
+```json
+{
+  "hostName": "laptop", "timeZone": "Europe/Zurich", "locale": "de_CH.UTF-8", "keyboard": "ch",
+  "user": { "name": "livio", "fullName": "Livio" },
+  "disk": "/dev/disk/by-id/nvme-...", "encrypt": true, "hibernation": false
+}
+```
 
 ## Development
 
