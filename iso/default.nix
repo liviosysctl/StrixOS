@@ -103,15 +103,9 @@ in
   # Same as on installed machines: SSH in from any common terminal works.
   environment.enableAllTerminfo = true;
 
-  # Swiss German keyboard on the console. The installer will ask for the
-  # layout later, until then this is the right default.
+  # Swiss German keyboard on the console. The installer asks for the layout
+  # on its first page, until then this is the right default.
   console.keyMap = "sg";
-
-  # The installer speaks German, French and Italian. Lat2-Terminus16, the
-  # default, has no ê, û, ì, ò or ù, Terminus in the same size has them all
-  # plus the block characters of the logo.
-  console.packages = [ pkgs.terminus_font ];
-  console.font = "ter-v16n";
 
   # Show the distro version in the boot menu instead of the nixpkgs version
   system.nixos.label = version;
@@ -126,7 +120,7 @@ in
   # Hint on the console after autologin
   services.getty.helpLine = lib.mkAfter ''
 
-    ${branding.name} ${version}: start the installation with  sudo ${branding.id}-install
+    ${branding.name} ${version}: the installer is the window on the desktop.
     SSH is running. Set a password with  passwd , find the address with  ip -4 addr ,
     then connect with  ssh nixos@<address>
   '';

@@ -1,7 +1,7 @@
 # The proof of concept for M245 (branch m245-poc).
 #
 # On every push and pull request: the fast checks (L0). Every machine, the ISO
-# and the installer functions evaluate, plus the assertions in tests/eval.nix.
+# evaluate, plus the assertions in tests/eval.nix and the unit tests of every crate.
 #
 # First, on every run: the sign job makes the distro signatures of the boot
 # files installed machines use (GRUB, the kernel) that are still missing,

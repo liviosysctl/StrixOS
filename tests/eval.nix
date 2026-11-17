@@ -32,20 +32,19 @@ in
   # The ISO evaluates (it is not built here)
   eval-iso = builtins.seq iso.system.build.isoImage.drvPath (ok "eval-iso");
 
-  # The installer functions, without disks, root or network
-  installer-functions =
-    pkgs.runCommand "check-installer-functions"
-      {
-        nativeBuildInputs = with pkgs; [ bash coreutils gawk gnugrep gnused jq python3 util-linux ];
-      }
-      ''
-        bash ${./installer.sh} \
-          ${self.packages.${pkgs.stdenv.hostPlatform.system}.machine-template} \
-          ${pkgs.callPackage ../installer/logo.nix { }} \
-          ${../installer} \
-          ${./glyphs.py} \
-          ${pkgs.terminus_font}/share/consolefonts/${iso.console.font}.psf.gz | tee $out
-      '';
+  # The installer with its unit tests (answers, machine.nix, the disks to offer, the back end on its
+  # socket), and the window with the same texts in every language
+  installer =
+    let
+      installer = self.packages.${pkgs.stdenv.hostPlatform.system}.installer;
+      window = pkgs.callPackage ../installer/gui { };
+    in
+    pkgs.runCommand "check-installer" { nativeBuildInputs = [ pkgs.jq ]; } ''
+      ${lib.getExe installer} --version | grep -qx "${branding.name} .*"
+      test -s ${window}/share/${branding.id}-installer/qml/Texts.js
+      jq -e '(.en | keys) as $en | [.de, .fr, .it] | all(keys == $en)' ${../installer/gui/texts.json}
+      touch $out
+    '';
 
   # The live session: logged in at once, the installer's back end and window start with it,
   # the window floats, and the ISO leaves out what would push it over 2 GiB
@@ -57,6 +56,7 @@ in
     assert iso.${branding.id}.desktop.live;
     assert lib.elem "graphical-session.target" user."${branding.id}-installer".wantedBy;
     assert lib.elem "graphical-session.target" user."${branding.id}-installer-ui".wantedBy;
+    assert lib.hasSuffix "-install --serve" user."${branding.id}-installer".serviceConfig.ExecStart;
     assert user."${branding.id}-installer-ui".serviceConfig.Restart == "always";
     assert lib.hasInfix "-c ${branding.id}-installer" user."${branding.id}-installer-ui".serviceConfig.ExecStart;
     assert lib.hasInfix "^Installer$" iso.${branding.id}.desktop.extraConfig;

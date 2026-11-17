@@ -3,7 +3,7 @@
 // and started by the user service strix-installer-ui as soon as the session is there:
 //   qs -c strix-installer
 // The search's "Install Strix" entry and `qs -c strix-installer ipc call installer open` open it too.
-// The back end (backend.py) answers on $XDG_RUNTIME_DIR/strix/install.sock.
+// The back end (strix-install --serve) answers on $XDG_RUNTIME_DIR/strix/install.sock.
 import QtQuick
 import Quickshell
 import Quickshell.Io
