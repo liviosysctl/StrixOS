@@ -1,5 +1,5 @@
 # <name>-apps add|remove|list [package]
-# The interface to the Store. Exit codes:
+# Adds and removes apps in apps.json and rebuilds. Exit codes:
 #   0 done, 1 no permission, 2 unknown package, 3 build failed,
 #   4 could not get the lock, 64 wrong call
 usage() {

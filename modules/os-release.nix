@@ -14,7 +14,7 @@ in
   # and leaves out the nixos.org links.
   system.nixos.distroId = branding.id;
 
-  # IMAGE_VERSION=, the Store and the settings read the distro version from it.
+  # IMAGE_VERSION=, Settings reads the distro version from it.
   # VERSION_ID stays the NixOS version.
   system.image.version = version;
 

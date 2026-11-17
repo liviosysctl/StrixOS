@@ -30,5 +30,4 @@ ShellRoot {
     Clipboard {}
     ThemePicker { id: picker }
     Settings { picker: picker }
-    Store {}
 }

@@ -1,4 +1,4 @@
-# Apps from the Store. The Store only writes /etc/nixos/apps.json,
+# Apps added with <id>-apps. It only writes /etc/nixos/apps.json,
 # this module turns it into packages.
 { config, lib, pkgs, ... }:
 
@@ -13,7 +13,7 @@ let
       lib.importJSON cfg.file;
 
   # A package that no longer exists in nixpkgs does not break the update,
-  # it only warns. The Store can then show it as "no longer available".
+  # it only warns.
   lookup =
     entry:
     let

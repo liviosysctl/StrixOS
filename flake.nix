@@ -190,9 +190,6 @@
         theme-engine = themes.engine;
         themes = themes.dir;
 
-        # The Store service (main only)
-        store = pkgs.callPackage ./packages/store { };
-
         # Secure Boot (main only): shim and MokManager signed by Microsoft and
         # Debian, GRUB with an SBAT section for the ISO, the script that signs
         # the ISO (CI, key from a secret), and the one that makes that key
@@ -215,7 +212,7 @@
         # an install or an update would otherwise compile. Pushing takes the
         # closure; Cachix leaves out what cache.nixos.org already has.
         cache-roots = pkgs.linkFarm "${branding.id}-cache-roots" {
-          inherit (self.packages.${system}) installer installer-dev theme-engine store search ui;
+          inherit (self.packages.${system}) installer installer-dev theme-engine search ui;
           reference = self.nixosConfigurations."${branding.id}-reference".config.system.build.toplevel;
         };
 

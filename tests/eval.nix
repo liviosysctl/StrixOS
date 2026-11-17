@@ -271,23 +271,6 @@ in
         echo ok > $out
       '';
 
-  # The Store: the service with its unit tests, the index service, the user service and the
-  # polkit rule that lets the session run exactly `<id>-apps add|remove <package>` (Q4)
-  store =
-    let
-      cfg = reference.config;
-      rule = cfg.security.polkit.extraConfig;
-    in
-    assert cfg.${branding.id}.store.enable;
-    assert cfg.systemd.services ? "${branding.id}-store-index";
-    assert cfg.systemd.user.services ? "${branding.id}-store";
-    assert lib.hasInfix (builtins.unsafeDiscardStringContext (lib.getExe cfg.system.build.distroTools.apps)) (builtins.unsafeDiscardStringContext rule);
-    assert lib.hasInfix "(add|remove)" rule;
-    assert lib.hasInfix "AUTH_ADMIN_KEEP" rule;
-    # nixpkgs is named in the index unit, but not kept in the system
-    assert !(builtins.hasContext cfg.systemd.services."${branding.id}-store-index".environment.NIXPKGS);
-    cfg.${branding.id}.store.package;
-
   # The search service with its unit tests (golden queries, the 5 ms budget, the socket), and the
   # system menu and command files checked by it: unique ids, groups that exist, no emoji
   search =

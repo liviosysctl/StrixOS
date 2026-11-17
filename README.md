@@ -1,6 +1,6 @@
 ![Strix, nocte vigilat](docs/images/banner.jpg)
 
-Strix is a NixOS-based desktop distribution: Hyprland with a shell of its own in Quickshell, own services in Rust, and one theme that reaches every part of the system, from the boot splash to the terminal. The machine is described in `/etc/nixos`, three commands rebuild, update and add apps, and a Store does the last one too.
+Strix is a NixOS-based desktop distribution: Hyprland with a shell of its own in Quickshell, own services in Rust, and one theme that reaches every part of the system, from the boot splash to the terminal. The machine is described in `/etc/nixos`, three commands rebuild, update and add apps, and Neovim is the editor for all of it.
 
 ```
 Version :: 0.2.0
@@ -59,11 +59,10 @@ These are renderings of the design from StrixUI; the shell in this repository is
 | `themes/` | `default.nix`, the theme a new installation starts with (`saturnus`). The themes are the eight Roman gods of [StrixUI](https://github.com/liviosysctl/StrixUI), a flake input. [themes/README.md](themes/README.md) describes the format and the theme repositories. |
 | `packages/theme-engine/` | The theme engine in Rust: reads and checks themes, switches them at runtime, fetches and checks theme repositories, writes the colours for Hyprland, Ghostty and GTK. |
 | `packages/search/`, `modules/search.nix` | The search service behind Search and the cheat sheet: apps, the actions of `menu.toml`, every row of Settings, commands; it also makes the Hyprland keys and keeps the user's own keys. |
-| `packages/store/`, `modules/store.nix` | The Store: an index of the channel's packages, search, install and remove through `strix-apps`; proprietary apps ask first. |
 | `packages/ui/`, `modules/ui.nix` | The design system of StrixUI on the machine: the QML module for Quickshell, the wallpapers, the fonts. |
 | `modules/desktop.nix` | The desktop: Hyprland as a UWSM session, the login of Strix under greetd (or tuigreet), PipeWire, the apps of the cheat sheet, the shell as a user service, hypridle, and the session's theme service: another god every 10 minutes unless kept, Hyprland and Ghostty follow. |
 | `shell/hypr/hyprland.lua` | The Hyprland configuration (Lua, Hyprland 0.55 and later): measures and motion of StrixUI; it requires `machine.lua`, `theme.lua` and `bindings.lua`, which Nix and the theme engine write. |
-| `shell/qml/` | The shell in Quickshell from StrixUI's QML module: wallpaper, top bar (network, volume, battery, what is playing), lock screen, Search, cheat sheet, notifications, OSD for volume and brightness, clipboard history, theme picker, Settings, Store. `qs -c strix ipc show` lists what Hyprland can call. |
+| `shell/qml/` | The shell in Quickshell from StrixUI's QML module: wallpaper, top bar (network, volume, battery, what is playing), lock screen, Search, cheat sheet, notifications, OSD for volume and brightness, clipboard history, theme picker, Settings. `qs -c strix ipc show` lists what Hyprland can call. |
 | `shell/greeter/` | The login screen in Quickshell, run by greetd in cage; it starts the same UWSM session. |
 | `shell/settings.toml` | The pages and rows of Settings as Search finds them. |
 | `shell/menu.toml` | The system menu of Search and every key of the cheat sheet; `strix-search bindings` makes the Hyprland keybindings from it. |
@@ -88,12 +87,12 @@ These are renderings of the design from StrixUI; the shell in this repository is
 | `sudo strix-rebuild [switch\|boot\|test\|build]` | Rebuilds from `/etc/nixos` |
 | `sudo strix-update` | Fetches the newest release and every connected theme repository and switches to them, keeps the old version if the build fails |
 | `sudo strix-update --themes [REPO]` | Only the theme repositories, or the one named |
-| `sudo strix-apps add\|remove <package>`, `strix-apps list` | Installs or removes a package from nixpkgs. This is what the Store calls. |
+| `sudo strix-apps add\|remove <package>`, `strix-apps list` | Installs or removes a package from nixpkgs (kept in `/etc/nixos/apps.json`) and rebuilds. |
 | `sudo strix-theme set <theme>`, `strix-theme list` | Switches the theme without a rebuild, see [themes/README.md](themes/README.md). |
 | `sudo strix-theme repos add <owner/repo>`, `strix-theme repos list` | Connects a theme repository; `strix-rebuild switch` builds its themes in, every `strix-update` brings new versions |
 | `strix-settings [PAGE [ROW]]` | Opens Settings: `themes`, `network`, `bluetooth`, `sound`, `display`, `power`, `hotkeys`, `about` |
 | `strix-capture region\|window\|screen\|record\|colour` | Screenshots to `~/Pictures/Screenshots` and the clipboard, a recording to `~/Videos/Recordings`, the colour picker; Print and its modifiers call it |
-| Super Space | Search: apps, actions, settings and commands in one field; "Store" opens the Store |
+| Super Space | Search: apps, actions, settings and commands in one field |
 | Super K | The cheat sheet with every key; change them in Settings › Hotkeys |
 | Super V | The clipboard history |
 | Super Ctrl Space | The theme picker; K keeps the theme, otherwise another god comes every 10 minutes |

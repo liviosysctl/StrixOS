@@ -88,7 +88,7 @@ let
         machineNix
       ];
     }
-    # Only main has the Store and its apps.json
+    # Only main has apps.json (strix-apps)
     // lib.optionalAttrs (builtins.pathExists (template + "/apps.json")) {
       apps = template + "/apps.json";
     }

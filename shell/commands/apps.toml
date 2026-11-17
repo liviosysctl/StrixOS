@@ -1,10 +1,10 @@
 name = "{id}-apps"
-description = "Apps from the Store"
-words = ["store", "packages", "install"]
+description = "Apps from nixpkgs, kept in apps.json"
+words = ["packages", "install", "nixpkgs"]
 
 [[sub]]
 name = "list"
-description = "Show the apps installed from the Store"
+description = "Show the apps added with it"
 
 [[sub]]
 name = "remove"
