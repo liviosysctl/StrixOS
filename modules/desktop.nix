@@ -391,7 +391,11 @@ in
       partOf = [ "graphical-session.target" ];
       after = [ "graphical-session.target" ];
       wantedBy = [ "graphical-session.target" ];
-      environment.QML_IMPORT_PATH = qmlPath;
+      environment = {
+        QML_IMPORT_PATH = qmlPath;
+        # The owl in the colors of every theme, for the lock screen (Owl.qml)
+        STRIX_LOGOS = "${config.${id}.theme.logos}";
+      };
       # Theme.qml finds the wallpapers next to the module, the path must not be resolved
       restartTriggers = [ ui ../shell/qml ];
       serviceConfig = {

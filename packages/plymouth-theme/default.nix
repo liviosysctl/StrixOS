@@ -1,5 +1,5 @@
-# A Plymouth theme for one theme variant: the distro name as wordmark, the
-# colors from the theme engine.
+# A Plymouth theme for one theme variant: the owl, the distro name as
+# wordmark, the colors from the theme engine.
 { lib, runCommand, python3, inter }:
 
 {
@@ -10,6 +10,8 @@
   # The theme engine and the checked themes folder (lib/themes.nix)
   engine,
   themes,
+  # The owl of the variant without its ending, <logos>/<theme>-<variant> (packages/logo)
+  owl,
 }:
 
 let
@@ -26,4 +28,7 @@ runCommand name { } ''
     ${inter}/share/fonts/truetype/InterVariable.ttf \
     "$background" "$foreground" "$accent" \
     ${./theme.script}
+  for frame in "" -half -closed; do
+    cp "${owl}$frame.png" "$out/share/plymouth/themes/${name}/owl$frame.png"
+  done
 ''

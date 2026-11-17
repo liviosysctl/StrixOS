@@ -1,6 +1,8 @@
 # The owl of the distro for every theme variant, as <theme>-<variant>.png: the owl and its
 # double ring in the accent of the variant, the engraved lines in its terminal background, the
-# eyes white. fastfetch shows the one of the session's theme (modules/fastfetch.nix).
+# eyes white. Beside it <theme>-<variant>-half.png and -closed.png, the frames of a blink.
+# fastfetch shows the one of the session's theme (modules/fastfetch.nix), the lock screen
+# (shell/qml/Owl.qml) and the boot splash (packages/plymouth-theme) blink with them.
 { lib, runCommand, python3, librsvg, jq }:
 
 {
@@ -20,7 +22,10 @@ runCommand "${branding.id}-logos" { nativeBuildInputs = [ python3 librsvg jq ]; 
     tokens=$(${lib.getExe engine} render tokens ${lib.escapeShellArg v.selection} --themes ${themes})
     accent=$(jq -er .colors.accent <<<"$tokens")
     background=$(jq -er .terminal.background <<<"$tokens")
-    python3 ${./owl.py} "$accent" "$background" > owl.svg
-    rsvg-convert -w 512 -h 512 owl.svg -o $out/${v.theme}-${v.variant}.png
+    # Open, and the two frames of a blink: half and fully closed
+    for frame in ":0" "-half:0.55" "-closed:1"; do
+      python3 ${./owl.py} "$accent" "$background" "''${frame#*:}" > owl.svg
+      rsvg-convert -w 512 -h 512 owl.svg -o "$out/${v.theme}-${v.variant}''${frame%%:*}.png"
+    done
   '') variants}
 ''

@@ -99,6 +99,7 @@ let
       inherit (v) selection;
       inherit engine;
       themes = dir;
+      owl = "${logos}/${v.theme}-${v.variant}";
     }
   ) variants;
 
@@ -118,7 +119,8 @@ let
   );
   grubTheme = selection: grubThemes.${selection};
 
-  # The owl of the distro in the colors of every variant, for fastfetch
+  # The owl of the distro in the colors of every variant, with the frames of its blink: for
+  # fastfetch, the lock screen and the boot splash
   logos = pkgs.callPackage ../packages/logo { } {
     inherit engine variants;
     themes = dir;

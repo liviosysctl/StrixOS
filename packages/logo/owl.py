@@ -1,9 +1,10 @@
 """The owl of the distro as SVG: frontal, wings spread, in a double ring.
 
-    python3 owl.py ACCENT BACKGROUND > owl.svg
+    python3 owl.py ACCENT BACKGROUND [LID] > owl.svg
 
 The owl and the ring are drawn in ACCENT, the engraved lines in BACKGROUND (the background it
-is shown on), the eyes are always white with the pupils in ACCENT.
+is shown on), the eyes are always white with the pupils in ACCENT. LID from 0 (open, the
+default) to 1 (closed) lowers the eyelids, for the frames of a blink.
 """
 
 import math
@@ -25,7 +26,7 @@ def both_sides():
     return (lambda x: x), mirror
 
 
-def owl(fig, ink, pupil):
+def owl(fig, ink, pupil, lid=0.0):
     out = []
 
     def line(d, width=2.4, color=ink):
@@ -138,12 +139,34 @@ def owl(fig, ink, pupil):
         out.append(f'<circle cx="{f(cx)}" cy="{cy}" r="38" fill="{ink}"/>')
         out.append(f'<circle cx="{f(cx)}" cy="{cy}" r="32" fill="{pupil}"/>')
         out.append(f'<circle cx="{f(cx + 10)}" cy="{cy - 11}" r="7" fill="{EYE}"/>')
+        if lid > 0:
+            # The eyelid in the feathers' colour, down from the top of the eye inside its outline;
+            # its rim an engraved line that sags a little more the further it is closed, and the
+            # seam of the closed eye a little below the middle
+            side = "l" if f(0) == 0 else "r"
+            edge = cy - 74 + 148 * lid
+            sag = 10 + 16 * lid
+            out.append(
+                f'<clipPath id="eye-{side}"><circle cx="{f(cx)}" cy="{cy}" r="73"/></clipPath>'
+                f'<g clip-path="url(#eye-{side})">'
+                f'<path d="M{f(cx - 80)} {cy - 80} L{f(cx + 80)} {cy - 80} L{f(cx + 80)} {edge:.1f} '
+                f'Q{f(cx)} {edge + 2 * sag:.1f} {f(cx - 80)} {edge:.1f} Z" fill="{fig}"/>'
+                f'</g>'
+            )
+            seam = min(edge + sag / 2, cy + 18)
+            rim = math.sqrt(max(0.0, 72**2 - (seam - cy) ** 2))
+            out.append(
+                line(
+                    f"M{f(cx - rim):.1f} {seam:.1f} Q{f(cx)} {seam + sag:.1f} {f(cx + rim):.1f} {seam:.1f}",
+                    3.4,
+                )
+            )
         out.append(line(f"M{f(360)} 222 Q{f(440)} 196 {f(496)} 248", 3.6))
     out.append(f'<path d="M484 338 Q500 328 516 338 L500 374 Z" fill="{ink}"/>')
     return "".join(out)
 
 
-def svg(accent, background):
+def svg(accent, background, lid=0.0):
     ring = (
         f'<circle cx="500" cy="500" r="484" fill="none" stroke="{accent}" stroke-width="12"/>'
         f'<circle cx="500" cy="500" r="456" fill="none" stroke="{accent}" stroke-width="4"/>'
@@ -151,11 +174,11 @@ def svg(accent, background):
     # The owl a little smaller than the ring, so the talons and wing tips keep clear of it
     return (
         '<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1000" viewBox="0 0 1000 1000">'
-        f'{ring}<g transform="translate(70 66) scale(0.86)">{owl(accent, background, accent)}</g></svg>\n'
+        f'{ring}<g transform="translate(70 66) scale(0.86)">{owl(accent, background, accent, lid)}</g></svg>\n'
     )
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
+    if len(sys.argv) not in (3, 4):
         sys.exit(__doc__)
-    sys.stdout.write(svg(sys.argv[1], sys.argv[2]))
+    sys.stdout.write(svg(sys.argv[1], sys.argv[2], float(sys.argv[3]) if len(sys.argv) == 4 else 0.0))

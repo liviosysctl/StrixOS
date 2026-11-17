@@ -135,6 +135,32 @@ Scope {
                     spacing: Theme.space3
                     width: 320
 
+                    // The owl of the god shown, which blinks now and then and at a wrong password
+                    Owl {
+                        id: owl
+                        dir: Quickshell.env("STRIX_LOGOS") || ""
+                        width: 128
+                        height: 128
+                        Entrance { delay: 0 }
+                        // A wrong password: it shuts its eyes while the field shakes
+                        Connections {
+                            target: root
+                            function onTriesChanged() { if (root.tries > 0) owl.blink() }
+                        }
+                    }
+                    Timer {
+                        // The first blink once everything has arrived, then every 6 to 12 seconds
+                        interval: Theme.durReveal + 400
+                        repeat: true
+                        running: sessionLock.locked && !root.leaving
+                        onRunningChanged: if (running) interval = Theme.durReveal + 400
+                        onTriggered: {
+                            owl.blink()
+                            interval = 6000 + Math.random() * 6000
+                        }
+                    }
+                    Item { width: 1; height: Theme.space2 }
+
                     // The hour and the minute roll when they change; everything arrives one after the other
                     Ticker { textStyle: "clock"; color: Theme.text; text: Qt.formatDateTime(clock.date, "HH"); Entrance { delay: 0 } }
                     Ticker { textStyle: "clock"; color: Theme.textMuted; text: Qt.formatDateTime(clock.date, "mm"); Entrance { delay: Theme.stagger * 2 } }
