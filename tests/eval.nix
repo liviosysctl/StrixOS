@@ -249,7 +249,8 @@ in
         export HOME=$TMPDIR XDG_RUNTIME_DIR=$TMPDIR/run
         mkdir -p -m 0700 $XDG_RUNTIME_DIR $TMPDIR/xdg/quickshell
         cp -r ${../shell/qml} $TMPDIR/xdg/quickshell/${branding.id}
-        cp -r ${../shell/greeter} $TMPDIR/xdg/quickshell/${branding.id}-greeter
+        # The greeter's folder as the system has it: shell/greeter with Owl.qml beside it
+        cp -rL ${cfg.environment.etc."xdg/quickshell/${branding.id}-greeter".source} $TMPDIR/xdg/quickshell/${branding.id}-greeter
         weston --backend=headless --socket=wl-check --width=1280 --height=800 > weston.log 2>&1 &
         for _ in $(seq 50); do [ -S $XDG_RUNTIME_DIR/wl-check ] && break; sleep 0.2; done
         WAYLAND_DISPLAY=wl-check XDG_CONFIG_DIRS=$TMPDIR/xdg QT_QPA_PLATFORM=wayland \
