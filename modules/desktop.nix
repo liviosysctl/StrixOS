@@ -145,6 +145,7 @@ let
     export XDG_CONFIG_DIRS=/etc/xdg
     export XDG_CACHE_HOME=${greeterState}/cache XDG_STATE_HOME=${greeterState}/state
     export GREETER_STATE=${greeterState} GREETER_SESSION=${lib.escapeShellArg sessionCommand}
+    export STRIX_LOGOS=${config.${id}.theme.logos}
     export XKB_DEFAULT_LAYOUT=${lib.escapeShellArg xkb.layout} XKB_DEFAULT_VARIANT=${lib.escapeShellArg xkb.variant}
     export XKB_DEFAULT_OPTIONS=${lib.escapeShellArg xkb.options}
     export XCURSOR_THEME=Adwaita XCURSOR_SIZE=24
@@ -303,7 +304,12 @@ in
             ];
       };
     };
-    environment.etc."xdg/quickshell/${id}-greeter".source = ../shell/greeter;
+    # The login with the owl of the shell (Owl.qml) beside it
+    environment.etc."xdg/quickshell/${id}-greeter".source = pkgs.runCommand "${id}-greeter" { } ''
+      mkdir $out
+      cp ${../shell/greeter/shell.qml} $out/shell.qml
+      cp ${../shell/qml/Owl.qml} $out/Owl.qml
+    '';
     systemd.tmpfiles.rules = lib.mkIf (cfg.greeter == "strix") [
       "d ${greeterState} 0750 greeter greeter -"
     ];
@@ -393,7 +399,7 @@ in
       wantedBy = [ "graphical-session.target" ];
       environment = {
         QML_IMPORT_PATH = qmlPath;
-        # The owl in the colors of every theme, for the lock screen (Owl.qml)
+        # The owl in the colors of every theme, for the lock screen and Settings (Owl.qml)
         STRIX_LOGOS = "${config.${id}.theme.logos}";
       };
       # Theme.qml finds the wallpapers next to the module, the path must not be resolved

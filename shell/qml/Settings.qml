@@ -328,7 +328,18 @@ Scope {
                         spacing: Theme.space2
 
                         Label { textStyle: "title"; color: Theme.text; text: "About" }
-                        Wordmark {}
+                        Row {
+                            spacing: Theme.space4
+                            // The owl in the colours of the god shown; a click makes it blink
+                            Owl {
+                                id: aboutOwl
+                                dir: Quickshell.env("STRIX_LOGOS") || ""
+                                width: 96
+                                height: 96
+                                MouseArea { anchors.fill: parent; onClicked: aboutOwl.blink() }
+                            }
+                            Wordmark { anchors.verticalCenter: parent.verticalCenter }
+                        }
                         SettingRow { width: parent.width; title: "Version"; text: root.version }
                         SettingRow {
                             width: parent.width

@@ -2,7 +2,7 @@
 
 | File | What | Source |
 |---|---|---|
-| `banner.jpg` | The wordmark, the motto, one line on what Strix is and the plate of Saturnus | Drawn for this repository from StrixUI's fonts and wallpaper |
+| `banner.jpg` | The wordmark, the motto, one line on what Strix is, the owl in the colours of Saturnus and the plate of Saturnus | Drawn for this repository from StrixUI's fonts and wallpaper; the owl from the theme engine (`theme render owl saturnus`) |
 | `desktop.jpg` | The desktop with the top bar, Saturnus | Rendering `docs/renders/Desktop.png` of [StrixUI](https://github.com/liviosysctl/StrixUI) |
 | `lock-screen.jpg` | The lock screen, Janus | Rendering `docs/renders/LockScreen.png` of StrixUI |
 | `search.jpg` | Search | Rendering `docs/renders/Search.png` of StrixUI |

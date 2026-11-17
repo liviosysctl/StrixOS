@@ -58,6 +58,7 @@ ShellRoot {
             root.busy = false
             root.error = "Wrong name or password"
             pass.shake()
+            owl.blink()
         }
         function onError(error) {
             // After a wrong password Quickshell ends the session itself and greetd answers that
@@ -91,6 +92,21 @@ ShellRoot {
             anchors { left: parent.left; leftMargin: Theme.space8 * 2; verticalCenter: parent.verticalCenter }
             spacing: Theme.space3
             width: 320
+
+            // The owl of the machine's god, as on the lock screen; it blinks now and then and at a
+            // wrong password
+            Owl {
+                id: owl
+                dir: Quickshell.env("STRIX_LOGOS") || ""
+                width: 128
+                height: 128
+                Timer {
+                    interval: 6000 + Math.random() * 6000
+                    running: true
+                    repeat: true
+                    onTriggered: { owl.blink(); interval = 6000 + Math.random() * 6000 }
+                }
+            }
 
             Label { textStyle: "clock"; color: Theme.text; text: Qt.formatDateTime(clock.date, "HH") }
             Label { textStyle: "clock"; color: Theme.textMuted; text: Qt.formatDateTime(clock.date, "mm") }
