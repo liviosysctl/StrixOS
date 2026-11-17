@@ -44,6 +44,7 @@ Scope {
     function refresh() {
         themes.call("state", {}, s => root.themeState = s)
         reposList.running = true
+        groups.running = true
     }
 
     /// A command that needs root, in a terminal that stays open; the list is read again after
@@ -75,6 +76,17 @@ Scope {
     Process {
         id: terminal
         onExited: reposList.running = true
+    }
+
+    // Theme repositories change the machine: only an administrator (wheel) connects, updates,
+    // removes them or lets them into the change of gods
+    property bool admin: false
+    Process {
+        id: groups
+        command: ["id", "-nG"]
+        stdout: StdioCollector {
+            onStreamFinished: root.admin = text.trim().split(/\s+/).indexOf("wheel") >= 0
+        }
     }
 
     FileView {
@@ -213,7 +225,8 @@ Scope {
                             wrapMode: Text.WordWrap
                             textStyle: "caption"
                             color: Theme.textMuted
-                            text: "Themes from outside, in Git repositories with the layout of strix-theme-template. Every update fetches them; a commit that fails the check is not taken."
+                            text: "Themes from outside, in Git repositories with the layout of strix-theme-template. Every update fetches them; a commit that fails the check is not taken. They stay out of the change of gods until it is turned on for their repository."
+                                  + (root.admin ? "" : " Only an administrator can change them.")
                         }
 
                         Label {
@@ -244,6 +257,22 @@ Scope {
                                     }
                                     Row {
                                         spacing: Theme.space2
+                                        Label {
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            textStyle: "caption"
+                                            color: Theme.textMuted
+                                            text: "In the change of gods"
+                                        }
+                                        Switch {
+                                            checked: !!modelData.cycle
+                                            enabled: root.admin
+                                            onToggled: root.asRoot("sudo strix-theme repos cycle " + root.quoted(modelData.url)
+                                                + (checked ? " on" : " off"))
+                                        }
+                                    }
+                                    Row {
+                                        visible: root.admin
+                                        spacing: Theme.space2
                                         Button {
                                             small: true
                                             text: "Update now"
@@ -262,6 +291,7 @@ Scope {
                         }
 
                         Row {
+                            visible: root.admin
                             width: parent.width
                             spacing: Theme.space2
                             TextField {

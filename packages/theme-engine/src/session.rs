@@ -112,8 +112,11 @@ pub struct Settings {
     pub system_dir: Option<PathBuf>,
     pub selection_file: Option<PathBuf>,
     pub default_theme: String,
-    /// The ids of the themes that take part in the cycle
+    /// The ids of the themes that take part in the cycle: the gods
     pub cycle: Vec<String>,
+    /// themes.json of the theme repositories: the themes of those with `cycle` on join the gods.
+    /// Read anew at every change, so Settings switches it without a restart.
+    pub repos_file: Option<PathBuf>,
     pub dir: PathBuf,
     pub state_file: PathBuf,
     pub socket: PathBuf,
@@ -221,14 +224,25 @@ impl Session {
         self.next(pick)
     }
 
+    /// The gods and the themes of the repositories turned on for the cycle
+    pub fn cycle_ids(&self) -> Vec<String> {
+        let mut ids = self.settings.cycle.clone();
+        if let Some(file) = &self.settings.repos_file
+            && let Ok(list) = crate::repos::Store::new(file).load()
+        {
+            for repo in list.repos.iter().filter(|r| r.cycle) {
+                ids.extend(repo.themes.iter().cloned());
+            }
+        }
+        ids
+    }
+
     /// Another god now
     pub fn next(&mut self, pick: &mut impl FnMut(usize) -> usize) -> Result<bool, String> {
         let ids: Vec<String> = self
-            .settings
-            .cycle
-            .iter()
+            .cycle_ids()
+            .into_iter()
             .filter(|id| self.catalog.theme(id).is_some())
-            .cloned()
             .collect();
         let Some(id) = other(&ids, &self.theme, pick).map(String::from) else {
             return Ok(false);
@@ -292,6 +306,7 @@ impl Session {
     }
 
     pub fn state(&self) -> Value {
+        let cycle = self.cycle_ids();
         let themes: Vec<Value> = self
             .catalog
             .themes
@@ -303,7 +318,7 @@ impl Session {
                     "name": theme.name,
                     "description": theme.description,
                     "variants": theme.variant_ids(),
-                    "cycle": self.settings.cycle.contains(&theme.id),
+                    "cycle": cycle.contains(&theme.id),
                     "accent": variant.map(|v| v.color("accent").hex()),
                     "background": variant.map(|v| v.color("background").hex()),
                     "dir": theme.dir.to_string_lossy(),
@@ -610,6 +625,7 @@ mod tests {
             selection_file: Some(base.join("selection")),
             default_theme: "saturnus".into(),
             cycle: vec!["apollo".into(), "janus".into(), "saturnus".into()],
+            repos_file: Some(base.join("repos/themes.json")),
             dir: base.join("session"),
             state_file: base.join("state/theme-session.json"),
             socket: base.join("run/theme.sock"),
@@ -767,6 +783,18 @@ mod tests {
         let outside = themes.iter().find(|t| t["id"] == "outside").unwrap();
         assert_eq!(outside["cycle"], false);
         assert_eq!(outside["accent"], "#c8102e");
+
+        // A repository turned on for the cycle brings its themes in, without a restart
+        fs::create_dir_all(base.join("repos")).unwrap();
+        fs::write(
+            base.join("repos/themes.json"),
+            r#"{"version": 1, "repos": [{"url": "https://example.org/t", "themes": ["outside"], "cycle": true}]}"#,
+        )
+        .unwrap();
+        let state = session.state();
+        let themes = state["themes"].as_array().unwrap();
+        let outside = themes.iter().find(|t| t["id"] == "outside").unwrap();
+        assert_eq!(outside["cycle"], true);
     }
 
     #[test]

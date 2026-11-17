@@ -57,6 +57,8 @@ Theme repositories (themes from outside, layout 1):
   repos add URL           Fetch, check and connect a repository (https:// or
                           owner/repo for GitHub), needs root
   repos remove REPO       Disconnect it (address or name) and remove its themes
+  repos cycle REPO on|off Let its themes take part in the session's change of
+                          gods (off when connected), needs root
   repos update [REPO]     Take the newest commit that passes, of every
                           repository or of one; a failing one keeps its commit
   repos check DIR         Check a checkout against layout 1 (for theme authors)
@@ -215,6 +217,8 @@ fn main() -> ExitCode {
         ["repos", "list", "--json"] => repos_list_json(&config),
         ["repos", "add", url] => repos_add(&config, url),
         ["repos", "remove", repo] => repos_remove(&config, repo),
+        ["repos", "cycle", repo, "on"] => repos_cycle(&config, repo, true),
+        ["repos", "cycle", repo, "off"] => repos_cycle(&config, repo, false),
         ["repos", "update"] => repos_update(&config, None),
         ["repos", "update", repo] => repos_update(&config, Some(repo)),
         ["repos", "check", dir] => repos_check(&config, Path::new(dir)),
@@ -921,6 +925,17 @@ fn repos_remove(config: &Config, text: &str) -> Result<bool, String> {
     Ok(true)
 }
 
+fn repos_cycle(config: &Config, text: &str, on: bool) -> Result<bool, String> {
+    let repo = with_updater(config, |up| up.set_cycle(text, on))?;
+    println!(
+        "The themes of {} {} the change of gods: {}",
+        repo.label(),
+        if on { "take part in" } else { "stay out of" },
+        repo.themes.join(", ")
+    );
+    Ok(true)
+}
+
 fn repos_update(config: &Config, only: Option<&str>) -> Result<bool, String> {
     let report = with_updater(config, |up| up.update(only))?;
     let mut ok = true;
@@ -987,6 +1002,7 @@ fn session_settings(config: &Config) -> Result<session::Settings, String> {
         selection_file: config.state_dir.as_ref().map(|d| d.join("selection")),
         default_theme: Config::require(&config.default_theme, "DEFAULT_THEME")?.clone(),
         cycle: builtin_ids(config)?,
+        repos_file: config.repos_file.clone(),
         dir: PathBuf::from(need("SESSION_DIR")?),
         state_file: PathBuf::from(need("SESSION_STATE")?),
         socket: PathBuf::from(need("SESSION_SOCKET")?),

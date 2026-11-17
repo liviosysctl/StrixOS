@@ -122,6 +122,7 @@ strix-theme repos list                             # address, commit, themes, la
 sudo strix-update --themes                         # fetch them all now and switch
 sudo strix-update --themes Lucifer                 # only one, by name or address
 sudo strix-theme repos remove Lucifer && sudo strix-rebuild switch
+sudo strix-theme repos cycle Lucifer on            # let its themes into the change of gods
 strix-theme repos check ./my-checkout              # for theme authors: the same rules on a checkout
 ```
 
@@ -129,7 +130,7 @@ strix-theme repos check ./my-checkout              # for theme authors: the same
 
 `strix-update` does this for every repository before it fetches the new release, and rebuilds when either changed. A theme repository never stops an update. The rebuild reads only the copies in `/etc/nixos`, so it needs no network for them, and a repository that disappears from the net keeps its themes. `lib.mkSystem` finds `themes.json` beside `apps.json`, so machines installed before it existed need no change.
 
-Connected themes appear in `strix-theme list` after the gods and switch like them. Their wallpaper travels in `tokens.json` as the theme folder (`dir`), the QML module of StrixUI shows it.
+Connecting, updating and removing is for administrators (Settings › Themes shows the buttons only to them). Connected themes appear in `strix-theme list` after the gods and switch like them; they stay out of the change of gods every 10 minutes until it is turned on for their repository. Their wallpaper travels in `tokens.json` as the theme folder (`dir`), the QML module of StrixUI shows it.
 
 ## Adding a theme without a repository
 

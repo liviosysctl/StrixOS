@@ -68,6 +68,9 @@ pub struct Repo {
     /// Why the newest commit was not taken, from the last update
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub problem: Option<String>,
+    /// Its themes take part in the session's cycle of gods; off until someone turns it on
+    #[serde(default)]
+    pub cycle: bool,
 }
 
 impl Repo {
@@ -699,8 +702,23 @@ impl Updater<'_> {
             rev: Some(rev),
             themes: checked.themes,
             problem: None,
+            cycle: false,
         };
         file.repos.push(repo.clone());
+        self.store.save(&file)?;
+        Ok(repo)
+    }
+
+    /// Lets the themes of a repository take part in the session's cycle, or not
+    pub fn set_cycle(&self, text: &str, on: bool) -> Result<Repo, String> {
+        let mut file = self.store.load()?;
+        let repo = file
+            .repos
+            .iter_mut()
+            .find(|r| r.matches(text, self.fetcher.allow_local))
+            .ok_or_else(|| format!("no connected repository is called \"{}\"", text.trim()))?;
+        repo.cycle = on;
+        let repo = repo.clone();
         self.store.save(&file)?;
         Ok(repo)
     }
