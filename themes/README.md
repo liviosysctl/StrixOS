@@ -108,10 +108,12 @@ Anyone can make themes for Strix: a theme repository is a Git repository with a 
 
 ```
 strix-themes.toml          # layout = 1, name, description, author
-themes/<id>/theme.toml     # this format
-themes/<id>/wallpaper.jpg  # JPEG, 2560 by 1440, at most 4 MiB
-themes/<id>/wallpaper.toml # caption, credit, licence ("public domain" or "CC0")
+themes/<id>/theme.toml     # this format, as much of it as the theme wants
+themes/<id>/wallpaper.jpg  # optional: JPEG, 2560 by 1440, at most 4 MiB
+themes/<id>/wallpaper.toml # with the picture: caption, credit, licence ("public domain" or "CC0")
 ```
+
+A theme from a repository may leave out anything below `format`, `name`, `description`, `default-variant` and its variant ids: every color, the terminal, a variant's name and appearance, and the picture. What it leaves out is the default theme's (Saturnus): `strix-theme complete` fills it in while the system is built, so the bar, the terminal and every other part always have a value. The checks run on the finished theme. The smallest theme is `[variants.dark.colors]` with `accent = "#984742"`.
 
 ```sh
 sudo strix-theme repos add someone/strix-theme-x   # owner/repo means GitHub; else an https:// address
@@ -123,7 +125,7 @@ sudo strix-theme repos remove Lucifer && sudo strix-rebuild switch
 strix-theme repos check ./my-checkout              # for theme authors: the same rules on a checkout
 ```
 
-`repos add` and `repos update` fetch the newest commit of the default branch (HTTPS only, one commit, no submodules, no LFS, at most 50 MiB) and check it: the layout, exactly the three files per theme and nothing else, the wallpaper, the licence, this format, and that no id is a god's or another repository's. Only a commit that passes is taken. Its themes are copied into `/etc/nixos/themes/<id>/` and the commit is written into `/etc/nixos/themes.json`. A repository whose newest commit fails keeps the one it has, and `repos list` says why.
+`repos add` and `repos update` fetch the newest commit of the default branch (HTTPS only, one commit, no submodules, no LFS, at most 50 MiB) and check it: the layout, at most the three files per theme and nothing else, the wallpaper and its licence if there is one, this format with the default theme filled in, and that no id is a god's or another repository's. Only a commit that passes is taken. Its themes are copied into `/etc/nixos/themes/<id>/` and the commit is written into `/etc/nixos/themes.json`. A repository whose newest commit fails keeps the one it has, and `repos list` says why.
 
 `strix-update` does this for every repository before it fetches the new release, and rebuilds when either changed. A theme repository never stops an update. The rebuild reads only the copies in `/etc/nixos`, so it needs no network for them, and a repository that disappears from the net keeps its themes. `lib.mkSystem` finds `themes.json` beside `apps.json`, so machines installed before it existed need no change.
 

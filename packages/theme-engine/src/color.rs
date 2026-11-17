@@ -42,65 +42,9 @@ impl Rgb {
         (light + 0.05) / (dark + 0.05)
     }
 
-    /// Mixes towards `other`: 0.0 gives self, 1.0 gives other. Per channel in sRGB.
-    pub fn mix(self, other: Rgb, amount: f64) -> Rgb {
-        let amount = amount.clamp(0.0, 1.0);
-        let channel = |from: u8, to: u8| -> u8 {
-            let value = f64::from(from) + (f64::from(to) - f64::from(from)) * amount;
-            // Between two u8 values, so always 0 to 255
-            #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-            {
-                value.round() as u8
-            }
-        };
-        Rgb::new(
-            channel(self.r, other.r),
-            channel(self.g, other.g),
-            channel(self.b, other.b),
-        )
-    }
-
     /// "#rrggbb", lowercase.
     pub fn hex(self) -> String {
         format!("#{:02x}{:02x}{:02x}", self.r, self.g, self.b)
-    }
-
-    /// "r;g;b" for true-color escape sequences.
-    pub fn sgr(self) -> String {
-        format!("{};{};{}", self.r, self.g, self.b)
-    }
-
-    fn distance(self, other: Rgb) -> u32 {
-        let d = |a: u8, b: u8| -> u32 {
-            let diff = i32::from(a) - i32::from(b);
-            (diff * diff).unsigned_abs()
-        };
-        d(self.r, other.r) + d(self.g, other.g) + d(self.b, other.b)
-    }
-
-    /// The closest color of the xterm 256-color palette, from its fixed part
-    /// (16 to 255). 0 to 15 are left out: every terminal defines them itself.
-    pub fn nearest_xterm256(self) -> u8 {
-        let mut best = (16u8, u32::MAX);
-        for index in 16..=255u8 {
-            let distance = self.distance(xterm256(index));
-            if distance < best.1 {
-                best = (index, distance);
-            }
-        }
-        best.0
-    }
-
-    /// Index of the closest color in a palette. Ties go to the lower index.
-    pub fn nearest_in(self, palette: &[Rgb]) -> usize {
-        let mut best = (0usize, u32::MAX);
-        for (index, color) in palette.iter().enumerate() {
-            let distance = self.distance(*color);
-            if distance < best.1 {
-                best = (index, distance);
-            }
-        }
-        best.0
     }
 }
 
@@ -138,26 +82,6 @@ impl Color {
             Some(alpha) => format!("{}{:02x}", self.rgb.hex(), alpha),
             None => self.rgb.hex(),
         }
-    }
-}
-
-/// The color of an xterm 256-color index from 16 to 255.
-pub fn xterm256(index: u8) -> Rgb {
-    const LEVELS: [u8; 6] = [0, 95, 135, 175, 215, 255];
-    match index {
-        16..=231 => {
-            let i = index - 16;
-            Rgb::new(
-                LEVELS[usize::from(i / 36)],
-                LEVELS[usize::from(i / 6 % 6)],
-                LEVELS[usize::from(i % 6)],
-            )
-        }
-        232..=255 => {
-            let level = 8 + (index - 232) * 10;
-            Rgb::new(level, level, level)
-        }
-        _ => panic!("xterm256 is only defined for 16 to 255, got {index}"),
     }
 }
 
@@ -243,50 +167,9 @@ mod tests {
     }
 
     #[test]
-    fn mixing() {
-        let accent = Rgb::new(200, 16, 46);
-        let black = Rgb::new(0, 0, 0);
-        assert_eq!(accent.mix(black, 0.0), accent);
-        assert_eq!(accent.mix(black, 1.0), black);
-        assert_eq!(accent.mix(black, 0.58), Rgb::new(84, 7, 19));
-        assert_eq!(accent.mix(black, 7.0), black);
-    }
-
-    #[test]
-    fn xterm_palette() {
-        assert_eq!(xterm256(16), Rgb::new(0, 0, 0));
-        assert_eq!(xterm256(160), Rgb::new(215, 0, 0));
-        assert_eq!(xterm256(52), Rgb::new(95, 0, 0));
-        assert_eq!(xterm256(231), Rgb::new(255, 255, 255));
-        assert_eq!(xterm256(232), Rgb::new(8, 8, 8));
-        assert_eq!(xterm256(244), Rgb::new(128, 128, 128));
-        assert_eq!(xterm256(255), Rgb::new(238, 238, 238));
-    }
-
-    #[test]
-    fn nearest_xterm_colors_match_the_installer() {
-        // The values the installer used before the theme engine
-        assert_eq!(Rgb::new(200, 16, 46).nearest_xterm256(), 160);
-        assert_eq!(Rgb::new(84, 7, 19).nearest_xterm256(), 52);
-        assert_eq!(Rgb::new(128, 128, 128).nearest_xterm256(), 244);
-    }
-
-    #[test]
-    fn nearest_in_palette() {
-        let palette = [
-            Rgb::new(0, 0, 0),
-            Rgb::new(200, 16, 46),
-            Rgb::new(255, 255, 255),
-        ];
-        assert_eq!(Rgb::new(190, 20, 40).nearest_in(&palette), 1);
-        assert_eq!(Rgb::new(10, 10, 10).nearest_in(&palette), 0);
-    }
-
-    #[test]
     fn formats() {
         let accent = Rgb::new(200, 16, 46);
         assert_eq!(accent.hex(), "#c8102e");
-        assert_eq!(accent.sgr(), "200;16;46");
         assert_eq!(accent.to_string(), "#c8102e");
     }
 }

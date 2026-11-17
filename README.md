@@ -67,7 +67,7 @@ These are renderings of the design from StrixUI; the shell in this repository is
 | `shell/greeter/` | The login screen in Quickshell, run by greetd in cage; it starts the same UWSM session. |
 | `shell/settings.toml` | The pages and rows of Settings as Search finds them. |
 | `shell/menu.toml` | The system menu of Search and every key of the cheat sheet; `strix-search bindings` makes the Hyprland keybindings from it. |
-| `lib/themes.nix` | Themes at build time: the checked themes folder, a Plymouth and a GRUB theme per variant, the installer's colors. |
+| `lib/themes.nix` | Themes at build time: the checked themes folder, a Plymouth and a GRUB theme per variant, the owl in every variant. |
 | `packages/plymouth-theme/` | Builds the Plymouth theme of one theme variant. |
 | `packages/grub-theme/` | Builds the GRUB theme of one theme variant: the god's wallpaper, wordmark and motto, the menu in the look of StrixUI. |
 | `templates/machine/` | Template for `/etc/nixos` that the installer fills in. |

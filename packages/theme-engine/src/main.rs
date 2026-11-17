@@ -5,6 +5,8 @@
 
 mod adapters;
 mod color;
+mod draw;
+mod owl;
 mod repos;
 mod session;
 mod system;
@@ -33,8 +35,21 @@ Build and boot:
   check DIR [--default THEME]
                           Check every theme in DIR, exit 1 on any problem
   render KIND THEME [--themes DIR]
-                          Print what an adapter needs: tokens, installer,
-                          plymouth, palette, hyprland, ghostty, btop
+                          Print what an adapter needs: tokens, plymouth,
+                          palette, hyprland, ghostty, btop, owl (SVG),
+                          owl-half and owl-closed (the frames of a blink)
+  complete DIR --base BASE [--wallpaper FILE]
+                          Fill in what the theme in DIR leaves out from the theme
+                          in BASE and write it back as a full theme.toml; without
+                          a wallpaper.jpg it gets FILE
+  draw grub OUT THEME --themes DIR --name NAME --motto TEXT --font-name FONT
+            [--wallpaper FILE]
+                          Write the pieces of a GRUB theme into OUT (background.svg
+                          for rsvg-convert, the box pieces, theme.txt)
+  draw plymouth OUT THEME --themes DIR --id ID --name NAME --script FILE
+                          Write the pieces of a Plymouth theme into OUT
+                          (wordmark.svg for rsvg-convert, accent.png, ID.script,
+                          ID.plymouth)
   boot-select             In the initrd: pick the boot splash of the stored theme
 
 Theme repositories (themes from outside, layout 1):
@@ -187,6 +202,13 @@ fn main() -> ExitCode {
         ["render", kind, selection] => render(&config, kind, selection, None),
         ["render", kind, selection, "--themes", dir] => {
             render(&config, kind, selection, Some(Path::new(dir)))
+        }
+        ["complete", dir, "--base", base] => complete(Path::new(dir), Path::new(base), None),
+        ["complete", dir, "--base", base, "--wallpaper", picture] => {
+            complete(Path::new(dir), Path::new(base), Some(Path::new(picture)))
+        }
+        ["draw", kind, out, selection, flags @ ..] => {
+            draw_files(kind, Path::new(out), selection, flags)
         }
         ["boot-select"] => boot_select(&config),
         ["repos", "list"] => repos_list(&config),
@@ -609,6 +631,50 @@ fn check(dir: &Path, default: Option<&str>) -> Result<bool, String> {
     Ok(ok)
 }
 
+/// draw grub|plymouth: the boot pictures of a variant, as files in a folder
+fn draw_files(kind: &str, out: &Path, selection: &str, flags: &[&str]) -> Result<bool, String> {
+    let mut values = std::collections::BTreeMap::new();
+    let mut rest = flags.iter();
+    while let Some(flag) = rest.next() {
+        let name = flag
+            .strip_prefix("--")
+            .ok_or_else(|| format!("expected an option, got \"{flag}\""))?;
+        let value = rest
+            .next()
+            .ok_or_else(|| format!("--{name} needs a value"))?;
+        values.insert(name, *value);
+    }
+    let need = |name: &str| -> Result<&str, String> {
+        values
+            .get(name)
+            .copied()
+            .ok_or_else(|| format!("draw {kind} needs --{name}"))
+    };
+    let catalog = Catalog::load(Path::new(need("themes")?))?;
+    let (theme, variant) = catalog.resolve(&Selection::parse(selection)?)?;
+    let known: &[&str] = match kind {
+        "grub" => &["themes", "name", "motto", "font-name", "wallpaper"],
+        "plymouth" => &["themes", "id", "name", "script"],
+        other => return Err(format!("unknown kind \"{other}\" (known: grub, plymouth)")),
+    };
+    if let Some(extra) = values.keys().find(|k| !known.contains(k)) {
+        return Err(format!("draw {kind} does not take --{extra}"));
+    }
+    if kind == "grub" {
+        let options = draw::Grub {
+            name: need("name")?,
+            motto: need("motto")?,
+            font_name: need("font-name")?,
+            wallpaper: values.get("wallpaper").map(Path::new),
+        };
+        draw::grub(out, theme, variant, &options)?;
+    } else {
+        let script = fs::read_to_string(need("script")?).map_err(|e| e.to_string())?;
+        draw::plymouth(out, variant, need("id")?, need("name")?, &script)?;
+    }
+    Ok(true)
+}
+
 fn render(config: &Config, kind: &str, text: &str, themes: Option<&Path>) -> Result<bool, String> {
     let catalog = match themes {
         Some(dir) => Catalog::load(dir)?,
@@ -621,15 +687,27 @@ fn render(config: &Config, kind: &str, text: &str, themes: Option<&Path>) -> Res
                 .map_err(|e| e.to_string())?
                 + "\n"
         }
-        "installer" => adapters::installer(theme, variant),
         "plymouth" => adapters::plymouth_colors(variant),
         "palette" => adapters::palette_lines(variant).join("\n") + "\n",
         "hyprland" => adapters::hyprland(theme, variant),
         "ghostty" => adapters::ghostty(theme, variant),
         "btop" => adapters::btop(theme, variant),
+        // The owl in the accent, its lines in the terminal's background; the two frames of a blink
+        "owl" | "owl-half" | "owl-closed" => {
+            let lid = match kind {
+                "owl-half" => 0.55,
+                "owl-closed" => 1.0,
+                _ => 0.0,
+            };
+            owl::svg(
+                &variant.color("accent").hex(),
+                &variant.terminal.background.hex(),
+                lid,
+            )
+        }
         other => {
             return Err(format!(
-                "unknown kind \"{other}\" (known: tokens, installer, plymouth, palette, hyprland, ghostty, btop)"
+                "unknown kind \"{other}\" (known: tokens, plymouth, palette, hyprland, ghostty, btop, owl, owl-half, owl-closed)"
             ));
         }
     };
@@ -710,6 +788,52 @@ fn builtin_ids(config: &Config) -> Result<Vec<String>, String> {
         .collect())
 }
 
+/// The default theme of the distribution (DEFAULT_THEME in BUILTIN_THEMES): what a theme from
+/// outside leaves out comes from it. None when either is not set.
+fn base_theme(config: &Config) -> Result<Option<theme::Theme>, String> {
+    let (Some(dir), Some(default)) = (&config.builtin_themes, &config.default_theme) else {
+        return Ok(None);
+    };
+    let id = Selection::parse(default)?.theme;
+    // A machine may start with a theme from outside; then there is nothing to fill in from
+    if !dir.join(&id).is_dir() {
+        return Ok(None);
+    }
+    theme::load(&dir.join(&id))
+        .map(Some)
+        .map_err(|e| format!("the default theme {id} has errors: {}", e.join("; ")))
+}
+
+/// complete: a theme from outside with everything it leaves out taken from the default theme,
+/// written back as a full theme.toml; without a picture it gets the default theme's
+fn complete(dir: &Path, base_dir: &Path, wallpaper: Option<&Path>) -> Result<bool, String> {
+    let base = theme::load(base_dir).map_err(|e| {
+        format!(
+            "the base theme {} has errors: {}",
+            base_dir.display(),
+            e.join("; ")
+        )
+    })?;
+    let theme = theme::load_with(dir, Some(&base)).map_err(|e| e.join("\n"))?;
+    let note = format!(
+        "Completed by the theme engine: every value the theme leaves out is the one of {}.",
+        base.id
+    );
+    system::write_atomic(
+        &dir.join("theme.toml"),
+        theme::to_toml(&theme, &note).as_bytes(),
+        0o644,
+    )
+    .map_err(|e| format!("cannot write {}: {e}", dir.join("theme.toml").display()))?;
+    if let Some(picture) = wallpaper
+        && !dir.join("wallpaper.jpg").exists()
+    {
+        fs::copy(picture, dir.join("wallpaper.jpg"))
+            .map_err(|e| format!("cannot copy {}: {e}", picture.display()))?;
+    }
+    Ok(true)
+}
+
 /// Runs `work` with everything an update needs, under the lock of STATE_DIR
 fn with_updater<T>(
     config: &Config,
@@ -733,10 +857,12 @@ fn with_updater<T>(
         .clone()
         .map(|dir| dir.join("fetch"))
         .unwrap_or_else(|| env::temp_dir().join("theme-repos"));
+    let base = base_theme(config)?;
     let updater = repos::Updater {
         store: &store,
         fetcher: &fetcher,
         builtin: &builtin,
+        base: base.as_ref(),
         scratch: &scratch,
     };
     work(&updater)
@@ -823,7 +949,13 @@ fn repos_check(config: &Config, dir: &Path) -> Result<bool, String> {
             Vec::new()
         }
     };
-    match repos::check(dir, &builtin, &[]) {
+    let base = base_theme(config)?;
+    if base.is_none() {
+        eprintln!(
+            "note: DEFAULT_THEME or BUILTIN_THEMES is not set, a theme has to bring every value itself"
+        );
+    }
+    match repos::check(dir, &builtin, &[], base.as_ref()) {
         Ok(checked) => {
             println!("ok      {}: {}", checked.name, checked.themes.join(", "));
             Ok(true)

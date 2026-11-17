@@ -1,6 +1,6 @@
 # Themes at build time: the theme engine, the checked themes folder, every
-# variant and what is built from them (Plymouth themes, installer colors).
-# Used by modules/theme.nix and by the flake (installer, checks).
+# variant and what is built from them (Plymouth and GRUB themes, the owl).
+# Used by modules/theme.nix and by the flake (checks).
 {
   pkgs,
   # The folder with the themes of the distribution, one folder per theme
@@ -66,6 +66,10 @@ let
   plymouthPrefix = "${branding.id}-";
   plymouthName = theme: variant: "${plymouthPrefix}${theme}-${variant}";
 
+  # The theme of the distribution that fills in what a theme from outside leaves out: its
+  # colors, its terminal and, without a picture of its own, its engraving
+  base = builtins.head (lib.splitString ":" (import ../themes/default.nix));
+
   # The themes folder the system uses. Building it fails on any problem in
   # any theme, or if the default does not exist.
   dir = pkgs.runCommand "${branding.id}-themes" { } ''
@@ -75,6 +79,11 @@ let
         cp -r ${path} $out/${themeId}
         chmod -R u+w $out/${themeId}
       '') sources
+    )}
+    ${lib.concatStrings (
+      lib.mapAttrsToList (themeId: _: ''
+        ${exe} complete $out/${themeId} --base $out/${base} --wallpaper ${strixui}/src/wallpapers/${base}.jpg
+      '') extraThemes
     )}
     ${exe} check $out --default ${lib.escapeShellArg default}
   '';
@@ -126,10 +135,6 @@ let
     themes = dir;
   };
 
-  # Colors for the console installer on the ISO, from the default theme
-  installer = pkgs.runCommand "${branding.id}-installer-theme" { } ''
-    ${exe} render installer ${lib.escapeShellArg default} --themes ${dir} > $out
-  '';
 in
 {
   inherit
@@ -146,6 +151,5 @@ in
     grubThemes
     grubTheme
     logos
-    installer
     ;
 }

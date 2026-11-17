@@ -1,6 +1,14 @@
 # A Plymouth theme for one theme variant: the owl, the distro name as
-# wordmark, the colors from the theme engine.
-{ lib, runCommand, python3, inter }:
+# wordmark, the colors from the theme engine. The engine writes the pieces
+# (draw plymouth), rsvg-convert draws the wordmark in Inter ExtraBold.
+{
+  lib,
+  runCommand,
+  imagemagick,
+  inter,
+  librsvg,
+  makeFontsConf,
+}:
 
 {
   # Name of the Plymouth theme, e.g. strix-chamber-dark
@@ -16,19 +24,23 @@
 
 let
   branding = import ../../branding.nix;
-  python = python3.withPackages (ps: [ ps.pillow ]);
 in
-runCommand name { } ''
-  # Background, text and accent as rrggbb. An assignment fails the build if the engine fails.
-  colors=$(${lib.getExe engine} render plymouth ${lib.escapeShellArg selection} --themes ${themes})
-  read -r background foreground accent <<<"$colors"
-  ${lib.getExe python} ${./render.py} \
-    $out/share/plymouth/themes/${name} \
-    ${lib.escapeShellArgs [ name branding.name ]} \
-    ${inter}/share/fonts/truetype/InterVariable.ttf \
-    "$background" "$foreground" "$accent" \
-    ${./theme.script}
-  for frame in "" -half -closed; do
-    cp "${owl}$frame.png" "$out/share/plymouth/themes/${name}/owl$frame.png"
-  done
-''
+runCommand name
+  {
+    nativeBuildInputs = [
+      imagemagick
+      librsvg
+    ];
+    FONTCONFIG_FILE = makeFontsConf { fontDirectories = [ inter ]; };
+  }
+  ''
+    dir=$out/share/plymouth/themes/${name}
+    ${lib.getExe engine} draw plymouth $dir ${lib.escapeShellArg selection} --themes ${themes} \
+      --id ${name} --name ${lib.escapeShellArg branding.name} --script ${./theme.script}
+    # Cut to the letters: the script scales the wordmark by its height
+    rsvg-convert $dir/wordmark.svg | magick png:- -trim +repage PNG32:$dir/wordmark.png
+    rm $dir/wordmark.svg
+    for frame in "" -half -closed; do
+      cp "${owl}$frame.png" "$dir/owl$frame.png"
+    done
+  ''

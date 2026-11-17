@@ -7,13 +7,13 @@
 //! that commit are copied into `themes/` next to the file, so a rebuild needs
 //! no network and a repository that disappears cannot break it.
 //!
-//! An update fetches the newest commit of every repository, checks it with the
-//! same rules as the template's `check.py` plus the engine's own check, and only
-//! then takes it. A repository that fails keeps its commit and gets a problem
+//! An update fetches the newest commit of every repository, checks it (the
+//! layout, the picture and its credits, the themes with the default theme
+//! filling in what they leave out), and only then takes it. A repository that fails keeps its commit and gets a problem
 //! line instead, so a broken theme never stops an update.
 
 use crate::system;
-use crate::theme;
+use crate::theme::{self, Theme};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::fs;
@@ -419,10 +419,13 @@ pub struct Checked {
 /// Checks a checkout against layout 1. `builtin` are the ids of the themes of
 /// the distribution, `taken` the ids other connected repositories use, with
 /// their names. Returns every problem, not just the first.
+/// `base` is the default theme of the distribution: what a theme leaves out comes from it, the
+/// wallpaper included, so a theme may be no more than a name and an accent.
 pub fn check(
     root: &Path,
     builtin: &[String],
     taken: &[(String, String)],
+    base: Option<&Theme>,
 ) -> Result<Checked, Vec<String>> {
     let mut fails = Vec::new();
     let marker = root.join("strix-themes.toml");
@@ -499,9 +502,14 @@ pub fn check(
                     .collect()
             })
             .unwrap_or_default();
+        // theme.toml always; the picture and its credits together or not at all
+        let picture = files.contains("wallpaper.jpg") || files.contains("wallpaper.toml");
         for need in THEME_FILES {
+            let needed = need == "theme.toml" || picture;
             if !files.contains(need) {
-                fails.push(format!("{at}: {need} is missing"));
+                if needed {
+                    fails.push(format!("{at}: {need} is missing"));
+                }
             } else if let Err(e) = regular(&folder.join(need)) {
                 fails.push(format!("{at}/{need}: {e}"));
             }
@@ -532,7 +540,7 @@ pub fn check(
         }
         if files.contains("theme.toml")
             && regular(&folder.join("theme.toml")).is_ok()
-            && let Err(errors) = theme::load(&folder)
+            && let Err(errors) = theme::load_with(&folder, base)
         {
             fails.extend(errors.into_iter().map(|e| format!("{at}/theme.toml: {e}")));
         }
@@ -640,6 +648,8 @@ pub struct Updater<'a> {
     pub store: &'a Store,
     pub fetcher: &'a Fetcher,
     pub builtin: &'a [String],
+    /// The default theme, which fills in what a theme leaves out
+    pub base: Option<&'a Theme>,
     pub scratch: &'a Path,
 }
 
@@ -658,8 +668,8 @@ impl Updater<'_> {
             )
         })?;
         let rev = self.fetcher.fetch(url, &scratch.checkout())?;
-        let checked =
-            check(&scratch.checkout(), self.builtin, others).map_err(|fails| fails.join("; "))?;
+        let checked = check(&scratch.checkout(), self.builtin, others, self.base)
+            .map_err(|fails| fails.join("; "))?;
         Ok((rev, checked, scratch))
     }
 
@@ -917,15 +927,47 @@ mod tests {
         repo(&dir, &["lucifer", "ember"]);
         fs::write(dir.join("themes/.gitkeep"), "").unwrap();
         fs::write(dir.join("README.md"), "hi").unwrap();
-        let checked = check(&dir, &builtin(), &[]).unwrap();
+        let checked = check(&dir, &builtin(), &[], None).unwrap();
         assert_eq!(checked.name, "Test themes");
         assert_eq!(checked.themes, ["ember", "lucifer"]);
     }
 
     #[test]
+    fn a_theme_may_bring_only_an_accent() {
+        let dir = scratch("partial");
+        repo(&dir, &["ember"]);
+        let at = dir.join("themes/ember");
+        fs::remove_file(at.join("wallpaper.jpg")).unwrap();
+        fs::remove_file(at.join("wallpaper.toml")).unwrap();
+        fs::write(
+            at.join("theme.toml"),
+            "format = 1\nname = \"Ember\"\ndescription = \"x\"\ndefault-variant = \"dark\"\n[variants.dark.colors]\naccent = \"#984742\"\n",
+        )
+        .unwrap();
+        // Without the default theme it lacks everything else
+        assert!(check(&dir, &builtin(), &[], None).is_err());
+        let base = crate::theme::tests::good();
+        assert_eq!(
+            check(&dir, &builtin(), &[], Some(&base)).unwrap().themes,
+            ["ember"]
+        );
+        // A picture without its credits is still refused
+        fs::write(at.join("wallpaper.jpg"), jpeg(2560, 1440)).unwrap();
+        let fails = check(&dir, &builtin(), &[], Some(&base)).unwrap_err();
+        assert!(
+            fails
+                .iter()
+                .any(|f| f.contains("wallpaper.toml is missing")),
+            "{fails:?}"
+        );
+    }
+
+    #[test]
     fn every_rule_is_checked() {
         let dir = scratch("bad");
-        assert!(check(&dir, &[], &[]).unwrap_err()[0].contains("strix-themes.toml is missing"));
+        assert!(
+            check(&dir, &[], &[], None).unwrap_err()[0].contains("strix-themes.toml is missing")
+        );
 
         fs::write(dir.join("strix-themes.toml"), "layout = 2\nname = \"\"\n").unwrap();
         theme(&dir, "janus");
@@ -950,7 +992,7 @@ mod tests {
         std::os::unix::fs::symlink("/etc/passwd", dir.join("themes/link/wallpaper.toml")).unwrap();
         fs::write(dir.join("themes/loose.toml"), "").unwrap();
 
-        let fails = check(&dir, &builtin(), &[("taken".into(), "Other".into())]).unwrap_err();
+        let fails = check(&dir, &builtin(), &[("taken".into(), "Other".into())], None).unwrap_err();
         let has = |text: &str| fails.iter().any(|f| f.contains(text));
         assert!(has("layout must be 1"), "{fails:?}");
         assert!(has("name is missing"));
@@ -979,7 +1021,7 @@ mod tests {
         let mut data = jpeg(2560, 1440);
         data.resize(MAX_WALLPAPER as usize + 1, 0);
         fs::write(dir.join("themes/huge/wallpaper.jpg"), data).unwrap();
-        let fails = check(&dir, &[], &[]).unwrap_err();
+        let fails = check(&dir, &[], &[], None).unwrap_err();
         assert!(fails[0].contains("larger than 4 MiB"), "{fails:?}");
     }
 
@@ -1000,6 +1042,7 @@ mod tests {
             store: &store,
             fetcher: &fetcher,
             builtin: &builtin,
+            base: None,
             scratch: &tmp,
         };
         let url = origin.to_string_lossy().into_owned();
@@ -1092,6 +1135,7 @@ mod tests {
             store: &store,
             fetcher: &fetcher,
             builtin: &builtin,
+            base: None,
             scratch: &tmp,
         };
         let error = up.add(&origin.to_string_lossy()).unwrap_err();
@@ -1115,6 +1159,7 @@ mod tests {
             store: &store,
             fetcher: &fetcher,
             builtin: &builtin,
+            base: None,
             scratch: &tmp,
         };
         up.add(&first.to_string_lossy()).unwrap();
@@ -1136,6 +1181,7 @@ mod tests {
             store: &store,
             fetcher: &fetcher,
             builtin: &builtin,
+            base: None,
             scratch: &tmp,
         };
         assert!(
@@ -1164,6 +1210,7 @@ mod tests {
             store: &store,
             fetcher: &fetcher,
             builtin: &builtin,
+            base: None,
             scratch: &tmp,
         };
         assert!(up.update(None).unwrap().is_empty());

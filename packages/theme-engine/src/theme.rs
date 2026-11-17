@@ -145,43 +145,47 @@ struct RawTheme {
     variants: BTreeMap<String, RawVariant>,
 }
 
+// A theme from outside may leave out anything below a variant's id: the base theme (the default
+// theme of the distribution) fills it in, see `parse_with`. Without a base every field is needed.
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct RawVariant {
-    name: String,
-    appearance: String,
+    name: Option<String>,
+    appearance: Option<String>,
     // Extra colors are allowed, so no struct here
+    #[serde(default)]
     colors: BTreeMap<String, String>,
+    #[serde(default)]
     terminal: RawTerminal,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 struct RawTerminal {
-    background: String,
-    foreground: String,
-    cursor: String,
-    selection: String,
-    black: String,
-    red: String,
-    green: String,
-    yellow: String,
-    blue: String,
-    magenta: String,
-    cyan: String,
-    white: String,
-    bright_black: String,
-    bright_red: String,
-    bright_green: String,
-    bright_yellow: String,
-    bright_blue: String,
-    bright_magenta: String,
-    bright_cyan: String,
-    bright_white: String,
+    background: Option<String>,
+    foreground: Option<String>,
+    cursor: Option<String>,
+    selection: Option<String>,
+    black: Option<String>,
+    red: Option<String>,
+    green: Option<String>,
+    yellow: Option<String>,
+    blue: Option<String>,
+    magenta: Option<String>,
+    cyan: Option<String>,
+    white: Option<String>,
+    bright_black: Option<String>,
+    bright_red: Option<String>,
+    bright_green: Option<String>,
+    bright_yellow: Option<String>,
+    bright_blue: Option<String>,
+    bright_magenta: Option<String>,
+    bright_cyan: Option<String>,
+    bright_white: Option<String>,
 }
 
 impl RawTerminal {
-    fn palette(&self) -> [&str; 16] {
+    fn palette(&self) -> [&Option<String>; 16] {
         [
             &self.black,
             &self.red,
@@ -238,7 +242,20 @@ fn check_text(errors: &mut Vec<String>, field: &str, text: &str, max: usize) {
 
 /// Reads and checks a theme from text. `id` is the folder name.
 /// Returns every problem found, not just the first.
+#[cfg(test)]
 pub fn parse(id: &str, text: &str, dir: &Path) -> Result<Theme, Vec<String>> {
+    parse_with(id, text, dir, None)
+}
+
+/// As `parse`, but whatever a variant leaves out (its name, appearance, any color, any terminal
+/// color) is taken from `base`: from its variant of the same id, else its default variant. The
+/// checks run on the result, so a theme that only brings its accent still has to fit with the rest.
+pub fn parse_with(
+    id: &str,
+    text: &str,
+    dir: &Path,
+    base: Option<&Theme>,
+) -> Result<Theme, Vec<String>> {
     let mut errors = Vec::new();
     if !valid_id(id) {
         errors.push(format!(
@@ -298,7 +315,11 @@ pub fn parse(id: &str, text: &str, dir: &Path) -> Result<Theme, Vec<String>> {
 
     let mut variants = BTreeMap::new();
     for (variant_id, raw_variant) in &raw.variants {
-        match parse_variant(variant_id, raw_variant) {
+        let from = base.and_then(|b| {
+            b.variant(variant_id)
+                .or_else(|| b.variant(&b.default_variant))
+        });
+        match parse_variant(variant_id, raw_variant, from) {
             Ok(variant) => {
                 variants.insert(variant_id.clone(), variant);
             }
@@ -326,22 +347,41 @@ pub fn parse(id: &str, text: &str, dir: &Path) -> Result<Theme, Vec<String>> {
     }
 }
 
-fn parse_variant(id: &str, raw: &RawVariant) -> Result<Variant, Vec<String>> {
+fn parse_variant(
+    id: &str,
+    raw: &RawVariant,
+    base: Option<&Variant>,
+) -> Result<Variant, Vec<String>> {
     let mut errors = Vec::new();
     if !valid_id(id) {
         errors.push(format!(
             "\"{id}\" is not a valid variant id (lowercase letters, digits and single hyphens, starting with a letter, at most 32 characters)"
         ));
     }
-    check_text(&mut errors, "name", &raw.name, 40);
+    let name = match (&raw.name, base) {
+        (Some(name), _) => name.clone(),
+        (None, Some(base)) => base.name.clone(),
+        (None, None) => {
+            errors.push("name is missing".to_string());
+            String::new()
+        }
+    };
+    if raw.name.is_some() {
+        check_text(&mut errors, "name", &name, 40);
+    }
 
-    let appearance = match raw.appearance.as_str() {
-        "light" => Some(Appearance::Light),
-        "dark" => Some(Appearance::Dark),
-        other => {
+    let appearance = match (raw.appearance.as_deref(), base) {
+        (Some("light"), _) => Some(Appearance::Light),
+        (Some("dark"), _) => Some(Appearance::Dark),
+        (Some(other), _) => {
             errors.push(format!(
                 "appearance is \"{other}\", it must be \"light\" or \"dark\""
             ));
+            None
+        }
+        (None, Some(base)) => Some(base.appearance),
+        (None, None) => {
+            errors.push("appearance is missing".to_string());
             None
         }
     };
@@ -367,13 +407,20 @@ fn parse_variant(id: &str, raw: &RawVariant) -> Result<Variant, Vec<String>> {
             Err(message) => errors.push(format!("colors.{name}: {message}")),
         }
     }
+    // The base's colors for every one the theme does not set, extras included, so the shell
+    // draws nothing in a color the theme forgot
+    if let Some(base) = base {
+        for (name, color) in &base.colors {
+            colors.entry(name.clone()).or_insert(*color);
+        }
+    }
     for name in REQUIRED_COLORS {
-        if !raw.colors.contains_key(name) {
+        if !colors.contains_key(name) && !raw.colors.contains_key(name) {
             errors.push(format!("colors.{name} is missing"));
         }
     }
 
-    let terminal = parse_terminal(&raw.terminal, &mut errors);
+    let terminal = parse_terminal(&raw.terminal, base.map(|b| &b.terminal), &mut errors);
 
     // Every rule runs as soon as its colors could be read, so one check shows
     // all problems at once
@@ -410,7 +457,7 @@ fn parse_variant(id: &str, raw: &RawVariant) -> Result<Variant, Vec<String>> {
     match (errors.is_empty(), appearance, terminal) {
         (true, Some(appearance), Some(terminal)) => Ok(Variant {
             id: id.to_string(),
-            name: raw.name.clone(),
+            name,
             appearance,
             colors,
             terminal,
@@ -419,8 +466,19 @@ fn parse_variant(id: &str, raw: &RawVariant) -> Result<Variant, Vec<String>> {
     }
 }
 
-fn parse_terminal(raw: &RawTerminal, errors: &mut Vec<String>) -> Option<Terminal> {
-    let mut opaque = |field: &str, value: &str| -> Option<Rgb> {
+fn parse_terminal(
+    raw: &RawTerminal,
+    base: Option<&Terminal>,
+    errors: &mut Vec<String>,
+) -> Option<Terminal> {
+    let base_palette = base.map(|b| b.palette);
+    let mut opaque = |field: &str, value: &Option<String>, from: Option<Rgb>| -> Option<Rgb> {
+        let Some(value) = value else {
+            if from.is_none() {
+                errors.push(format!("terminal.{field} is missing"));
+            }
+            return from;
+        };
         match Color::parse(value) {
             Ok(Color { rgb, alpha: None }) => Some(rgb),
             Ok(_) => {
@@ -435,15 +493,15 @@ fn parse_terminal(raw: &RawTerminal, errors: &mut Vec<String>) -> Option<Termina
             }
         }
     };
-    let background = opaque("background", &raw.background);
-    let foreground = opaque("foreground", &raw.foreground);
-    let cursor = opaque("cursor", &raw.cursor);
-    let selection = opaque("selection", &raw.selection);
+    let background = opaque("background", &raw.background, base.map(|b| b.background));
+    let foreground = opaque("foreground", &raw.foreground, base.map(|b| b.foreground));
+    let cursor = opaque("cursor", &raw.cursor, base.map(|b| b.cursor));
+    let selection = opaque("selection", &raw.selection, base.map(|b| b.selection));
     let palette: Vec<Option<Rgb>> = raw
         .palette()
         .iter()
         .enumerate()
-        .map(|(index, value)| opaque(PALETTE_NAMES[index], value))
+        .map(|(index, value)| opaque(PALETTE_NAMES[index], value, base_palette.map(|p| p[index])))
         .collect();
 
     if let (Some(background), Some(foreground)) = (background, foreground) {
@@ -467,6 +525,11 @@ fn parse_terminal(raw: &RawTerminal, errors: &mut Vec<String>) -> Option<Termina
 
 /// Reads one theme folder.
 pub fn load(dir: &Path) -> Result<Theme, Vec<String>> {
+    load_with(dir, None)
+}
+
+/// Reads one theme folder, with what it leaves out taken from `base` (see `parse_with`).
+pub fn load_with(dir: &Path, base: Option<&Theme>) -> Result<Theme, Vec<String>> {
     let id = dir
         .file_name()
         .and_then(|name| name.to_str())
@@ -475,7 +538,46 @@ pub fn load(dir: &Path) -> Result<Theme, Vec<String>> {
     let file = dir.join("theme.toml");
     let text = fs::read_to_string(&file)
         .map_err(|error| vec![format!("cannot read {}: {error}", file.display())])?;
-    parse(&id, &text, dir)
+    parse_with(&id, &text, dir, base)
+}
+
+/// A theme as theme.toml, every value written out
+pub fn to_toml(theme: &Theme, note: &str) -> String {
+    let quote = |text: &str| toml::Value::String(text.to_string()).to_string();
+    let mut out = String::new();
+    for line in note.lines() {
+        out.push_str(&format!("# {line}\n"));
+    }
+    out.push_str(&format!(
+        "format = {FORMAT}\nname = {}\ndescription = {}\ndefault-variant = {}\n",
+        quote(&theme.name),
+        quote(&theme.description),
+        quote(&theme.default_variant)
+    ));
+    for (id, variant) in &theme.variants {
+        out.push_str(&format!(
+            "\n[variants.{id}]\nname = {}\nappearance = {}\n\n[variants.{id}.colors]\n",
+            quote(&variant.name),
+            quote(variant.appearance.as_str())
+        ));
+        for (name, color) in &variant.colors {
+            out.push_str(&format!("{name} = \"{}\"\n", color.hex()));
+        }
+        let t = &variant.terminal;
+        out.push_str(&format!("\n[variants.{id}.terminal]\n"));
+        for (name, color) in [
+            ("background", t.background),
+            ("foreground", t.foreground),
+            ("cursor", t.cursor),
+            ("selection", t.selection),
+        ]
+        .into_iter()
+        .chain(PALETTE_NAMES.iter().copied().zip(t.palette))
+        {
+            out.push_str(&format!("{name} = \"{}\"\n", color.hex()));
+        }
+    }
+    out
 }
 
 /// The result of reading a themes folder: the good themes and, per broken
@@ -655,6 +757,67 @@ bright-magenta = "#e07ac0"
 bright-cyan = "#5fd7d0"
 bright-white = "#ffffff"
 "##;
+
+    #[test]
+    fn a_theme_from_outside_takes_what_it_leaves_out_from_the_base() {
+        let base = good();
+        let partial = r##"
+format = 1
+name = "Ember"
+description = "Only an accent."
+default-variant = "dark"
+
+[variants.dark.colors]
+accent = "#984742"
+"##;
+        // Alone it is not a theme
+        let errors = parse("ember", partial, Path::new("/x")).unwrap_err();
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("colors.background is missing")),
+            "{errors:?}"
+        );
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("terminal.cursor is missing")),
+            "{errors:?}"
+        );
+
+        let theme = parse_with("ember", partial, Path::new("/x"), Some(&base)).unwrap();
+        let dark = &theme.variants["dark"];
+        assert_eq!(dark.color("accent").hex(), "#984742");
+        assert_eq!(dark.color("background").hex(), "#000000");
+        assert_eq!(dark.colors["shade"].hex(), "#00000080");
+        assert_eq!(dark.name, "Dark");
+        assert_eq!(dark.terminal.cursor.hex(), "#c8102e");
+
+        // Written out it reads again, without the base, to the same theme
+        let text = to_toml(&theme, "Completed.");
+        assert!(text.starts_with("# Completed.\n"));
+        let again = parse("ember", &text, Path::new("/x")).unwrap();
+        assert_eq!(again.variants["dark"].colors.len(), dark.colors.len());
+        assert_eq!(
+            again.variants["dark"].terminal.palette[1].hex(),
+            dark.terminal.palette[1].hex()
+        );
+        assert_eq!(again.name, "Ember");
+    }
+
+    #[test]
+    fn the_rules_still_apply_after_filling_in() {
+        let base = good();
+        // White text on the base's black stays fine, a black accent under white on-accent does not
+        let bad = "format = 1\nname = \"Dim\"\ndescription = \"x\"\ndefault-variant = \"dark\"\n[variants.dark.colors]\naccent = \"#eeeeee\"\n";
+        let errors = parse_with("dim", bad, Path::new("/x"), Some(&base)).unwrap_err();
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("on-accent on colors.accent")),
+            "{errors:?}"
+        );
+    }
 
     pub fn good() -> Theme {
         parse("test", GOOD, Path::new("/themes/test")).expect("the good theme parses")
