@@ -13,6 +13,7 @@
     ./ui.nix
     ./desktop.nix
     ./tools.nix
+    ./fastfetch.nix
     ./apps.nix
     ./store.nix
     ./secure-boot.nix
