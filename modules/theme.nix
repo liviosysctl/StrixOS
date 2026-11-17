@@ -226,6 +226,19 @@ in
       readOnly = true;
       description = "The GRUB theme of the default theme (the ISO's boot menu).";
     };
+
+    logos = lib.mkOption {
+      type = lib.types.package;
+      readOnly = true;
+      description = "The owl in the colors of every variant, as <theme>-<variant>.png (fastfetch).";
+    };
+
+    defaultLook = lib.mkOption {
+      type = lib.types.attrs;
+      readOnly = true;
+      internal = true;
+      description = "The default theme as { theme, variant, colors } for what cannot ask the engine.";
+    };
   };
 
   config = lib.mkIf cfg.enable (
@@ -241,6 +254,11 @@ in
         ${branding.id}.theme = {
           package = command;
           grubTheme = themes.grubTheme defaultSelection;
+          logos = themes.logos;
+          defaultLook = lib.optionalAttrs (resolved.error == null) {
+            inherit (resolved) theme variant;
+            inherit (themes.data.${resolved.theme}.variants.${resolved.variant}) colors;
+          };
         };
         environment.systemPackages = [ command ];
         system.build.themes = themes.dir;

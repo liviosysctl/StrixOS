@@ -1,12 +1,42 @@
 # fastfetch with the owl of the distro, for every user (/etc/xdg/fastfetch/config.jsonc).
-# The logo is the full owl as an image: white eyes, pupils in the accent colour of the god.
-# Ghostty shows it through the kitty image protocol. Next to it three framed sections,
-# Software, Hardware and Status, with the values as "Label :: value".
-{ lib, pkgs, ... }:
+# The logo is the full owl as an image, the frames' titles in the accent: both follow the theme.
+# `fastfetch` is a wrapper that reads the current theme from tokens.json (the session's, else the
+# machine's) and passes its owl and accent; without one it shows the default theme. Ghostty shows
+# the image through the kitty image protocol. Whoever has an own fastfetch config gets it as is.
+{ config, lib, pkgs, ... }:
 
 let
   branding = import ../branding.nix;
-  owl = "/etc/xdg/${branding.id}/fastfetch/owl.png";
+  id = branding.id;
+  theme = config.${id}.theme;
+  look = theme.defaultLook;
+  accent = look.colors.accent or "red";
+  logos = theme.logos;
+
+  real = lib.getExe pkgs.fastfetch;
+  wrapper = pkgs.writeShellScriptBin "fastfetch" ''
+    own="''${XDG_CONFIG_HOME:-$HOME/.config}/fastfetch"
+    if [ -e "$own/config.jsonc" ] || [ -e "$own/config.json" ]; then
+      exec ${real} "$@"
+    fi
+    args=()
+    # Ghostty and kitty read the owl straight from its file, the console of the kernel shows none
+    case "''${TERM:-}" in
+      xterm-ghostty | xterm-kitty) args+=(--logo-type kitty-direct) ;;
+      linux | dumb) args+=(--logo-type none) ;;
+    esac
+    for dir in ''${XDG_RUNTIME_DIR:+"$XDG_RUNTIME_DIR/${id}/theme"} /run/${id}/theme; do
+      [ -r "$dir/tokens.json" ] || continue
+      if read -r name variant color < <(${lib.getExe pkgs.jq} -er \
+        '[.theme, .variant, .colors.accent] | join(" ")' "$dir/tokens.json" 2>/dev/null); then
+        logo=${logos}/$name-$variant.png
+        [ -f "$logo" ] && args+=(--logo "$logo")
+        args+=(--color-title "$color" --bar-color-elapsed "$color")
+      fi
+      break
+    done
+    exec ${real} "''${args[@]}" "$@"
+  '';
 
   # Width of the frames in columns
   width = 50;
@@ -19,7 +49,7 @@ let
     in
     {
       type = "custom";
-      format = "{#bright_black}┌${line left} {#red}${title}{#bright_black} ${line (rest - left)}┐";
+      format = "{#bright_black}┌${line left} {#title}${title}{#bright_black} ${line (rest - left)}┐";
     };
   frameBottom = {
     type = "custom";
@@ -29,15 +59,24 @@ let
   pad = name: "  " + name + lib.concatStrings (lib.replicate (9 - lib.stringLength name) " ");
   entry = type: name: extra: { inherit type; key = pad name; } // extra;
 in
-{
-  environment.systemPackages = [ pkgs.fastfetch ];
-
-  environment.etc."xdg/${branding.id}/fastfetch/owl.png".source = ../shell/fastfetch/owl.png;
+# The owls come from the theme engine
+lib.mkIf theme.enable {
+  # The wrapper first: its bin/fastfetch wins over the one of the package
+  environment.systemPackages = [
+    (pkgs.symlinkJoin {
+      name = "fastfetch-${id}";
+      paths = [
+        wrapper
+        pkgs.fastfetch
+      ];
+      meta.mainProgram = "fastfetch";
+    })
+  ];
 
   environment.etc."xdg/fastfetch/config.jsonc".text = builtins.toJSON {
     logo = {
       type = "auto";
-      source = owl;
+      source = "${logos}/${look.theme or ""}-${look.variant or ""}.png";
       width = 36;
       height = 18;
       padding.right = 4;
@@ -46,11 +85,11 @@ in
       separator = " :: ";
       color = {
         keys = "default";
-        title = "red";
+        title = accent;
         separator = "bright_black";
         output = "default";
       };
-      # One accent: bars in red, numbers only turn red when nearly full
+      # One accent: bars in the accent, numbers only turn red when nearly full
       percent = {
         type = 3;
         color = {
@@ -70,7 +109,7 @@ in
           right = "";
         };
         color = {
-          elapsed = "red";
+          elapsed = accent;
           total = "bright_black";
         };
       };
@@ -82,7 +121,7 @@ in
     modules = [
       {
         type = "title";
-        format = "{#red}{user-name}{#}{#bright_black} @ {#}{host-name}";
+        format = "{#title}{user-name}{#}{#bright_black} @ {#}{host-name}";
       }
       "break"
       (frameTop "Software")

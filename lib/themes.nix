@@ -118,6 +118,12 @@ let
   );
   grubTheme = selection: grubThemes.${selection};
 
+  # The owl of the distro in the colors of every variant, for fastfetch
+  logos = pkgs.callPackage ../packages/logo { } {
+    inherit engine variants;
+    themes = dir;
+  };
+
   # Colors for the console installer on the ISO, from the default theme
   installer = pkgs.runCommand "${branding.id}-installer-theme" { } ''
     ${exe} render installer ${lib.escapeShellArg default} --themes ${dir} > $out
@@ -137,6 +143,7 @@ in
     plymouthThemes
     grubThemes
     grubTheme
+    logos
     installer
     ;
 }
