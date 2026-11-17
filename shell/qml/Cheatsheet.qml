@@ -43,6 +43,8 @@ Scope {
 
     onOpenChanged: if (!open) field.text = ""
 
+    Presence { id: presence; open: root.open }
+
     HyprlandFocusGrab {
         windows: [overlay]
         active: root.open
@@ -51,19 +53,24 @@ Scope {
 
     PanelWindow {
         id: overlay
-        visible: root.open
+        visible: presence.present
         WlrLayershell.namespace: "strix-cheatsheet"
         WlrLayershell.layer: WlrLayer.Overlay
         // Hyprland gives a layer the keyboard through a focus grab; a click outside ends it
         WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
         exclusionMode: ExclusionMode.Ignore
         anchors { top: true; bottom: true; left: true; right: true }
-        color: Theme.scrim
+        color: Theme.alpha(Theme.scrim, Theme.scrim.a * presence.shown)
 
         MouseArea { anchors.fill: parent; onClicked: root.open = false }
 
         Surface {
             elevation: "panel"
+            // Opening: drops 8px into place from 97% while the scrim fades (motion.md)
+            opacity: presence.shown
+            scale: 0.97 + 0.03 * presence.shown
+            transformOrigin: Item.Top
+            transform: Translate { y: -8 * (1 - presence.shown) }
             width: Math.min(parent.width - Theme.space8 * 2, 1080)
             height: Math.min(parent.height - Theme.space8 * 2, body.implicitHeight + Theme.space5 * 2)
             anchors.centerIn: parent

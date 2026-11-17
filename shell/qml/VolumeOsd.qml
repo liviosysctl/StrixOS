@@ -49,22 +49,25 @@ Scope {
     }
 
     function flash() {
-        if (!root.shown) rise.play()
         root.shown = true
         hide.restart()
     }
 
     Timer { id: hide; interval: 1500; onTriggered: root.shown = false }
 
+    // Shows and hides with a fade and 8px of rise; keys pressed again keep it up (motion.md)
+    Presence { id: presence; open: root.shown; leaveDuration: Theme.durBase }
+
     PanelWindow {
-        visible: root.shown
+        visible: presence.present
         WlrLayershell.namespace: "strix-osd"
         WlrLayershell.layer: WlrLayer.Overlay
         exclusionMode: ExclusionMode.Ignore
         anchors.bottom: true
-        margins.bottom: Theme.space8
+        // 8px lower than the pill's place: the room it rises through
+        margins.bottom: Theme.space8 - 8
         implicitWidth: osd.implicitWidth
-        implicitHeight: osd.implicitHeight
+        implicitHeight: osd.implicitHeight + 8
         color: "transparent"
         mask: Region {}
 
@@ -74,8 +77,8 @@ Scope {
                 : root.sink && root.sink.audio && root.sink.audio.muted ? "x" : "volume-2"
             value: root.kind === "brightness" ? root.brightness
                 : root.sink && root.sink.audio ? root.sink.audio.volume : 0
-            // the pill comes up from below each time it appears
-            Entrance { id: rise; auto: false; distance: 12; duration: Theme.durBase }
+            opacity: presence.shown
+            y: 8 * (1 - presence.shown)
         }
     }
 }

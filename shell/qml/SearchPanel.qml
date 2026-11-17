@@ -27,7 +27,6 @@ Scope {
         root.direction = 0
         root.open = true
         root.refresh("")
-        arrive.restart()
     }
 
     function refresh(text) {
@@ -76,6 +75,9 @@ Scope {
 
     onOpenChanged: if (!open) { input.text = ""; root.trail = [] }
 
+    // Opening and closing: the panel drops 8px into place from 97% while the scrim fades
+    Presence { id: presence; open: root.open }
+
     HyprlandFocusGrab {
         windows: [overlay]
         active: root.open
@@ -84,35 +86,29 @@ Scope {
 
     PanelWindow {
         id: overlay
-        visible: root.open
+        visible: presence.present
         WlrLayershell.namespace: "strix-search"
         WlrLayershell.layer: WlrLayer.Overlay
         // Hyprland gives a layer the keyboard through a focus grab; a click outside ends it
         WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
         exclusionMode: ExclusionMode.Ignore
         anchors { top: true; bottom: true; left: true; right: true }
-        color: Theme.scrim
+        color: Theme.alpha(Theme.scrim, Theme.scrim.a * presence.shown)
 
         MouseArea { anchors.fill: parent; onClicked: root.open = false }
 
         Surface {
             id: panel
             elevation: "panel"
+            opacity: presence.shown
+            scale: 0.97 + 0.03 * presence.shown
             transformOrigin: Item.Top
-            transform: Translate { id: drop }
+            transform: Translate { y: -8 * (1 - presence.shown) }
             width: 640
             height: column.implicitHeight + Theme.space4 * 2
             anchors { horizontalCenter: parent.horizontalCenter; top: parent.top; topMargin: parent.height * 0.14 }
 
             MouseArea { anchors.fill: parent }
-
-            // Opening: the panel drops a few pixels into place and grows from 97%
-            ParallelAnimation {
-                id: arrive
-                NumberAnimation { target: panel; property: "opacity"; from: 0; to: 1; duration: Theme.durBase; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOut }
-                NumberAnimation { target: panel; property: "scale"; from: 0.97; to: 1; duration: Theme.durBase; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOut }
-                NumberAnimation { target: drop; property: "y"; from: -8; to: 0; duration: Theme.durBase; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOut }
-            }
 
             Column {
                 id: column

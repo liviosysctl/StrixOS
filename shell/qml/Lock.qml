@@ -25,11 +25,14 @@ Scope {
     property bool fieldReady: false
     /// Unlocked: the lock fades away before the session shows again
     property bool leaving: false
+    /// Locked: what lies below changes without motion meanwhile
+    readonly property bool active: sessionLock.locked
 
     function unlocked() {
         root.leaving = false
-        sessionLock.locked = false
+        // The desktop's theme back while the lock still covers it, so the wallpaper changes unseen
         if (root.themeFile) root.themeFile.reload()
+        sessionLock.locked = false
     }
 
     function lock() {

@@ -24,6 +24,11 @@ Scope {
     property int remaining: 0
     /// Browsed since it opened: a late answer of the service does not move the choice back
     property bool browsed: false
+    /// Open, or still fading out: the wallpaper behind changes without its reveal meanwhile
+    readonly property bool present: presence.present
+    /// A theme is being applied: the reveal runs and the service has not answered yet
+    property bool applying: false
+    property bool answered: false
 
     /// The gods in the order of the design system, then the themes from theme repositories
     readonly property var themes: {
@@ -58,6 +63,8 @@ Scope {
 
     function show() {
         root.error = ""
+        root.applying = false
+        reveal.clear()
         root.browsed = false
         const at = root.state ? root.themes.findIndex(t => t.id === root.state.theme) : -1
         root.selected = at < 0 ? 0 : at
@@ -70,12 +77,32 @@ Scope {
         })
     }
 
-    function choose(id) {
+    /// Applies a theme: its engraving grows as a circle from `from` (the plate that was chosen),
+    /// then the picker fades once the service has answered too (Theme apply in motion.md)
+    function choose(id, from) {
+        if (root.applying) return
         root.error = ""
+        const t = root.themes.find(x => x.id === id)
+        root.applying = true
+        root.answered = false
+        reveal.play(from || Qt.point(reveal.width / 2, reveal.height / 2), root.picture(t))
         service.call("set", { theme: id }, s => {
             root.take(s)
-            root.open = false
+            root.answered = true
+            root.done()
         })
+    }
+
+    function done() {
+        if (!root.applying || !root.answered || reveal.busy) return
+        root.applying = false
+        root.open = false
+    }
+
+    /// Where the middle plate stands, for the reveal
+    function middle() {
+        const plate = plateRepeater.itemAt(root.selected)
+        return plate ? plate.mapToItem(reveal, plate.width / 2, plate.height / 2) : null
     }
 
     function keep(on) {
@@ -100,6 +127,10 @@ Scope {
         onEvent: (name, data) => { if (name === "changed") root.take(data) }
         onFailed: (method, message) => {
             root.error = message
+            if (root.applying) {
+                root.applying = false
+                reveal.clear()
+            }
             console.warn("Strix theme: " + method + ": " + message)
         }
         onConnectedChanged: if (connected) root.refresh()
@@ -120,7 +151,8 @@ Scope {
         target: "theme"
         function picker(): void { if (root.open) root.open = false; else root.show() }
         function keep(): void { root.keep(!(root.state && root.state.keep)) }
-        function set(id: string): void { root.choose(id) }
+        // With the picker open the reveal starts from its middle plate, else from the screen's middle
+        function set(id: string): void { root.choose(id, root.open ? root.middle() : null) }
         function next(): void { service.call("next", {}, s => root.take(s)) }
         function isOpen(): bool { return root.open }
         function current(): string { return root.state ? root.state.theme : "" }
@@ -137,140 +169,164 @@ Scope {
 
     PanelWindow {
         id: overlay
-        visible: root.open
+        visible: presence.present
         WlrLayershell.namespace: "strix-theme-picker"
         WlrLayershell.layer: WlrLayer.Overlay
         // Hyprland gives a layer the keyboard through a focus grab; a click outside ends it
         WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
         exclusionMode: ExclusionMode.Ignore
         anchors { top: true; bottom: true; left: true; right: true }
-        color: Theme.background
+        color: "transparent"
 
-        Wallpaper {
+        // Opens with a fade while the plates rise into place; after a theme is applied it fades
+        // over the desktop, which already shows the new theme
+        Presence { id: presence; open: root.open; leaveDuration: Theme.durBase }
+
+        Item {
+            id: scene
             anchors.fill: parent
-            source: root.picture(root.shown)
-            dim: true
-        }
+            opacity: presence.shown
 
-        MouseArea {
-            anchors.fill: parent
-            onClicked: root.open = false
-            onWheel: wheel => root.browse(wheel.angleDelta.y < 0 || wheel.angleDelta.x < 0 ? 1 : -1)
-        }
+            Rectangle { anchors.fill: parent; color: Theme.background }
 
-        Column {
-            anchors.centerIn: parent
-            spacing: Theme.space5
-            width: parent.width
-
-            Label {
-                anchors.horizontalCenter: parent.horizontalCenter
-                textStyle: "micro"
-                color: Theme.textFaint
-                font.capitalization: Font.AllUppercase
-                font.letterSpacing: 1.2
-                text: "Theme"
+            Wallpaper {
+                anchors.fill: parent
+                source: root.picture(root.shown)
+                dim: true
             }
 
-            // The plates: the chosen one wide in the middle, its neighbours to each side
-            Row {
-                id: plates
-                anchors.horizontalCenter: parent.horizontalCenter
-                spacing: -24
-                height: 250
-                Repeater {
-                    model: root.themes
-                    SlantCard {
-                        required property var modelData
-                        required property int index
-                        anchors.verticalCenter: parent.verticalCenter
-                        source: root.picture(modelData)
-                        name: modelData.name
-                        caption: modelData.description
-                        accent: modelData.accent || Theme.accent
-                        selected: index === root.selected
-                        opacity: Math.abs(index - root.selected) > 3 ? 0.25 : 1
-                        onClicked: {
-                            if (index === root.selected) root.choose(modelData.id)
-                            else { root.browsed = true; root.selected = index }
+            MouseArea {
+                anchors.fill: parent
+                onClicked: root.open = false
+                onWheel: wheel => root.browse(wheel.angleDelta.y < 0 || wheel.angleDelta.x < 0 ? 1 : -1)
+            }
+
+            Column {
+                anchors.centerIn: parent
+                spacing: Theme.space5
+                width: parent.width
+                transform: Translate { y: 12 * (1 - presence.shown) }
+
+                Label {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    textStyle: "micro"
+                    color: Theme.textFaint
+                    font.capitalization: Font.AllUppercase
+                    font.letterSpacing: 1.2
+                    text: "Theme"
+                }
+
+                // The plates: the chosen one wide in the middle, its neighbours to each side
+                Row {
+                    id: plates
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    spacing: -24
+                    height: 250
+                    Repeater {
+                        id: plateRepeater
+                        model: root.themes
+                        SlantCard {
+                            required property var modelData
+                            required property int index
+                            anchors.verticalCenter: parent.verticalCenter
+                            source: root.picture(modelData)
+                            name: modelData.name
+                            caption: modelData.description
+                            accent: modelData.accent || Theme.accent
+                            selected: index === root.selected
+                            opacity: Math.abs(index - root.selected) > 3 ? 0.25 : 1
+                            onClicked: {
+                                if (index === root.selected) root.choose(modelData.id, root.middle())
+                                else { root.browsed = true; root.selected = index }
+                            }
                         }
                     }
                 }
-            }
-
-            Label {
-                anchors.horizontalCenter: parent.horizontalCenter
-                width: Math.min(parent.width - 2 * Theme.space6, 720)
-                horizontalAlignment: Text.AlignHCenter
-                wrapMode: Text.WordWrap
-                textStyle: "aside"
-                color: Theme.textMuted
-                text: root.caption(root.shown)
-            }
-
-            Row {
-                anchors.horizontalCenter: parent.horizontalCenter
-                spacing: Theme.space5
-
-                Segmented {
-                    anchors.verticalCenter: parent.verticalCenter
-                    model: (root.shown && root.shown.variants || ["dark"]).length > 1
-                        ? root.shown.variants
-                        : ["Dark", { text: "Light", enabled: false }]
-                    currentIndex: 0
-                }
-
-                Switch {
-                    id: keepSwitch
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "Keep this theme"
-                    checked: !!(root.state && root.state.keep)
-                    onToggled: root.keep(checked)
-                }
-                KeyCaps { anchors.verticalCenter: parent.verticalCenter; keys: "K" }
 
                 Label {
-                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: Math.min(parent.width - 2 * Theme.space6, 720)
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
+                    textStyle: "aside"
+                    color: Theme.textMuted
+                    text: root.caption(root.shown)
+                }
+
+                Row {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    spacing: Theme.space5
+
+                    Segmented {
+                        anchors.verticalCenter: parent.verticalCenter
+                        model: (root.shown && root.shown.variants || ["dark"]).length > 1
+                            ? root.shown.variants
+                            : ["Dark", { text: "Light", enabled: false }]
+                        currentIndex: 0
+                    }
+
+                    Switch {
+                        id: keepSwitch
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "Keep this theme"
+                        checked: !!(root.state && root.state.keep)
+                        onToggled: root.keep(checked)
+                    }
+                    KeyCaps { anchors.verticalCenter: parent.verticalCenter; keys: "K" }
+
+                    Label {
+                        anchors.verticalCenter: parent.verticalCenter
+                        textStyle: "caption"
+                        color: Theme.textFaint
+                        text: root.state === null ? ""
+                            : (root.state.keep ? "next turn in " : "next theme in ") + root.clock(root.remaining)
+                    }
+                }
+
+                Label {
+                    visible: root.error !== ""
+                    anchors.horizontalCenter: parent.horizontalCenter
                     textStyle: "caption"
-                    color: Theme.textFaint
-                    text: root.state === null ? ""
-                        : (root.state.keep ? "next turn in " : "next theme in ") + root.clock(root.remaining)
+                    color: Theme.error
+                    text: root.error
+                }
+
+                Row {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    spacing: Theme.space4
+                    Row { spacing: Theme.space1; KeyCaps { keys: "Left Right" } Label { textStyle: "caption"; color: Theme.textFaint; text: "browse" } }
+                    Row { spacing: Theme.space1; KeyCaps { keys: "Enter" } Label { textStyle: "caption"; color: Theme.textFaint; text: "choose" } }
+                    Row { spacing: Theme.space1; KeyCaps { keys: "Esc" } Label { textStyle: "caption"; color: Theme.textFaint; text: "close" } }
                 }
             }
 
-            Label {
-                visible: root.error !== ""
-                anchors.horizontalCenter: parent.horizontalCenter
-                textStyle: "caption"
-                color: Theme.error
-                text: root.error
+            // Takes the keyboard while the picker is open, for the shortcuts below
+            Item {
+                id: keys
+                focus: true
+                Timer {
+                    interval: 150
+                    repeat: true
+                    running: root.open && !keys.activeFocus
+                    onTriggered: keys.forceActiveFocus()
+                }
             }
 
-            Row {
-                anchors.horizontalCenter: parent.horizontalCenter
-                spacing: Theme.space4
-                Row { spacing: Theme.space1; KeyCaps { keys: "Left Right" } Label { textStyle: "caption"; color: Theme.textFaint; text: "browse" } }
-                Row { spacing: Theme.space1; KeyCaps { keys: "Enter" } Label { textStyle: "caption"; color: Theme.textFaint; text: "choose" } }
-                Row { spacing: Theme.space1; KeyCaps { keys: "Esc" } Label { textStyle: "caption"; color: Theme.textFaint; text: "close" } }
+            Shortcut { sequence: "Left"; enabled: root.open && !root.applying; onActivated: root.browse(-1) }
+            Shortcut { sequence: "Right"; enabled: root.open && !root.applying; onActivated: root.browse(1) }
+            Shortcut { sequences: ["Return", "Enter"]; enabled: root.open && !root.applying; onActivated: if (root.shown) root.choose(root.shown.id, root.middle()) }
+            Shortcut { sequence: "K"; enabled: root.open && !root.applying; onActivated: root.keep(!(root.state && root.state.keep)) }
+            Shortcut { sequence: "Escape"; enabled: root.open && !root.applying; onActivated: root.open = false }
+
+            // The chosen engraving, growing from its plate over everything
+            CircleReveal {
+                id: reveal
+                anchors.fill: parent
+                onFinished: root.done()
             }
+
+            // Nothing to click while the theme is applied
+            MouseArea { anchors.fill: parent; enabled: root.applying }
         }
-
-        // Takes the keyboard while the picker is open, for the shortcuts below
-        Item {
-            id: keys
-            focus: true
-            Timer {
-                interval: 150
-                repeat: true
-                running: root.open && !keys.activeFocus
-                onTriggered: keys.forceActiveFocus()
-            }
-        }
-
-        Shortcut { sequence: "Left"; enabled: root.open; onActivated: root.browse(-1) }
-        Shortcut { sequence: "Right"; enabled: root.open; onActivated: root.browse(1) }
-        Shortcut { sequences: ["Return", "Enter"]; enabled: root.open; onActivated: if (root.shown) root.choose(root.shown.id) }
-        Shortcut { sequence: "K"; enabled: root.open; onActivated: root.keep(!(root.state && root.state.keep)) }
-        Shortcut { sequence: "Escape"; enabled: root.open; onActivated: root.open = false }
     }
 }

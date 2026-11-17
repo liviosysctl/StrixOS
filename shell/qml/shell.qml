@@ -19,7 +19,8 @@ ShellRoot {
         path: Quickshell.env("XDG_RUNTIME_DIR") + "/strix/theme/tokens.json"
     }
 
-    Background {}
+    // Covered by the lock screen or the theme picker, the wallpaper changes without its reveal
+    Background { quiet: lock.active || picker.present }
     Bar { id: bar }
     Lock { id: lock; themeFile: themeFile }
     SearchPanel {}
