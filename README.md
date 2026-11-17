@@ -55,7 +55,7 @@ These are renderings of the design from StrixUI; the shell in this repository is
 | `themes/` | `default.nix`, the theme a new installation starts with (`saturnus`). `lib/builtin-themes.nix` takes only Saturnus from [StrixUI](https://github.com/liviosysctl/StrixUI), a flake input. [themes/README.md](themes/README.md) describes the format and the theme repositories. |
 | `packages/theme-engine/` | The theme engine in Rust: reads and checks themes, switches them at runtime, fetches and checks theme repositories, writes the colours for Hyprland, Ghostty and GTK. |
 | `packages/search/`, `modules/search.nix` | The search service behind Search: apps, the actions of `menu.toml`, every row of Settings, commands; it also makes the Hyprland keys and keeps the user's own keys. |
-| `packages/store/`, `modules/store.nix` | The Store (`main` only): an index of the channel's packages, search, install and remove through `strix-apps`; proprietary apps ask first. |
+| `packages/store/`, `modules/store.nix` | The Store (`main` only): an index of the channel's packages, search, install and remove through `strix-apps`, or try in a shell with `strix-shell`; proprietary apps ask first. |
 | `packages/ui/`, `modules/ui.nix` | The design system of StrixUI on the machine: the QML module for Quickshell, the wallpapers, the fonts. |
 | `modules/desktop.nix` | The desktop: Hyprland as a UWSM session, the login of Strix under greetd (or tuigreet), PipeWire, a few apps, the shell as a user service, hypridle, and the session's theme service, which writes the colours for Hyprland and Ghostty. |
 | `shell/hypr/hyprland.lua` | The Hyprland configuration (Lua, Hyprland 0.55 and later): measures and motion of StrixUI; it requires `machine.lua`, `theme.lua` and `bindings.lua`, which Nix and the theme engine write. |
@@ -85,6 +85,7 @@ These are renderings of the design from StrixUI; the shell in this repository is
 | `sudo strix-update` | Fetches the newest release and every connected theme repository and switches to them, keeps the old version if the build fails |
 | `sudo strix-update --themes [REPO]` | Only the theme repositories, or the one named |
 | `sudo strix-apps add\|remove <package>`, `strix-apps list` | Installs or removes a package from nixpkgs. This is what the Store calls. |
+| `strix-shell <package>...` | A shell with the packages, like `nix-shell -p`: nothing is installed. The Store's strix-shell button opens it. `--proprietary` for apps that are not open source. |
 | `strix-settings [PAGE [ROW]]` | Opens Settings: `network`, `bluetooth`, `sound`, `display`, `power`, `about` |
 | `strix-capture region\|screen` | Screenshots to `~/Pictures/Screenshots` and the clipboard; Print takes a region, Ctrl Print the screen |
 | Super Space | Search: apps, actions, settings and commands in one field; "Store" opens the Store |

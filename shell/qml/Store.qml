@@ -2,6 +2,8 @@
 // one click. The service strix-store (Backend "store") searches the package index and runs
 // strix-apps, which writes apps.json and rebuilds; its output streams into the window. Proprietary
 // apps are shown and marked; installing one asks first (Q7), and the service refuses it otherwise.
+// strix-shell next to Install opens the package in a shell in Ghostty, as nix-shell -p does: to try
+// it, nothing is installed.
 // Opened from Search (Apps › Store) or with `qs -c strix ipc call store open`.
 import QtQuick
 import Quickshell
@@ -39,17 +41,33 @@ Scope {
         })
     }
 
-    // The package waiting for an answer to the question about proprietary software
+    // The package waiting for an answer to the question about proprietary software, and whether
+    // it is for a shell instead of an install
     property var asking: null
+    property bool askingShell: false
 
     function act(pkg) {
         if (!pkg || (root.job && root.job.running)) return
         if (!pkg.installed && pkg.unfree) {
             root.asking = pkg
+            root.askingShell = false
             proprietary.open()
             return
         }
         root.run(pkg, false)
+    }
+
+    /// The package in a shell in a new terminal, nothing installed
+    function shell(pkg, agreed) {
+        if (!pkg) return
+        if (pkg.unfree && !agreed) {
+            root.asking = pkg
+            root.askingShell = true
+            proprietary.open()
+            return
+        }
+        const args = ["strix-shell"].concat(pkg.unfree ? ["--proprietary"] : []).concat([pkg.attr])
+        Quickshell.execDetached(["uwsm", "app", "--", "ghostty", "-e"].concat(args))
     }
 
     function run(pkg, agreed) {
@@ -164,7 +182,7 @@ Scope {
                     MouseArea { anchors.fill: parent; onClicked: root.selected = index }
 
                     Column {
-                        anchors { left: parent.left; leftMargin: Theme.space3; right: button.left; rightMargin: Theme.space3; verticalCenter: parent.verticalCenter }
+                        anchors { left: parent.left; leftMargin: Theme.space3; right: shellButton.left; rightMargin: Theme.space3; verticalCenter: parent.verticalCenter }
                         Row {
                             spacing: Theme.space2
                             Label { textStyle: "label"; color: Theme.text; text: modelData.pname }
@@ -179,6 +197,14 @@ Scope {
                             color: Theme.textMuted
                             text: modelData.description || modelData.attr
                         }
+                    }
+
+                    Button {
+                        id: shellButton
+                        anchors { right: button.left; rightMargin: Theme.space2; verticalCenter: parent.verticalCenter }
+                        small: true
+                        text: "strix-shell"
+                        onClicked: root.shell(modelData, false)
                     }
 
                     Button {
@@ -243,10 +269,18 @@ Scope {
 
         Dialog {
             id: proprietary
-            title: root.asking ? "Install " + root.asking.pname + "?" : ""
-            text: "This app is not open source: its code is not public, and its licence may limit what you can do with it. It installs like any other app and can be removed again."
-            acceptText: "Install anyway"
-            onAccepted: { if (root.asking) root.run(root.asking, true); root.asking = null }
+            title: root.asking ? (root.askingShell ? "Open " : "Install ") + root.asking.pname + "?" : ""
+            text: root.askingShell
+                ? "This app is not open source: its code is not public, and its licence may limit what you can do with it. The shell only fetches it, nothing is installed."
+                : "This app is not open source: its code is not public, and its licence may limit what you can do with it. It installs like any other app and can be removed again."
+            acceptText: root.askingShell ? "Open anyway" : "Install anyway"
+            onAccepted: {
+                if (root.asking) {
+                    if (root.askingShell) root.shell(root.asking, true)
+                    else root.run(root.asking, true)
+                }
+                root.asking = null
+            }
             onRejected: root.asking = null
         }
 

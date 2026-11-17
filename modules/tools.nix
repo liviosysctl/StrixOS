@@ -1,4 +1,5 @@
-# The three tools around /etc/nixos: rebuild, update (with the theme repositories), apps.
+# The tools around /etc/nixos: rebuild, update (with the theme repositories), apps, and shell,
+# which tries packages without installing them.
 # The names come from branding.nix (e.g. strix-rebuild).
 { config, lib, pkgs, ... }:
 
@@ -12,12 +13,12 @@ let
   };
 
   tool =
-    { name, runtimeInputs, extraEnv ? { } }:
+    { name, runtimeInputs, extraEnv ? { }, common ? true }:
     pkgs.writeShellApplication {
       name = "${branding.id}-${name}";
       runtimeInputs = runtimeInputs ++ [ pkgs.coreutils pkgs.util-linux ];
       runtimeEnv = env // extraEnv;
-      text = builtins.readFile ./tools/common.sh + builtins.readFile ./tools/${name}.sh;
+      text = lib.optionalString common (builtins.readFile ./tools/common.sh) + builtins.readFile ./tools/${name}.sh;
     };
 
   rebuild = tool {
@@ -42,10 +43,18 @@ let
     runtimeInputs = [ config.nix.package pkgs.jq ];
     extraEnv.REBUILD = lib.getExe rebuild;
   };
+  # nix-shell -p with flakes: the packages in a shell, from the nixpkgs the system is built from
+  # (the registry entry nixosSystem sets), so they match what an install would bring
+  # It does not touch /etc/nixos, so it needs nothing of common.sh
+  shell = tool {
+    name = "shell";
+    runtimeInputs = [ config.nix.package ];
+    common = false;
+  };
 in
 {
-  environment.systemPackages = [ rebuild update apps ];
+  environment.systemPackages = [ rebuild update apps shell ];
 
   # Reachable for tests: nix build .#nixosConfigurations.<name>.config.system.build.distroTools.apps
-  system.build.distroTools = { inherit rebuild update apps; };
+  system.build.distroTools = { inherit rebuild update apps shell; };
 }

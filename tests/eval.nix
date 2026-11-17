@@ -381,6 +381,18 @@ in
 
   # The update tool itself passes shellcheck (writeShellApplication runs it)
   update-tool-build = reference.config.system.build.distroTools.update;
+  # strix-shell: built, and it refuses anything but package names before nix sees them
+  shell-tool =
+    let
+      tool = lib.getExe reference.config.system.build.distroTools.shell;
+    in
+    pkgs.runCommand "check-shell-tool" { } ''
+      ${tool} --help | grep -q "Usage"
+      set +e
+      ${tool} 'gimp; rm -rf /'; test $? -eq 2 || exit 1
+      ${tool}; test $? -eq 64 || exit 1
+      echo ok > $out
+    '';
 
   # A default theme that does not exist stops the build
   theme-default-unknown = mustFail "theme-default-unknown" (toplevelWith { ${branding.id}.theme.default = "nope"; });
