@@ -218,9 +218,9 @@ run = ["ghostty"]
 id = "browser"
 title = "Browser"
 group = "Apps"
-target = "Firefox"
+target = "Zen"
 keys = "Super Shift Return"
-run = ["firefox"]
+run = ["zen-beta"]
 
 [[binding]]
 id = "files"

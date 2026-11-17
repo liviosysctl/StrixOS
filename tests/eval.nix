@@ -61,6 +61,7 @@ in
     assert lib.hasInfix "-c ${branding.id}-installer" user."${branding.id}-installer-ui".serviceConfig.ExecStart;
     assert lib.hasInfix "^Installer$" iso.${branding.id}.desktop.extraConfig;
     assert !iso.programs.firefox.enable;
+    assert !(lib.any (p: lib.hasPrefix "zen-beta" (p.name or "")) iso.environment.systemPackages);
     assert !iso.system.installer.channel.enable;
     assert !iso.services.speechd.enable;
     assert !(user ? hypridle);
@@ -194,6 +195,10 @@ in
       reference' = reference.config;
     in
     assert reference'.programs.hyprland.withUWSM;
+    # Zen is the browser, the only one
+    assert !reference'.programs.firefox.enable;
+    assert reference'.xdg.mime.defaultApplications."x-scheme-handler/https" == "zen-beta.desktop";
+    assert lib.any (p: lib.hasPrefix "zen-beta" (p.name or "")) reference'.environment.systemPackages;
     assert reference'.${branding.id}.desktop.greeter == "strix";
     assert reference'.environment.sessionVariables.HYPRLAND_CONFIG == "/etc/xdg/${branding.id}/hypr/hyprland.lua";
     assert reference'.systemd.user.services ? "${branding.id}-theme-session";
