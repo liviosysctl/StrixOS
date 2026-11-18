@@ -34,7 +34,8 @@ Build and boot:
                           Check every theme in DIR, exit 1 on any problem
   render KIND THEME [--themes DIR]
                           Print what an adapter needs: tokens, installer,
-                          plymouth, palette, hyprland, ghostty, btop
+                          plymouth, palette, hyprland, ghostty, btop, gtk3,
+                          gtk4 (gtk.css of GTK apps, Files among them)
   boot-select             In the initrd: pick the boot splash of the stored theme
 
 Theme repositories (themes from outside, layout 1):
@@ -627,9 +628,11 @@ fn render(config: &Config, kind: &str, text: &str, themes: Option<&Path>) -> Res
         "hyprland" => adapters::hyprland(theme, variant),
         "ghostty" => adapters::ghostty(theme, variant),
         "btop" => adapters::btop(theme, variant),
+        "gtk3" => adapters::gtk3(theme, variant),
+        "gtk4" => adapters::gtk4(theme, variant),
         other => {
             return Err(format!(
-                "unknown kind \"{other}\" (known: tokens, installer, plymouth, palette, hyprland, ghostty, btop)"
+                "unknown kind \"{other}\" (known: tokens, installer, plymouth, palette, hyprland, ghostty, btop, gtk3, gtk4)"
             ));
         }
     };

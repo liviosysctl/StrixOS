@@ -20,6 +20,25 @@ let
   id = branding.id;
   cfg = config.${id}.desktop;
 
+  # Files › Scripts › Open in Ghostty: a terminal in the folder shown, or in the folder of the
+  # first selected item. Nautilus gives the selection as paths, the folder only as a URI
+  openInGhostty = pkgs.writeShellApplication {
+    name = "open-in-ghostty";
+    runtimeInputs = [ pkgs.coreutils pkgs.gnused ];
+    text = ''
+      dir=$(printf '%s\n' "''${NAUTILUS_SCRIPT_SELECTED_FILE_PATHS:-}" | head -n 1)
+      if [ -n "$dir" ]; then
+        [ -d "$dir" ] || dir=$(dirname "$dir")
+      else
+        uri=''${NAUTILUS_SCRIPT_CURRENT_URI:-}
+        dir=$(printf '%b' "$(printf '%s' "''${uri#file://}" | sed 's/%\([0-9A-Fa-f][0-9A-Fa-f]\)/\\x\1/g')")
+      fi
+      # Not a local folder (a phone, a network share): the home folder
+      [ -d "$dir" ] || dir=$HOME
+      exec ghostty --working-directory="$dir"
+    '';
+  };
+
   # The browser: Zen, the only one installed (flake input zen-browser, not in nixpkgs)
   zen = distroFlake.inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default;
   xkb = config.services.xserver.xkb;
@@ -358,7 +377,17 @@ in
       ];
     };
     xdg.portal.extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
+
+    # Files (Nautilus, Super E): phones, network shares and the trash (gvfs), other drives
+    # (udisks2, mounted without a password by the admins, see the polkit rule below) and
+    # thumbnails of pictures and videos. Its colors come from the theme like every GTK app's
     services.gvfs.enable = true;
+    services.udisks2.enable = true;
+    services.tumbler.enable = !cfg.live;
+    environment.pathsToLink = lib.mkIf (!cfg.live) [ "/share/thumbnailers" ];
+    environment.etc."xdg/${id}/nautilus/open-in-ghostty" = lib.mkIf (!cfg.live) {
+      source = lib.getExe openInGhostty;
+    };
 
     fonts.packages = [ pkgs.noto-fonts ];
 
@@ -489,6 +518,25 @@ in
       pathConfig.PathChanged = "%t/${id}/theme/tokens.json";
     };
 
+    # "Open in Ghostty" among the scripts of Files. The link is made only where the user has no
+    # script of that name of their own (or already has the link)
+    systemd.user.services."${id}-files-scripts" = lib.mkIf (!cfg.live) {
+      description = "Give Files the script that opens Ghostty in a folder";
+      wantedBy = [ "default.target" ];
+      serviceConfig.Type = "oneshot";
+      script = ''
+        [ -w "$HOME" ] || exit 0
+        target=/etc/xdg/${id}/nautilus/open-in-ghostty
+        link="$HOME/.local/share/nautilus/scripts/Open in Ghostty"
+        if [ -e "$link" ] || [ -L "$link" ]; then
+          [ "$(readlink "$link")" = "$target" ] || echo "$link is the user's own, left alone"
+          exit 0
+        fi
+        mkdir -p "''${link%/*}"
+        ln -s "$target" "$link"
+      '';
+    };
+
     # GTK 3 and GTK 4 apps take the god's colors from the session's gtk3.css and gtk4.css. The link
     # is made only where the user has no gtk.css of their own (or already has the link); apps read
     # the file when they start, so a running app keeps its colors until it is opened again
@@ -547,6 +595,16 @@ in
             action.lookup("program") == "${themeCommand}" &&
             /^\S+ set [a-z0-9:-]+$/.test(action.lookup("command_line") || "") &&
             subject.local && subject.active) {
+          return polkit.Result.YES;
+        }
+      });
+
+      // Files mounts other drives for the admins without a password, as on the desktop of most
+      // distributions; everyone else is asked
+      polkit.addRule(function (action, subject) {
+        if ((action.id == "org.freedesktop.udisks2.filesystem-mount" ||
+             action.id == "org.freedesktop.udisks2.filesystem-mount-system") &&
+            subject.isInGroup("wheel")) {
           return polkit.Result.YES;
         }
       });
