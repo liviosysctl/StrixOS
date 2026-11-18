@@ -223,6 +223,15 @@ fn user_exists(name: &str) -> bool {
         .unwrap_or(false)
 }
 
+/// Four random hex digits, for the partition labels
+fn label_suffix() -> String {
+    let mut b = [0u8; 2];
+    if let Ok(mut f) = File::open("/dev/urandom") {
+        let _ = f.read_exact(&mut b);
+    }
+    format!("{:04x}", u16::from_le_bytes(b))
+}
+
 /// A random code from 1000 to 9999, for MokManager
 fn mok_code() -> u16 {
     let mut b = [0u8; 2];
@@ -316,8 +325,12 @@ fn steps(job: &mut Install, opts: &Options) -> Result<(), String> {
     let text = fs::read_to_string(&opts.answers)
         .map_err(|e| format!("cannot read {}: {e}", opts.answers.display()))?;
     let json = serde_json::from_str(&text).map_err(|e| format!("The answers are not JSON: {e}"))?;
-    let answers = Answers::parse(&json)?;
+    let mut answers = Answers::parse(&json)?;
     answers.check(&env.id)?;
+    // Q6: the partition labels end with something of this machine alone
+    if answers.label_suffix.is_none() {
+        answers.label_suffix = Some(label_suffix());
+    }
     if user_exists(&answers.user_name) {
         return Err(format!("Not a valid user name: {}", answers.user_name));
     }
@@ -376,7 +389,11 @@ fn steps(job: &mut Install, opts: &Options) -> Result<(), String> {
     let template =
         fs::read_to_string(env.template_dir.join("machine.nix")).map_err(|e| e.to_string())?;
     let machine = checks::render_machine_nix(&template, &answers, &swap, &env.state_version)?;
-    fs::write(stage.join("machine.nix"), format!("{}\n", machine.trim_end_matches('\n'))).map_err(|e| e.to_string())?;
+    fs::write(
+        stage.join("machine.nix"),
+        format!("{}\n", machine.trim_end_matches('\n')),
+    )
+    .map_err(|e| e.to_string())?;
     match &opts.hardware_nix {
         Some(file) => {
             fs::copy(file, stage.join("hardware.nix")).map_err(|e| e.to_string())?;
@@ -560,6 +577,13 @@ mod tests {
     fn mok_codes() {
         for _ in 0..50 {
             assert!((1000..=9999).contains(&mok_code()));
+        }
+    }
+
+    #[test]
+    fn label_suffixes() {
+        for _ in 0..20 {
+            assert!(checks::valid_label_suffix(&label_suffix()));
         }
     }
 

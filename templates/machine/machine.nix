@@ -21,6 +21,8 @@
     encrypt = @encrypt@;
     swapSize = "@swapSize@";
     hibernation = @hibernation@;
+    # Ends the partition labels, so a second disk of the same system never has the same ones
+    labelSuffix = "@labelSuffix@";
   };
 
   # Release the machine was installed with. Never change it, not even after updates.

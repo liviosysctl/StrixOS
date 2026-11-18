@@ -48,6 +48,8 @@ let
       disk = "/dev/vda";
       encrypt = true;
       hibernation = true;
+      # Chosen at random without it; fixed here so machine.nix can be compared
+      labelSuffix = "test";
     }
   );
   password = "testtest";
