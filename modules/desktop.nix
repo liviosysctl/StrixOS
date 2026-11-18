@@ -23,6 +23,19 @@ let
   id = branding.id;
   cfg = config.${id}.desktop;
 
+  # Neovim is the editor: text opened from Files or elsewhere goes to it in a Ghostty window
+  neovimWindow = pkgs.makeDesktopItem {
+    name = "${id}-neovim";
+    desktopName = "Neovim";
+    comment = "Edit text in Neovim";
+    exec = "ghostty -e nvim %F";
+    icon = "nvim";
+    categories = [ "Utility" "TextEditor" ];
+    mimeTypes = [ "text/plain" "text/markdown" "text/x-nix" "application/json" "application/toml" "application/x-shellscript" ];
+    # Only for opening files; app lists and Search show Neovim's own entry
+    noDisplay = true;
+  };
+
   # The browser: Zen, the only one installed (flake input zen-browser, not in nixpkgs)
   zen = distroFlake.inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default;
   xkb = config.services.xserver.xkb;
@@ -367,7 +380,8 @@ in
     # The password of the lock screen
     security.pam.services."${id}-lock" = { };
 
-    # Links, web pages and PDFs open in Zen; the live session of the ISO has no browser
+    # Links, web pages and PDFs open in Zen, text in Neovim; the live session of the ISO has
+    # neither
     xdg.mime.defaultApplications = lib.mkIf (!cfg.live) (
       lib.genAttrs [
         "text/html"
@@ -376,6 +390,14 @@ in
         "x-scheme-handler/http"
         "x-scheme-handler/https"
       ] (_: "zen-beta.desktop")
+      // lib.genAttrs [
+        "text/plain"
+        "text/markdown"
+        "text/x-nix"
+        "application/json"
+        "application/toml"
+        "application/x-shellscript"
+      ] (_: "${id}-neovim.desktop")
     );
     environment.sessionVariables.BROWSER = lib.mkIf (!cfg.live) "zen-beta";
 
@@ -392,7 +414,7 @@ in
       zen
       cliphist
       nautilus
-      gnome-text-editor
+      neovimWindow
       amberol
     ]
     ++ [
