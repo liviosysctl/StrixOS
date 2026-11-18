@@ -246,6 +246,13 @@ pub fn grub(dir: &Path, theme: &Theme, variant: &Variant, grub: &Grub) -> Result
         })
         .collect();
 
+    // The owl right after the wordmark, level with it
+    let owl = crate::owl::svg(&hex(&["accent"]), &variant.terminal.background.hex(), 0.0).replacen(
+        r#"<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1000" viewBox="0 0 1000 1000">"#,
+        &format!(r#"<svg x="{}" y="168" width="160" height="160" viewBox="0 0 1000 1000">"#, X + 310),
+        1,
+    );
+
     // Baselines from the fonts' ascents: the wordmark 185 below its top, the motto 28, the keys 18
     let svg = format!(
         r##"<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">
@@ -253,7 +260,7 @@ pub fn grub(dir: &Path, theme: &Theme, variant: &Variant, grub: &Grub) -> Result
 <rect width="{W}" height="{H}" fill="{background}"/>
 {picture}
 <rect width="{W}" height="{H}" fill="url(#veil)"/>
-<text x="{}" y="305" font-family="Grenze Gotisch" font-weight="300" font-size="168" fill="{}">{}</text>
+{owl}<text x="{}" y="305" font-family="Grenze Gotisch" font-weight="300" font-size="168" fill="{}">{}</text>
 <text x="{X}" y="358" font-family="IM FELL English" font-style="italic" font-size="30" fill="{}">{}</text>
 <rect x="{X}" y="392" width="{COL}" height="1" fill="{}"/>
 <rect x="{X}" y="391" width="56" height="3" fill="{}"/>
@@ -444,6 +451,9 @@ mod tests {
         grub(&dir, &theme, &theme.variants["dark"], &options).unwrap();
         let svg = fs::read_to_string(dir.join("background.svg")).unwrap();
         assert!(svg.contains("&amp; &lt;knows&gt;"));
+        // The owl sits in the column, in the accent
+        assert!(svg.contains(r#"<svg x="460" y="168" width="160" height="160""#));
+        assert!(svg.contains(r##"r="32" fill="#c8102e""##));
         let txt = fs::read_to_string(dir.join("theme.txt")).unwrap();
         assert!(txt.contains(r#"item_font = "Strix Mono Regular 16""#));
         assert!(txt.contains("top = 722"));
