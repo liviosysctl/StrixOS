@@ -400,8 +400,8 @@ run = ["zen-beta"]
 id = "files"
 title = "Files"
 group = "Apps"
-target = "File manager"
-keys = "Super Shift F"
+target = "Nautilus"
+keys = "Super E"
 run = ["nautilus", "--new-window"]
 
 [[binding]]

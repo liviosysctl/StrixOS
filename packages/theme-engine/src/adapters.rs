@@ -178,6 +178,7 @@ fn gtk_colors(variant: &Variant) -> Vec<(&'static str, Rgb)> {
     let surface = variant.color("surface");
     let raised = extra_or(variant, "surface-raised", "surface");
     let sunken = extra_or(variant, "surface-sunken", "background");
+    let border = variant.color("border");
     let text = variant.color("text");
     let accent = variant.color("accent");
     let on_accent = variant.color("on-accent");
@@ -212,14 +213,20 @@ fn gtk_colors(variant: &Variant) -> Vec<(&'static str, Rgb)> {
         ("window_fg_color", text),
         ("view_bg_color", sunken),
         ("view_fg_color", text),
+        // The lines between the parts of a window (libadwaita 1.6 and later: --border-color), so
+        // the sidebar and the header bar of Files are drawn like the panels of the shell
+        ("border_color", border),
         ("headerbar_bg_color", surface),
         ("headerbar_fg_color", text),
         ("headerbar_backdrop_color", background),
+        ("headerbar_border_color", border),
         ("sidebar_bg_color", surface),
         ("sidebar_fg_color", text),
         ("sidebar_backdrop_color", background),
+        ("sidebar_border_color", border),
         ("secondary_sidebar_bg_color", surface),
         ("secondary_sidebar_fg_color", text),
+        ("secondary_sidebar_border_color", border),
         ("card_bg_color", surface),
         ("card_fg_color", text),
         ("dialog_bg_color", raised),
@@ -376,6 +383,9 @@ mod tests {
         assert!(four.contains(&format!("--accent-bg-color: {accent};")));
         assert!(four.starts_with(&three));
         assert!(four.contains("--window-bg-color:"));
+        let border = variant.color("border").hex();
+        assert!(four.contains(&format!("--border-color: {border};")));
+        assert!(four.contains(&format!("--sidebar-border-color: {border};")));
     }
 
     #[test]
