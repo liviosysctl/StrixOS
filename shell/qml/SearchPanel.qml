@@ -2,6 +2,8 @@
 // top over the dimmed desktop. The search service answers over its socket (Backend "search").
 // An empty field is the system menu; Enter on a group opens it, Backspace on an empty field goes
 // back up. Up and Down move, Enter starts, Esc clears and a second Esc closes.
+// Below the rest, from three letters on, the Store's best packages that are not installed (the
+// Store service, Backend "store"): Enter opens the Store at the package.
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -17,6 +19,9 @@ Scope {
     /// The group shown, with the titles on the way there
     property var trail: []
     property var results: []
+    /// The Store's packages for the text, shown after the other results
+    property var packages: []
+    readonly property var all: root.results.concat(root.packages)
     property int selected: 0
 
     function show(scope) {
@@ -36,10 +41,31 @@ Scope {
             root.results = (r && r.results) || []
             root.selected = 0
         })
+        root.packages = []
+        if (!scope && text.trim().length >= 3) {
+            const asked = text
+            store.call("search", { text: text, limit: 3 }, r => {
+                if (asked !== input.text) return
+                root.packages = ((r && r.results) || []).filter(p => !p.installed).map(p => ({
+                    id: "package:" + p.attr,
+                    attr: p.attr,
+                    kind: "package",
+                    title: p.pname,
+                    path: ["Store", p.unfree ? "Proprietary" : p.version],
+                    icon: "package",
+                    hits: []
+                }))
+            })
+        }
     }
 
     function activate(hit) {
         if (!hit) return
+        if (hit.kind === "package") {
+            root.open = false
+            Quickshell.execDetached(["qs", "-c", "strix", "ipc", "call", "store", "find", hit.attr])
+            return
+        }
         search.call("activate", { id: hit.id }, r => {
             if (r && r.enter) {
                 root.trail = root.trail.concat([{ id: hit.id, title: hit.title }])
@@ -55,6 +81,12 @@ Scope {
         id: search
         service: "search"
         onFailed: (method, message) => console.warn("Strix search: " + method + ": " + message)
+    }
+
+    // Without the Store service (the live ISO) or before its index is there, no packages
+    Backend {
+        id: store
+        service: "store"
     }
 
     IpcHandler {
@@ -117,7 +149,7 @@ Scope {
                         width: parent.width - (root.trail.length ? x : 0)
                         KeyCaps { keys: "Esc" }
                         onTextChanged: root.refresh(text)
-                        onAccepted: root.activate(root.results[root.selected])
+                        onAccepted: root.activate(root.all[root.selected])
                         Timer {
                             interval: 100
                             repeat: true
@@ -132,7 +164,7 @@ Scope {
                     width: parent.width
                     height: Math.min(contentHeight, 40 * 9)
                     clip: true
-                    model: root.results
+                    model: root.all
                     currentIndex: root.selected
                     delegate: SearchHit {
                         required property var modelData
@@ -152,7 +184,7 @@ Scope {
             }
         }
 
-        Shortcut { sequence: "Down"; enabled: root.open; onActivated: root.selected = Math.min(root.selected + 1, root.results.length - 1) }
+        Shortcut { sequence: "Down"; enabled: root.open; onActivated: root.selected = Math.min(root.selected + 1, root.all.length - 1) }
         Shortcut { sequence: "Up"; enabled: root.open; onActivated: root.selected = Math.max(root.selected - 1, 0) }
         Shortcut {
             sequence: "Escape"
