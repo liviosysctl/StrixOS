@@ -47,11 +47,11 @@
     "strixui": {
       "flake": false,
       "locked": {
-        "lastModified": 1794414942,
-        "narHash": "sha256-Lem5qHuiymdSuKZoxUXV9Yg02SPdYcp95gaRE7JPaw4=",
+        "lastModified": 1794994630,
+        "narHash": "sha256-6keYJbtsiSguR+qwBTkfNYc1j27ugOWrZMGzXKLiZaE=",
         "owner": "liviosysctl",
         "repo": "StrixUI",
-        "rev": "4aec975639700a45e4853b67524140ae68b9e433",
+        "rev": "741cfb2b1b5dac7394f66cbed600444334590d0f",
         "type": "github"
       },
       "original": {
