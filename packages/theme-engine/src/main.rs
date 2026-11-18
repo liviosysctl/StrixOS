@@ -41,7 +41,7 @@ Build and boot:
   complete DIR --base BASE [--wallpaper FILE]
                           Fill in what the theme in DIR leaves out from the theme
                           in BASE and write it back as a full theme.toml; without
-                          a wallpaper.jpg it gets FILE
+                          a wallpaper.jpg it gets FILE (and BASE/wallpaper.toml)
   draw grub OUT THEME --themes DIR --name NAME --motto TEXT --font-name FONT
             [--wallpaper FILE]
                           Write the pieces of a GRUB theme into OUT (background.svg
@@ -829,11 +829,18 @@ fn complete(dir: &Path, base_dir: &Path, wallpaper: Option<&Path>) -> Result<boo
         0o644,
     )
     .map_err(|e| format!("cannot write {}: {e}", dir.join("theme.toml").display()))?;
+    // Without a picture of its own the theme takes the base's, with its caption when the base
+    // has one (wallpaper.toml beside its theme.toml)
     if let Some(picture) = wallpaper
         && !dir.join("wallpaper.jpg").exists()
     {
         fs::copy(picture, dir.join("wallpaper.jpg"))
             .map_err(|e| format!("cannot copy {}: {e}", picture.display()))?;
+        let credits = base_dir.join("wallpaper.toml");
+        if credits.is_file() {
+            fs::copy(&credits, dir.join("wallpaper.toml"))
+                .map_err(|e| format!("cannot copy {}: {e}", credits.display()))?;
+        }
     }
     Ok(true)
 }
