@@ -100,6 +100,19 @@ in
       description = "Size of the swap file in @swap, null for no swap.";
     };
 
+    labelSuffix = lib.mkOption {
+      type = lib.types.strMatching "[a-z0-9]{0,8}";
+      default = "";
+      example = "4f2a";
+      description = ''
+        Ends the partition labels, so two disks of ${branding.name} in one machine do not carry
+        the same ones and the boot cannot pick the wrong disk: ${branding.id}-esp-4f2a and
+        ${branding.id}-system-4f2a instead of disk-main-ESP and disk-main-system. The installer
+        chooses one at random. Empty keeps the labels of machines installed before; changing it
+        later means relabelling the partitions by hand.
+      '';
+    };
+
     homeSnapshots = lib.mkOption {
       type = lib.types.bool;
       default = true;
@@ -144,6 +157,7 @@ in
           ESP = {
             # 1 GiB holds many kernel generations and the boot menu theme.
             size = "1G";
+            label = lib.mkIf (cfg.labelSuffix != "") "${branding.id}-esp-${cfg.labelSuffix}";
             type = "EF00";
             content = {
               type = "filesystem";
@@ -154,6 +168,7 @@ in
           };
           system = {
             size = "100%";
+            label = lib.mkIf (cfg.labelSuffix != "") "${branding.id}-system-${cfg.labelSuffix}";
             content = systemPartitionContent;
           };
         };

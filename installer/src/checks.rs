@@ -119,6 +119,8 @@ pub struct Answers {
     pub disk: String,
     pub encrypt: bool,
     pub hibernation: bool,
+    /// Ends the partition labels (Q6): given by the answers, else chosen at random by the core
+    pub label_suffix: Option<String>,
 }
 
 impl Answers {
@@ -156,6 +158,7 @@ impl Answers {
             disk: text(&["disk"])?,
             encrypt: flag("encrypt")?,
             hibernation: flag("hibernation")?,
+            label_suffix: text(&["labelSuffix"]).ok(),
         })
     }
 
@@ -179,8 +182,22 @@ impl Answers {
         if !valid_full_name(&self.full_name) {
             return Err("The name must be 1 to 64 characters on one line.".into());
         }
+        if let Some(suffix) = &self.label_suffix
+            && !valid_label_suffix(suffix)
+        {
+            return Err(format!("Not a valid label suffix: {suffix}"));
+        }
         Ok(())
     }
+}
+
+/// The end of the partition labels: lowercase letters and digits, 1 to 8 (GPT allows 36
+/// characters, `<id>-system-` takes the rest)
+pub fn valid_label_suffix(text: &str) -> bool {
+    (1..=8).contains(&text.len())
+        && text
+            .chars()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit())
 }
 
 /// Fills the placeholders of the machine.nix template. The full name goes in last, escaped,
@@ -208,6 +225,7 @@ pub fn render_machine_nix(
             "hibernation",
             if answers.hibernation { "true" } else { "false" },
         ),
+        ("labelSuffix", answers.label_suffix.as_deref().unwrap_or("")),
         ("stateVersion", state_version),
     ] {
         content = content.replace(&format!("@{key}@"), value);
@@ -263,6 +281,26 @@ mod tests {
         assert!(!valid_user_name("strix", "strix"));
         assert!(!valid_user_name("1abc", "strix"));
         assert!(!valid_user_name(&"a".repeat(33), "strix"));
+    }
+
+    #[test]
+    fn label_suffixes() {
+        assert!(valid_label_suffix("4f2a") && valid_label_suffix("test"));
+        assert!(
+            !valid_label_suffix("") && !valid_label_suffix("ABC") && !valid_label_suffix("a-b")
+        );
+        assert!(!valid_label_suffix("123456789"));
+        let mut a = answers();
+        a.label_suffix = Some("Bad!".into());
+        assert!(a.check("strix").unwrap_err().contains("label suffix"));
+        let parsed = Answers::parse(&json!({
+            "hostName": "x", "timeZone": "Europe/Zurich", "locale": "de_CH.UTF-8", "keyboard": "ch",
+            "user": { "name": "livio", "fullName": "Livio" }, "disk": "/dev/vda",
+            "encrypt": false, "hibernation": false, "labelSuffix": "4f2a"
+        }))
+        .unwrap();
+        assert_eq!(parsed.label_suffix.as_deref(), Some("4f2a"));
+        assert_eq!(answers().label_suffix, None);
     }
 
     #[test]
