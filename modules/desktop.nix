@@ -397,7 +397,7 @@ in
     # The password of the lock screen
     security.pam.services."${id}-lock" = { };
 
-    # Links, web pages and PDFs open in Zen; the live session of the ISO has no browser
+    # Links, web pages and PDFs open in Zen, text in Zed; the live session of the ISO has neither
     xdg.mime.defaultApplications = lib.mkIf (!cfg.live) (
       lib.genAttrs [
         "text/html"
@@ -406,6 +406,14 @@ in
         "x-scheme-handler/http"
         "x-scheme-handler/https"
       ] (_: "zen-beta.desktop")
+      // lib.genAttrs [
+        "text/plain"
+        "text/markdown"
+        "text/x-nix"
+        "application/json"
+        "application/toml"
+        "application/x-shellscript"
+      ] (_: "dev.zed.Zed.desktop")
     );
     environment.sessionVariables.BROWSER = lib.mkIf (!cfg.live) "zen-beta";
 
@@ -421,7 +429,6 @@ in
     ++ lib.optionals (!cfg.live) [
       zen
       nautilus
-      gnome-text-editor
       # The editor of the proof of concept: plain to use, in the theme's colors
       zed-editor
       jq
