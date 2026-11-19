@@ -2,12 +2,16 @@
 // wallpaper. Everything in it is a button that answers the pointer, and none needs a hint.
 // Left: search, the clock (a click shows the month under it), CPU and memory (the system
 // monitor), then what is playing (a click on the title opens the media player under it).
-// Middle: the workspaces of Hyprland. Right: the network, the volume (scrolling turns it) and the
-// battery when there is one, each opening its page in Settings, the bell with its count and power.
-// Super Shift Space hides it (ipc: bar toggle).
+// Middle: the workspaces of Hyprland. Right: the network, Bluetooth, the volume (scrolling turns
+// it), the battery when there is one, the bell with its count and power. Network, Bluetooth,
+// volume, battery and power drop a quick panel under their symbol (WifiPanel, BluetoothPanel,
+// SoundPanel, PowerPanel, SessionPanel) with what is needed most and the way to Settings; a
+// click elsewhere, Escape or the same symbol again folds it back.
+// Super Shift Space hides it (ipc: bar toggle, bar open <panel>, bar close).
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Quickshell.Bluetooth
 import Quickshell.Hyprland
 import Quickshell.Networking
 import Quickshell.Services.Mpris
@@ -24,7 +28,28 @@ Scope {
     IpcHandler {
         target: "bar"
         function toggle(): void { root.shown = !root.shown }
+        function open(panel: string): void {
+            const screen = Hyprland.focusedMonitor ? Hyprland.focusedMonitor.name
+                : Quickshell.screens.length > 0 ? Quickshell.screens[0].name : ""
+            root.drop = ["wifi", "bluetooth", "sound", "power", "session"].indexOf(panel) >= 0 ? panel : "session"
+            root.dropOn = screen
+        }
+        function close(): void { root.drop = "" }
+        function isOpen(): string { return root.drop }
     }
+
+    /// The quick panel under a symbol: "", "wifi", "bluetooth", "sound", "power" or "session"
+    property string drop: ""
+    /// The screen whose bar shows it
+    property string dropOn: ""
+    function toggleDrop(name, screen) {
+        if (root.drop === name && root.dropOn === screen) { root.drop = ""; return }
+        root.calendarOn = ""
+        root.mediaOn = ""
+        root.dropOn = screen
+        root.drop = name
+    }
+    onShownChanged: if (!shown) root.drop = ""
 
     // What is playing: the player that plays, else the last one that did, else the first
     property var lastPlayer: null
@@ -40,6 +65,7 @@ Scope {
     property string calendarOn: ""
 
     function settings(page) {
+        root.drop = ""
         Quickshell.execDetached(["strix-settings", page])
     }
     onPlayerChanged: {
@@ -73,6 +99,10 @@ Scope {
     PwObjectTracker { objects: root.sink ? [root.sink] : [] }
     readonly property real volume: root.sink && root.sink.audio ? root.sink.audio.volume : 0
     readonly property bool muted: !!(root.sink && root.sink.audio && root.sink.audio.muted)
+
+    // Bluetooth, when the machine has it
+    readonly property var adapter: Bluetooth.defaultAdapter
+    readonly property int btConnected: root.adapter ? root.adapter.devices.values.filter(d => d.connected).length : 0
 
     // The battery, on a laptop
     readonly property var battery: UPower.displayDevice
@@ -142,7 +172,7 @@ Scope {
                 MeterGroup {
                     id: clockButton
                     anchors.verticalCenter: parent.verticalCenter
-                    onClicked: root.calendarOn = root.calendarOn === bar.modelData.name ? "" : bar.modelData.name
+                    onClicked: { root.drop = ""; root.calendarOn = root.calendarOn === bar.modelData.name ? "" : bar.modelData.name }
                     Label {
                         textStyle: "label"
                         color: Theme.text
@@ -179,7 +209,7 @@ Scope {
                         MouseArea {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: root.mediaOn = root.mediaOn === bar.modelData.name ? "" : bar.modelData.name
+                            onClicked: { root.drop = ""; root.mediaOn = root.mediaOn === bar.modelData.name ? "" : bar.modelData.name }
                         }
                     }
                 }
@@ -245,7 +275,7 @@ Scope {
                 MeterGroup {
                     id: net
                     anchors.verticalCenter: parent.verticalCenter
-                    onClicked: root.settings("network")
+                    onClicked: root.toggleDrop("wifi", bar.modelData.name)
                     Icon {
                         name: "wifi"
                         size: 14
@@ -263,8 +293,29 @@ Scope {
                     }
                 }
                 MeterGroup {
+                    id: bt
+                    visible: root.adapter !== null
                     anchors.verticalCenter: parent.verticalCenter
-                    onClicked: root.settings("sound")
+                    onClicked: root.toggleDrop("bluetooth", bar.modelData.name)
+                    Icon {
+                        name: "bluetooth"
+                        size: 14
+                        hovered: bt.hovered
+                        color: !(root.adapter && root.adapter.enabled) ? Theme.textFaint : bt.hovered ? Theme.text : Theme.textMuted
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                    Label {
+                        visible: root.btConnected > 0
+                        textStyle: "micro"
+                        color: bt.hovered ? Theme.text : Theme.textMuted
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: String(root.btConnected)
+                    }
+                }
+                MeterGroup {
+                    id: vol
+                    anchors.verticalCenter: parent.verticalCenter
+                    onClicked: root.toggleDrop("sound", bar.modelData.name)
                     Meter {
                         label: "VOL"
                         value: root.muted ? 0 : root.volume
@@ -282,9 +333,10 @@ Scope {
                     }
                 }
                 MeterGroup {
+                    id: bat
                     visible: root.hasBattery
                     anchors.verticalCenter: parent.verticalCenter
-                    onClicked: root.settings("power")
+                    onClicked: root.toggleDrop("power", bar.modelData.name)
                     Meter {
                         label: root.charging ? "AC" : "BAT"
                         value: root.charge
@@ -308,10 +360,83 @@ Scope {
                     }
                 }
                 IconButton {
+                    id: powerButton
                     small: true
                     iconName: "power"
                     anchors.verticalCenter: parent.verticalCenter
-                    onClicked: Quickshell.execDetached(["qs", "-c", "strix", "ipc", "call", "search", "open", "menu:system"])
+                    onClicked: root.toggleDrop("session", bar.modelData.name)
+                }
+            }
+
+            // ---------------------------------------------------------------- the quick panels
+            readonly property string dropHere: root.dropOn === bar.modelData.name ? root.drop : ""
+            /// What the popup shows; stays while it folds back
+            property string dropShowing: "wifi"
+            onDropHereChanged: if (dropHere !== "") dropShowing = dropHere
+
+            HyprlandFocusGrab {
+                windows: [bar, dropWindow]
+                active: bar.dropHere !== ""
+                onCleared: if (root.dropOn === bar.modelData.name) root.drop = ""
+            }
+
+            PopupWindow {
+                id: dropWindow
+                readonly property Item source: ({ wifi: net, bluetooth: bt, sound: vol, power: bat, session: powerButton })[bar.dropShowing] || powerButton
+                readonly property Item body: ({ wifi: wifiDrop, bluetooth: btDrop, sound: soundDrop, power: powerDrop, session: sessionDrop })[bar.dropShowing] || sessionDrop
+
+                visible: root.shown && dropPresence.present
+                anchor.window: bar
+                // Under its symbol, its right edge at the symbol's right edge, inside the screen
+                anchor.rect.x: Math.max(Theme.space2, Math.min(bar.width - width - Theme.space2,
+                    source.mapToItem(null, source.width, 0).x - width + Theme.space2))
+                anchor.rect.y: bar.height
+                implicitWidth: body.width
+                implicitHeight: body.height + Theme.space2
+                color: "transparent"
+
+                Presence { id: dropPresence; open: bar.dropHere !== "" }
+
+                Item {
+                    anchors.fill: parent
+                    opacity: dropPresence.shown
+                    focus: true
+                    Keys.onEscapePressed: root.drop = ""
+                    transform: Translate { y: -6 * (1 - dropPresence.shown) }
+
+                    WifiPanel {
+                        id: wifiDrop
+                        y: Theme.space2
+                        visible: bar.dropShowing === "wifi"
+                        active: bar.dropHere === "wifi"
+                        onSettings: page => root.settings(page)
+                    }
+                    BluetoothPanel {
+                        id: btDrop
+                        y: Theme.space2
+                        visible: bar.dropShowing === "bluetooth"
+                        onSettings: page => root.settings(page)
+                    }
+                    SoundPanel {
+                        id: soundDrop
+                        y: Theme.space2
+                        visible: bar.dropShowing === "sound"
+                        onSettings: page => root.settings(page)
+                    }
+                    PowerPanel {
+                        id: powerDrop
+                        y: Theme.space2
+                        visible: bar.dropShowing === "power"
+                        active: bar.dropHere === "power"
+                        onSettings: page => root.settings(page)
+                    }
+                    SessionPanel {
+                        id: sessionDrop
+                        y: Theme.space2
+                        visible: bar.dropShowing === "session"
+                        onDone: root.drop = ""
+                        onSettings: page => root.settings(page)
+                    }
                 }
             }
         }

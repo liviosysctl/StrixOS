@@ -11,9 +11,6 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Hyprland
 import Quickshell.Wayland
-import Quickshell.Networking
-import Quickshell.Bluetooth
-import Quickshell.Services.Pipewire
 import Strix
 
 Scope {
@@ -71,19 +68,6 @@ Scope {
     readonly property var months: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
     /// How much of the day is over, 0 to 1
     readonly property real dayPart: (clock.date.getHours() * 60 + clock.date.getMinutes()) / 1440
-
-    // ---------------------------------------------------------------- Wi-Fi and Bluetooth
-    readonly property var wifi: Networking.devices.values.find(d => d.type === DeviceType.Wifi) || null
-    readonly property var networks: root.wifi
-        ? root.wifi.networks.values.slice().sort((a, b) => (b.connected - a.connected) || (b.known - a.known) || (b.signalStrength - a.signalStrength)).slice(0, 6)
-        : []
-    // Looking for networks only while their panel is open
-    Binding { target: root.wifi; property: "scannerEnabled"; value: root.panel === "wifi"; when: root.wifi !== null }
-
-    readonly property var adapter: Bluetooth.defaultAdapter
-    readonly property var devices: root.adapter
-        ? root.adapter.devices.values.filter(d => d.paired).sort((a, b) => (b.connected - a.connected) || a.name.localeCompare(b.name)).slice(0, 6)
-        : []
 
     // ---------------------------------------------------------------- System: the disk
     property real diskUsed: 0
@@ -497,140 +481,22 @@ Scope {
                 }
 
                 // -------------------------------------------------------- the small panels
-                component Small: Surface {
-                    id: small
-                    property string title
-                    default property alias rows: list.data
-                    /// The control at the right of the title: the switch
-                    property alias corner: cornerBox.data
-                    elevation: "panel"
-                    width: 280
-                    height: list.y + list.implicitHeight + Theme.space3
-
-                    Label { x: Theme.space4; y: Theme.space3; textStyle: "heading"; color: Theme.text; text: small.title }
-                    Item {
-                        id: cornerBox
-                        anchors.right: parent.right
-                        anchors.rightMargin: Theme.space4
-                        y: Theme.space3 + 1
-                        width: childrenRect.width
-                        height: childrenRect.height
-                    }
-                    Column {
-                        id: list
-                        x: Theme.space2
-                        y: Theme.space3 + 20 + Theme.space2
-                        width: parent.width - 2 * Theme.space2
-                    }
-                }
-                component Hint: Label {
-                    x: Theme.space2
-                    width: parent.width - 2 * Theme.space2
-                    height: Theme.controlMd
-                    verticalAlignment: Text.AlignVCenter
-                    textStyle: "caption"
-                    color: Theme.textFaint
-                    wrapMode: Text.WordWrap
-                }
-
-                Small {
+                // The same quick panels as under the symbols of the bar
+                WifiPanel {
                     id: wifiPanel
                     visible: win.showing === "wifi"
-                    title: "Wi-Fi"
-                    corner: Switch {
-                        checked: Networking.wifiEnabled
-                        enabled: Networking.wifiHardwareEnabled && root.wifi !== null
-                        onToggled: Networking.wifiEnabled = checked
-                    }
-
-                    Hint {
-                        visible: root.wifi === null || !Networking.wifiEnabled || root.networks.length === 0
-                        text: root.wifi === null ? "No Wi-Fi on this machine"
-                            : !Networking.wifiHardwareEnabled ? "Switched off by a key or the airplane mode"
-                            : !Networking.wifiEnabled ? "Wi-Fi is off" : "Looking for networks"
-                    }
-                    Repeater {
-                        model: Networking.wifiEnabled ? root.networks : []
-                        ListRow {
-                            required property var modelData
-                            width: parent.width
-                            iconName: "wifi"
-                            text: modelData.name
-                            selected: modelData.connected
-                            detail: modelData.connected ? "Connected" : modelData.stateChanging ? "Connecting" : modelData.known ? "Saved" : ""
-                            // A known network connects at once; a new one asks for its password in Settings
-                            onClicked: {
-                                if (modelData.connected) return
-                                if (modelData.known) modelData.connect()
-                                else root.settings("network")
-                            }
-                        }
-                    }
-                    ListRow { width: parent.width; iconName: "settings"; text: "Network settings"; onClicked: root.settings("network") }
+                    active: win.open === "wifi"
+                    onSettings: page => root.settings(page)
                 }
-
-                Small {
+                BluetoothPanel {
                     id: bluetoothPanel
                     visible: win.showing === "bluetooth"
-                    title: "Bluetooth"
-                    corner: Switch {
-                        enabled: root.adapter !== null
-                        checked: !!(root.adapter && root.adapter.enabled)
-                        onToggled: root.adapter.enabled = checked
-                    }
-
-                    Hint {
-                        visible: !(root.adapter && root.adapter.enabled) || root.devices.length === 0
-                        text: root.adapter === null ? "No Bluetooth on this machine"
-                            : !root.adapter.enabled ? "Bluetooth is off" : "No paired devices"
-                    }
-                    Repeater {
-                        model: root.adapter && root.adapter.enabled ? root.devices : []
-                        ListRow {
-                            required property var modelData
-                            width: parent.width
-                            iconName: "bluetooth"
-                            text: modelData.name || modelData.address
-                            selected: modelData.connected
-                            detail: !modelData.connected ? "Paired"
-                                : modelData.batteryAvailable ? Math.round(modelData.battery * (modelData.battery > 1 ? 1 : 100)) + "%" : "Connected"
-                            onClicked: modelData.connected ? modelData.disconnect() : modelData.connect()
-                        }
-                    }
-                    ListRow { width: parent.width; iconName: "settings"; text: "Bluetooth settings"; onClicked: root.settings("bluetooth") }
+                    onSettings: page => root.settings(page)
                 }
-
-                Small {
+                SoundPanel {
                     id: soundPanel
                     visible: win.showing === "sound"
-                    title: "Sound"
-
-                    Item {
-                        width: parent.width
-                        height: Theme.controlMd
-                        Slider {
-                            x: Theme.space2
-                            width: parent.width - 2 * Theme.space2
-                            anchors.verticalCenter: parent.verticalCenter
-                            iconName: root.bar.muted ? "x" : "volume-2"
-                            from: 0
-                            to: 1
-                            enabled: !!(root.bar.sink && root.bar.sink.audio)
-                            value: root.bar.volume
-                            onMoved: {
-                                root.bar.sink.audio.muted = false
-                                root.bar.sink.audio.volume = value
-                            }
-                        }
-                    }
-                    ListRow {
-                        width: parent.width
-                        iconName: root.bar.muted ? "volume-2" : "x"
-                        text: root.bar.muted ? "Unmute" : "Mute"
-                        enabled: !!(root.bar.sink && root.bar.sink.audio)
-                        onClicked: root.bar.sink.audio.muted = !root.bar.sink.audio.muted
-                    }
-                    ListRow { width: parent.width; iconName: "settings"; text: "Sound settings"; onClicked: root.settings("sound") }
+                    onSettings: page => root.settings(page)
                 }
             }
         }
