@@ -224,15 +224,16 @@ let
 
   ghosttyDefaults = pkgs.writeText "ghostty-defaults" ''
     # The look of ${branding.name} (modules/desktop.nix)
-    font-family = JetBrains Mono
-    font-size = 11
+    font-family = GeistMono Nerd Font Mono
+    font-style = SemiBold
+    font-style-bold = ExtraBold
+    font-size = 13
     window-padding-x = 12
     window-padding-y = 8
     window-decoration = none
     gtk-titlebar = false
     confirm-close-surface = false
-    cursor-style = block
-    shell-integration-features = no-cursor
+    cursor-style = bar
   '';
 in
 {
@@ -396,7 +397,8 @@ in
       source = lib.getExe openInGhostty;
     };
 
-    fonts.packages = [ pkgs.noto-fonts ];
+    # Noto for text in every script; Geist Mono with the Nerd Font icons for the terminal
+    fonts.packages = [ pkgs.noto-fonts pkgs.nerd-fonts.geist-mono ];
 
     # The search service behind Search and the cheat sheet
     ${id}.search.enable = true;
