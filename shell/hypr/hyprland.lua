@@ -93,7 +93,7 @@ hl.window_rule({
     float = true,
     center = true,
     -- Of the screen, so it also fits a small or scaled one
-    size = "80% 80%",
+    size = "90% 86%",
 })
 
 hl.window_rule({

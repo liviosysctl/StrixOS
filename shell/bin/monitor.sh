@@ -24,4 +24,5 @@ else
     sed -i "s|^color_theme = .*|color_theme = \"$ID\"|" "$config/btop.conf"
 fi
 
-exec uwsm app -- ghostty --class="$class" --title="System monitor" -e btop
+# A smaller type than the terminal's: btop needs 80 columns, also on a small or scaled screen
+exec uwsm app -- ghostty --class="$class" --title="System monitor" --font-size=10 -e btop

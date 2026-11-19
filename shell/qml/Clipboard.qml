@@ -35,19 +35,38 @@ Scope {
 
     function forget(entry) {
         if (!entry) return
+        if (entry.picture !== "") Quickshell.execDetached(["rm", "-f", entry.picture.slice(7)])
         Quickshell.execDetached(["sh", "-c", "printf '%s' \"$1\" | cliphist delete", "sh", entry.line])
         root.entries = root.entries.filter(e => e.line !== entry.line)
     }
 
+    /// Where the pictures of the history are unpacked for their previews, gone with the session
+    readonly property string pictures: Quickshell.env("XDG_RUNTIME_DIR") + "/strix/clipboard"
+
+    // cliphist shows a picture as "[[ binary data 12 KiB png 640x480 ]]": the newest 40 are
+    // unpacked once, by their id, so the rows can show them
     Process {
         id: list
-        command: ["cliphist", "list"]
+        command: ["sh", "-c", `mkdir -p "$1" && cliphist list | { n=0; t=$(printf '\\t'); while IFS= read -r line; do
+            id=\${line%%"$t"*}
+            case "$line" in *"$t[[ binary data "*)
+                n=$((n + 1))
+                if [ "$n" -le 40 ] && [ ! -s "$1/$id" ]; then printf '%s' "$line" | cliphist decode >"$1/$id"; fi ;;
+            esac
+            printf '%s\\n' "$line"
+        done; }`, "sh", root.pictures]
         stdout: StdioCollector {
             onStreamFinished: {
-                root.entries = text.split("\n").filter(l => l.indexOf("\t") > 0).map(l => ({
-                    line: l,
-                    text: l.slice(l.indexOf("\t") + 1)
-                }))
+                root.entries = text.split("\n").filter(l => l.indexOf("\t") > 0).map(l => {
+                    const id = l.slice(0, l.indexOf("\t"))
+                    const body = l.slice(l.indexOf("\t") + 1)
+                    const picture = /^\[\[ binary data .*?(\d+x\d+) \]\]$/.exec(body)
+                    return {
+                        line: l,
+                        text: picture ? "Picture, " + picture[1].replace("x", " x ") : body,
+                        picture: picture ? "file://" + root.pictures + "/" + id : ""
+                    }
+                })
             }
         }
     }
@@ -136,9 +155,22 @@ Scope {
                         required property int index
                         width: rows.width
                         text: modelData.text.replace(/\s+/g, " ")
-                        iconName: modelData.text.indexOf("[[ binary data") === 0 ? "image" : "copy"
+                        iconName: modelData.picture !== "" ? "image" : "copy"
                         selected: index === root.selected
                         onClicked: root.pick(modelData)
+                        // A picture gets a taller row with itself at the right
+                        implicitHeight: modelData.picture !== "" ? 68 : Theme.controlMd
+                        Image {
+                            visible: modelData.picture !== ""
+                            source: modelData.picture
+                            anchors { right: parent.right; rightMargin: Theme.space2; verticalCenter: parent.verticalCenter }
+                            height: 60
+                            width: 180
+                            sourceSize.height: 120
+                            fillMode: Image.PreserveAspectFit
+                            horizontalAlignment: Image.AlignRight
+                            asynchronous: true
+                        }
                     }
                 }
 
