@@ -40,8 +40,11 @@ ShellRoot {
         visible: root.open
         // Fixed, the window rule of the live session (iso/live.nix) finds it by this
         title: "Installer"
-        implicitWidth: 1040
-        implicitHeight: 700
+        // As designed, but never larger than the screen minus the bar and the gaps: a 1080p
+        // laptop that Hyprland scales by 1.5 has only 1280 x 720 to show
+        readonly property var area: screen ?? Quickshell.screens[0]
+        implicitWidth: Math.min(1040, area.width - 2 * Theme.space6)
+        implicitHeight: Math.min(700, area.height - Theme.barHeight - 2 * Theme.space6)
         color: Theme.background
         onVisibleChanged: if (!visible) root.open = false
 
