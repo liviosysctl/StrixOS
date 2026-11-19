@@ -189,10 +189,29 @@ Scope {
 
             Rectangle { anchors.fill: parent; color: Theme.background }
 
-            Wallpaper {
+            // The engraving of the plate in the middle. Browsing fades the next one over the
+            // last, in the time the track takes to slide
+            Item {
+                id: backdrop
                 anchors.fill: parent
-                source: root.picture(root.shown)
-                dim: true
+                readonly property url target: root.picture(root.shown)
+                /// The upper layer shows the target, else the lower one
+                property bool upper: false
+                onTargetChanged: {
+                    if (backdrop.upper) lower.source = backdrop.target
+                    else over.source = backdrop.target
+                    backdrop.upper = !backdrop.upper
+                }
+                Component.onCompleted: lower.source = backdrop.target
+
+                Wallpaper { id: lower; anchors.fill: parent; dim: true }
+                Wallpaper {
+                    id: over
+                    anchors.fill: parent
+                    dim: true
+                    opacity: backdrop.upper ? 1 : 0
+                    Behavior on opacity { NumberAnimation { duration: Theme.durSlow; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeInOut } }
+                }
             }
 
             MouseArea {
