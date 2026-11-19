@@ -54,8 +54,14 @@ in
       configurationLimit = 10; # a 1 GiB ESP easily holds that many
       # Esc, F4 or Shift during that second shows the menu
       timeoutStyle = "hidden";
-      # The theme brings its own fonts
+      # The theme brings its own fonts and its own background: the picture of NixOS would be set
+      # before any video mode is ("no video mode activated")
       font = null;
+      splashImage = null;
+      # grub.cfg lies on the ESP GRUB was started from, and so do the kernels: no search by
+      # UUID. A search probes every disk, and for each it cannot read GRUB tries to load a file
+      # system module, which Secure Boot forbids ("prohibited by secure boot policy").
+      fsIdentifier = "provided";
       gfxmodeEfi = "1920x1080,auto";
       extraConfig = ''
         if [ -f $prefix/${branding.id}/theme/theme.txt ]; then
