@@ -472,9 +472,10 @@ fn steps(job: &mut Install, opts: &Options) -> Result<(), String> {
 
     job.step(7);
     let line = format!("{}:{password}\n", answers.user_name);
+    let args = in_target("chpasswd");
     job.run_with_input(
         "nixos-enter",
-        &["--root", "/mnt", "-c", "chpasswd"],
+        &args.each_ref().map(String::as_str),
         Some(&line),
     )
     .map_err(|_| "Setting the password failed.".to_string())?;
@@ -502,12 +503,24 @@ fn steps(job: &mut Install, opts: &Options) -> Result<(), String> {
     Ok(())
 }
 
+/// The arguments for `nixos-enter` to run a shell command inside the new system. The command gets
+/// that system's PATH: nixos-enter passes the caller's PATH on, and the graphical installer runs
+/// through sudo from a user service, whose PATH only holds the installer's own tools.
+fn in_target(command: &str) -> [String; 4] {
+    [
+        "--root".into(),
+        "/mnt".into(),
+        "-c".into(),
+        format!("PATH=/run/wrappers/bin:/nix/var/nix/profiles/system/sw/bin; {command}"),
+    ]
+}
+
 /// Only machines with modules/secure-boot.nix have this tool. It points a firmware boot entry at
 /// shim and, with Secure Boot on, asks MokManager to enroll the machine's key at the next start.
 fn secure_boot(job: &mut Install) -> Result<(Option<u16>, bool), String> {
     let tool = format!("{}-secure-boot", job.env.id);
     let present = Command::new("nixos-enter")
-        .args(["--root", "/mnt", "-c", &format!("command -v {tool}")])
+        .args(in_target(&format!("command -v {tool}")))
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .status()
@@ -516,11 +529,9 @@ fn secure_boot(job: &mut Install) -> Result<(Option<u16>, bool), String> {
     if !present {
         return Ok((None, false));
     }
+    let args = in_target(&format!("{tool} boot-entry"));
     if job
-        .run(
-            "nixos-enter",
-            &["--root", "/mnt", "-c", &format!("{tool} boot-entry")],
-        )
+        .run("nixos-enter", &args.each_ref().map(String::as_str))
         .is_err()
     {
         job.log
@@ -530,9 +541,9 @@ fn secure_boot(job: &mut Install) -> Result<(Option<u16>, bool), String> {
         return Ok((None, false));
     }
     let code = mok_code();
-    let enroll = format!("{tool} enroll --code {code}");
+    let args = in_target(&format!("{tool} enroll --code {code}"));
     if job
-        .run("nixos-enter", &["--root", "/mnt", "-c", &enroll])
+        .run("nixos-enter", &args.each_ref().map(String::as_str))
         .is_ok()
     {
         Ok((Some(code), false))
