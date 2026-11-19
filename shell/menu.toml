@@ -227,6 +227,15 @@ keys = "Alt Print"
 run = ["{id}-capture", "record"]
 
 [[action]]
+id = "record-screen"
+title = "Record the screen"
+group = "capture"
+symbol = "monitor"
+words = ["screencast", "recording", "video", "full", "display"]
+keys = "Ctrl Alt Print"
+run = ["{id}-capture", "record-screen"]
+
+[[action]]
 id = "colour-picker"
 title = "Colour picker"
 group = "capture"

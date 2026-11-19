@@ -111,6 +111,26 @@ Scope {
     readonly property bool charging: root.hasBattery && (root.battery.state === UPowerDeviceState.Charging
         || root.battery.state === UPowerDeviceState.FullyCharged || root.battery.state === UPowerDeviceState.PendingCharge)
 
+    // A screen recording runs (strix-capture record): the bar shows a red mark that stops it
+    property bool recording: false
+    property real recordingSince: 0
+    property int recordingSeconds: 0
+    Timer {
+        interval: 1000
+        repeat: true
+        running: root.recording
+        onTriggered: root.recordingSeconds = Math.floor((Date.now() - root.recordingSince) / 1000)
+    }
+    Process {
+        id: recorder
+        command: ["pgrep", "-x", "wf-recorder"]
+        onExited: code => {
+            const now = code === 0
+            if (now && !root.recording) { root.recordingSince = Date.now(); root.recordingSeconds = 0 }
+            root.recording = now
+        }
+    }
+
     // CPU from /proc/stat, memory from /proc/meminfo, every two seconds
     property real cpu: 0
     property real memory: 0
@@ -125,6 +145,7 @@ Scope {
         repeat: true
         triggeredOnStart: true
         onTriggered: {
+            recorder.running = true
             stat.reload()
             meminfo.reload()
             const line = stat.text().split("\n")[0].trim().split(/\s+/).slice(1).map(Number)
@@ -341,6 +362,34 @@ Scope {
                         label: root.charging ? "AC" : "BAT"
                         value: root.charge
                         valueText: Math.round(root.charge * 100) + "%"
+                    }
+                }
+                // While a recording runs: a pulsing dot and the time; a click stops it
+                MeterGroup {
+                    id: rec
+                    visible: root.recording
+                    anchors.verticalCenter: parent.verticalCenter
+                    onClicked: Quickshell.execDetached(["strix-capture", "stop"])
+                    Rectangle {
+                        width: 8
+                        height: 8
+                        radius: 4
+                        color: Theme.error
+                        anchors.verticalCenter: parent.verticalCenter
+                        SequentialAnimation on opacity {
+                            running: root.recording
+                            loops: Animation.Infinite
+                            NumberAnimation { to: 0.35; duration: 700; easing.type: Easing.InOutSine }
+                            NumberAnimation { to: 1; duration: 700; easing.type: Easing.InOutSine }
+                        }
+                    }
+                    Label {
+                        textStyle: "micro"
+                        color: rec.hovered ? Theme.text : Theme.error
+                        anchors.verticalCenter: parent.verticalCenter
+                        font.features: { "tnum": 1 }
+                        text: rec.hovered ? "Stop"
+                            : "REC " + Math.floor(root.recordingSeconds / 60) + ":" + ("0" + root.recordingSeconds % 60).slice(-2)
                     }
                 }
                 Row {

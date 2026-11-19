@@ -1,10 +1,12 @@
-# <id>-capture region|window|screen|record|colour: screenshots, a screen recording and the colour
-# picker of the cheat sheet (Print, Shift Print, Ctrl Print, Alt Print, Super Print).
+# <id>-capture region|window|screen|record|record-screen|stop|colour: screenshots, screen
+# recordings and the colour picker of the cheat sheet (Print, Shift Print, Ctrl Print, Alt Print,
+# Ctrl Alt Print, Super Print).
 #
 # Screenshots go to ~/Pictures/Screenshots and to the clipboard, recordings to ~/Videos/Recordings;
-# a notification says where. Alt Print a second time stops the recording.
+# a notification says where. Either recording key a second time, or the red mark the bar shows
+# while it runs, stops the recording (stop).
 usage() {
-  echo "Usage: $(basename "$0") region|window|screen|record|colour" >&2
+  echo "Usage: $(basename "$0") region|window|screen|record|record-screen|stop|colour" >&2
   exit 64
 }
 
@@ -37,15 +39,22 @@ case "${1:-}" in
   screen)
     shot
     ;;
-  record)
+  record | record-screen | stop)
     if pkill -INT -x wf-recorder; then
       notify-send --app-name=Capture "Recording stopped" "In $videos"
       exit 0
     fi
-    area=$(slurp -d) || exit 0
+    [ "$1" = stop ] && exit 0
+    if [ "$1" = record ]; then
+      area=$(slurp -d) || exit 0
+      where=(-g "$area")
+    else
+      # The screen that has the focus
+      where=(-o "$(hyprctl -j monitors | jq -r 'map(select(.focused)) | .[0].name')")
+    fi
     mkdir -p "$videos"
-    notify-send --app-name=Capture "Recording" "Alt Print stops it"
-    exec wf-recorder -g "$area" -f "$videos/$stamp.mp4"
+    notify-send --app-name=Capture "Recording" "The same key again, or the red mark in the bar, stops it"
+    exec wf-recorder "${where[@]}" -f "$videos/$stamp.mp4"
     ;;
   colour)
     colour=$(hyprpicker --autocopy --format=hex) || exit 0

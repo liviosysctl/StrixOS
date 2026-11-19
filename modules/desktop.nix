@@ -416,6 +416,14 @@ in
     };
     xdg.portal.extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
 
+    # Printers: CUPS, with printers on the network found by themselves (IPP Everywhere through
+    # Avahi), so most need no driver. "Print Settings" in Search adds one that is not found.
+    services.printing.enable = lib.mkIf (!cfg.live) true;
+    services.avahi = lib.mkIf (!cfg.live) {
+      enable = true;
+      nssmdns4 = true;
+    };
+
     # Files (Nautilus, Super E): phones, network shares and the trash (gvfs), other drives
     # (udisks2, mounted without a password by the admins, see the polkit rule below) and
     # thumbnails of pictures and videos. Its colors come from the theme like every GTK app's
@@ -473,6 +481,7 @@ in
       nautilus
       neovimWindow
       amberol
+      system-config-printer
     ]
     ++ [
       adwaita-icon-theme

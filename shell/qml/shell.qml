@@ -1,5 +1,6 @@
 // The shell of Strix (12-desktop): wallpaper, top bar, dock, lock screen, search, cheat sheet,
-// notifications, the OSD, the clipboard history, the theme picker and Settings, built from the QML module of StrixUI (import Strix).
+// notifications, the OSD, the battery warning, the clipboard history, the theme picker and
+// Settings, built from the QML module of StrixUI (import Strix).
 // The colors are the session's theme (strix-theme session), which changes every 10 minutes.
 //
 // Installed as /etc/xdg/quickshell/strix and started by the user service strix-shell:
@@ -28,6 +29,7 @@ ShellRoot {
     Cheatsheet {}
     Notifications { id: notifications }
     VolumeOsd {}
+    BatteryWatch {}
     Clipboard {}
     ThemePicker { id: picker }
     Settings { picker: picker }
