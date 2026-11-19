@@ -2,6 +2,14 @@
 
 All notable changes to this project. Versions follow [Semantic Versioning](https://semver.org); entries are generated from [Conventional Commits](https://www.conventionalcommits.org) with git-cliff.
 
+## v0.6.1 — 2026-11-19
+
+Fixes the graphical installer: it sets the password and the Secure Boot key again, and its window fits small screens.
+
+### Fixed
+- Give commands in the new system its own PATH
+- Fit the window on small screens
+
 ## v0.6.0 — 2026-11-19
 
 Installer fully in Rust, the theme's owl from boot menu to lock screen, Neovim for text and Zen as the only browser.
