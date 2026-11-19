@@ -113,11 +113,11 @@ for _, part in ipairs({ "machine", "theme", "bindings" }) do
     end
 end
 
--- The person's own files in ~/.config/strix, read last: monitors.lua and keys.lua are written
--- by Settings (Display, Hotkeys), hyprland.lua is theirs to edit
+-- The person's own files in ~/.config/strix, read last: monitors.lua, input.lua and keys.lua are
+-- written by Settings (Display, Input, Hotkeys), hyprland.lua is theirs to edit
 local home = os.getenv("HOME")
 if home then
-    for _, name in ipairs({ "monitors", "keys", "hyprland" }) do
+    for _, name in ipairs({ "monitors", "input", "keys", "hyprland" }) do
         local own = home .. "/.config/strix/" .. name .. ".lua"
         local file = io.open(own, "r")
         if file then

@@ -152,6 +152,16 @@ Scope {
     readonly property bool updateReady: !!(root.update && root.update.available)
     onUpdateReadyChanged: if (!updateReady && root.drop === "update") root.drop = ""
 
+    // The layout of the keyboard, once it was switched (Alt Shift with several layouts in
+    // Settings › Input): the bar names it
+    property string layout: ""
+    Connections {
+        target: Hyprland
+        function onRawEvent(event) {
+            if (event.name === "activelayout") root.layout = event.data.split(",").pop()
+        }
+    }
+
     FileView { id: stat; path: "/proc/stat" }
     FileView { id: meminfo; path: "/proc/meminfo" }
     Timer {
@@ -310,6 +320,14 @@ Scope {
                 anchors { right: parent.right; rightMargin: Theme.space4; verticalCenter: parent.verticalCenter }
                 spacing: Theme.space3
 
+                Label {
+                    visible: root.layout !== ""
+                    textStyle: "micro"
+                    color: Theme.textMuted
+                    anchors.verticalCenter: parent.verticalCenter
+                    font.capitalization: Font.AllUppercase
+                    text: root.layout.slice(0, 2)
+                }
                 // A newer version is there: the mark drops what changed and installs it
                 MeterGroup {
                     id: upd

@@ -303,23 +303,22 @@ let
     "/run/current-system/sw/bin"
   ];
 
-  hypridleConfig = pkgs.writeText "hypridle.conf" ''
-    # Idle and sleep (modules/desktop.nix): lock through the shell of ${branding.name}
-    general {
-        lock_cmd = qs -c ${id} ipc call lock lock
-        before_sleep_cmd = loginctl lock-session
-        after_sleep_cmd = hyprctl dispatch 'hl.dsp.dpms({action = "on"})'
-    }
-    listener {
-        timeout = 300
-        on-timeout = loginctl lock-session
-    }
-    listener {
-        timeout = 330
-        on-timeout = hyprctl dispatch 'hl.dsp.dpms({action = "off"})'
-        on-resume = hyprctl dispatch 'hl.dsp.dpms({action = "on"})'
-    }
-  '';
+  # What happens when nobody is at the machine: <id>-idle, which runs hypridle with the times of
+  # ~/.config/<id>/idle.json (Settings › Power), apart for power and battery, and keeps awake
+  idleCommand = pkgs.writeShellApplication {
+    name = "${id}-idle";
+    runtimeInputs = with pkgs; [
+      hypridle
+      jq
+      coreutils
+      brightnessctl
+      systemd
+      quickshell
+      config.programs.hyprland.package
+    ];
+    runtimeEnv.ID = id;
+    text = builtins.readFile ../shell/bin/idle.sh;
+  };
 
   # Copied once into a new user's ~/.config/ghostty/config, then theirs to change
   ghosttyUser = pkgs.writeText "ghostty-config" ''
@@ -417,7 +416,6 @@ in
 
     environment.etc."xdg/${id}/hypr".source = hyprConfig;
     environment.etc."xdg/quickshell/${id}".source = ../shell/qml;
-    environment.etc."xdg/${id}/hypridle.conf".source = hypridleConfig;
     environment.etc."xdg/${id}/ghostty/defaults".source = ghosttyDefaults;
     environment.etc."xdg/${id}/ghostty/user".source = ghosttyUser;
     environment.sessionVariables = {
@@ -528,6 +526,12 @@ in
     # The search service behind Search and the cheat sheet
     ${id}.search.enable = true;
 
+    # The keyring: apps keep their passwords in it, and it opens with the password of the login.
+    # With it comes the agent for SSH keys, which asks for a passphrase once and keeps it there.
+    services.gnome.gnome-keyring.enable = lib.mkIf (!cfg.live) true;
+    security.pam.services.greetd.enableGnomeKeyring = lib.mkIf (!cfg.live) true;
+    programs.ssh.extraConfig = lib.mkIf (!cfg.live) "AddKeysToAgent yes";
+
     # The password of the lock screen
     security.pam.services."${id}-lock" = { };
 
@@ -603,6 +607,7 @@ in
       file-roller
       nightlightCommand
       tailnetCommand
+      idleCommand
       updateCheck
     ]
     ++ [
@@ -746,7 +751,7 @@ in
       wantedBy = [ "graphical-session.target" ];
       path = [ pkgs.quickshell config.programs.hyprland.package pkgs.systemd ];
       serviceConfig = {
-        ExecStart = "${lib.getExe pkgs.hypridle} -c /etc/xdg/${id}/hypridle.conf";
+        ExecStart = "${lib.getExe idleCommand} run";
         Restart = "on-failure";
       };
     };

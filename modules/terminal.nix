@@ -1,4 +1,4 @@
-# The tools of the terminal, set up for every user: eza and bat in place of plain listings, ripgrep
+# The terminal, set up for every user: zsh with suggestions and colors, eza and bat in place of plain listings, ripgrep
 # and fd to search, lazygit in the colors of the theme, direnv for the environment of a project.
 # eza and bat take the 16 colors of the terminal, which the theme engine sets. Whoever has an
 # own lazygit config gets it as is.
@@ -60,6 +60,42 @@ in
     tree = "eza --icons=auto --tree";
     lg = "lazygit";
     ff = "fastfetch";
+  };
+
+  # zsh is the shell of every user: suggestions from the history while typing, commands colored
+  # as they are typed, a menu on Tab. The colors are the terminal's, so they follow the theme.
+  users.defaultUserShell = pkgs.zsh;
+  programs.zsh = {
+    enable = true;
+    enableCompletion = true;
+    autosuggestions.enable = true;
+    syntaxHighlighting.enable = true;
+    histSize = 10000;
+    setOptions = [
+      "HIST_IGNORE_ALL_DUPS"
+      "HIST_IGNORE_SPACE"
+      "SHARE_HISTORY"
+      "AUTO_CD"
+      "INTERACTIVE_COMMENTS"
+    ];
+    # No questions at the first start of a user without a .zshrc
+    shellInit = "zsh-newuser-install() { :; }";
+    interactiveShellInit = ''
+      zstyle ':completion:*' menu select
+      zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'
+      bindkey -e
+      # Up and Down look through the history for what is already typed
+      autoload -Uz up-line-or-beginning-search down-line-or-beginning-search
+      zle -N up-line-or-beginning-search
+      zle -N down-line-or-beginning-search
+      bindkey '^[[A' up-line-or-beginning-search
+      bindkey '^[[B' down-line-or-beginning-search
+      bindkey '^[[1;5C' forward-word
+      bindkey '^[[1;5D' backward-word
+      bindkey '^[[H' beginning-of-line
+      bindkey '^[[F' end-of-line
+      bindkey '^[[3~' delete-char
+    '';
   };
 
   # bat in the colors of the terminal, so it follows the theme; plain when piped

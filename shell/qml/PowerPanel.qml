@@ -1,5 +1,5 @@
 // Battery and brightness in a quick panel: the charge with the time left, the brightness of the
-// screen (when it has a backlight), the power profile, the night light and the way to
+// screen (when it has a backlight), the power profile, the night light, staying awake and the way to
 // Settings › Power.
 import QtQuick
 import Quickshell
@@ -49,8 +49,15 @@ QuickPanel {
         command: ["strix-nightlight", "state"]
         stdout: StdioCollector { onStreamFinished: root.night = text.trim() === "on" }
     }
-    onActiveChanged: if (active) { readLight.running = true; readNight.running = true }
-    Component.onCompleted: { readLight.running = true; readNight.running = true }
+    // Stay awake (strix-idle awake): nothing dims, locks or sleeps by itself, until the logout
+    property bool awake: false
+    Process {
+        id: readAwake
+        command: ["strix-idle", "awake", "state"]
+        stdout: StdioCollector { onStreamFinished: root.awake = text.trim() === "on" }
+    }
+    onActiveChanged: if (active) { readLight.running = true; readNight.running = true; readAwake.running = true }
+    Component.onCompleted: { readLight.running = true; readNight.running = true; readAwake.running = true }
 
     title: "Power"
     corner: Label {
@@ -113,6 +120,20 @@ QuickPanel {
             onToggled: {
                 root.night = checked
                 Quickshell.execDetached(["strix-nightlight", checked ? "on" : "off"])
+            }
+        }
+    }
+    Item {
+        width: parent.width
+        height: Theme.controlMd
+        Switch {
+            x: Theme.space2
+            anchors.verticalCenter: parent.verticalCenter
+            text: "Stay awake"
+            checked: root.awake
+            onToggled: {
+                root.awake = checked
+                Quickshell.execDetached(["strix-idle", "awake", checked ? "on" : "off"])
             }
         }
     }

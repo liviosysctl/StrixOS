@@ -34,6 +34,12 @@ symbol = "monitor"
 words = ["screen", "monitor", "scale", "resolution", "hidpi"]
 
 [[page]]
+id = "input"
+title = "Input"
+symbol = "keyboard"
+words = ["keyboard", "layout", "mouse", "touchpad", "pointer", "speed", "scroll", "tap"]
+
+[[page]]
 id = "power"
 title = "Power"
 symbol = "zap"

@@ -29,6 +29,7 @@ Scope {
         { id: "bluetooth", title: "Bluetooth", icon: "bluetooth" },
         { id: "sound", title: "Sound", icon: "volume-2" },
         { id: "display", title: "Display", icon: "monitor" },
+        { id: "input", title: "Input", icon: "keyboard" },
         { id: "power", title: "Power", icon: "zap" },
         { id: "hotkeys", title: "Hotkeys", icon: "keyboard" },
         { id: "versions", title: "Versions", icon: "history" },
@@ -319,7 +320,8 @@ Scope {
                     SettingsBluetooth { visible: root.page === "bluetooth"; active: root.open && visible; width: parent.width }
                     SettingsSound { visible: root.page === "sound"; width: parent.width }
                     SettingsDisplay { visible: root.page === "display"; width: parent.width }
-                    SettingsPower { visible: root.page === "power"; width: parent.width }
+                    SettingsInput { visible: root.page === "input"; width: parent.width }
+                    SettingsPower { visible: root.page === "power"; active: root.open && visible; width: parent.width }
                     SettingsHotkeys { visible: root.page === "hotkeys"; active: root.open && visible; width: parent.width }
 
                     SettingsVersions {
