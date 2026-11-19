@@ -19,6 +19,7 @@ Clicks in the bar and Search work, the theme picker sets the theme, and the term
 - Say to pull the stick only once the screen is dark
 - Scroll the cheat sheet on a small screen
 - Stop the GRUB errors at every start
+- Draw the wallpaper undistorted
 
 ## v0.6.1 — 2026-11-19
 
