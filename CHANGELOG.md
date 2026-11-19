@@ -2,6 +2,23 @@
 
 All notable changes to this project. Versions follow [Semantic Versioning](https://semver.org); entries are generated from [Conventional Commits](https://www.conventionalcommits.org) with git-cliff.
 
+## v0.6.2 — 2026-11-19
+
+Clicks in the bar and Search work, the theme picker sets the theme, and the terminal gets its font, prompt and window motion.
+
+### Added
+- Slide windows in, scale a laptop's Full HD to 125 %
+- Add Geist Mono and a prompt with bars to the terminal
+
+### Changed
+- Change to ruled sections with symbols
+- Make everything in the bar a button, drop the hint
+
+### Fixed
+- Start programs from the bar, Search and the picker
+- Say to pull the stick only once the screen is dark
+- Scroll the cheat sheet on a small screen
+
 ## v0.6.1 — 2026-11-19
 
 Fixes the graphical installer: it sets the password and the Secure Boot key again, and its window fits small screens.
