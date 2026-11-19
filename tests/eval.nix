@@ -482,6 +482,8 @@ in
     assert lib.hasInfix "${branding.id}-grub-theme" install;
     # The theme comes first, the signature last: sign may not miss a file written after it
     assert lib.hasSuffix "${branding.id}-secure-boot sign\n" install;
+    # No picture of NixOS before a video mode is set, no search that probes every disk
+    assert grub.splashImage == null && grub.fsIdentifier == "provided";
     assert lib.hasInfix "theme/theme.txt" grub.extraConfig;
     assert cfg.systemd.paths."${branding.id}-grub-theme".pathConfig.PathChanged == "/run/${branding.id}/theme/tokens.json";
     assert lib.hasSuffix "${branding.id}-saturnus-dark" iso.isoImage.grubTheme.name;

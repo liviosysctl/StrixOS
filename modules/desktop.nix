@@ -177,6 +177,14 @@ let
     export XKB_DEFAULT_LAYOUT=${lib.escapeShellArg xkb.layout} XKB_DEFAULT_VARIANT=${lib.escapeShellArg xkb.variant}
     export XKB_DEFAULT_OPTIONS=${lib.escapeShellArg xkb.options}
     export XCURSOR_THEME=Adwaita XCURSOR_SIZE=24
+    # cage does not scale: a laptop's own Full HD screen gets the 125 % of the desktop
+    # (shell/hypr/hyprland.lua), so the login is as large as what follows it
+    for modes in /sys/class/drm/card*-eDP-*/modes; do
+      [ -r "$modes" ] || continue
+      case "$(${pkgs.coreutils}/bin/head -n 1 "$modes")" in
+        1920x1080 | 1920x1200) export QT_SCALE_FACTOR=1.25 ;;
+      esac
+    done
     # A machine without usable 3D (an old GPU, a VM): wlroots refuses Mesa's software renderer
     # unless allowed; with a working GPU this changes nothing
     export WLR_RENDERER_ALLOW_SOFTWARE=1
