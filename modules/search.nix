@@ -27,6 +27,14 @@ in
       partOf = [ "graphical-session.target" ];
       after = [ "graphical-session.target" ];
       wantedBy = [ "graphical-session.target" ];
+      # The commands of the entries run from here: the session's PATH, not the handful of tools
+      # NixOS gives a user service
+      environment.PATH = lib.mkForce (lib.concatStringsSep ":" [
+        "%h/.nix-profile/bin"
+        "/etc/profiles/per-user/%u/bin"
+        "/run/wrappers/bin"
+        "/run/current-system/sw/bin"
+      ]);
       # where NixOS puts desktop entries: the user's profiles first, then the system
       environment.XDG_DATA_DIRS = lib.concatStringsSep ":" [
         "%h/.nix-profile/share"
