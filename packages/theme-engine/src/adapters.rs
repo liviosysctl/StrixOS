@@ -172,6 +172,70 @@ pub fn btop(theme: &Theme, variant: &Variant) -> String {
     out
 }
 
+/// The palette of the prompt (shell/starship.toml), by its names: the bars run from the surface
+/// to the accent, the path last and in the accent itself
+fn starship_colors(variant: &Variant) -> [(&'static str, Rgb); 18] {
+    let text = variant.color("text");
+    let on_accent = variant.color("on-accent");
+    let accent = variant.color("accent");
+    let warning = variant.color("warning");
+    [
+        ("accent_text", extra_or(variant, "accent-text", "accent")),
+        ("bar", extra_or(variant, "surface-raised", "surface")),
+        ("bar_text", variant.color("text-muted")),
+        ("error", variant.color("error")),
+        ("git", extra_or(variant, "accent-pressed", "accent")),
+        ("git_text", on_accent),
+        ("host", variant.color("border")),
+        ("host_text", text),
+        ("level", warning),
+        ("level_text", variant.color("background")),
+        ("mode", extra_or(variant, "accent-text", "accent")),
+        ("path", accent),
+        ("path_text", on_accent),
+        ("text", text),
+        ("text_muted", variant.color("text-muted")),
+        ("user", extra_or(variant, "border-active", "border")),
+        ("user_text", text),
+        ("warning", warning),
+    ]
+}
+
+/// starship.toml: the prompt's configuration `base` (shell/starship.toml) with its palette
+/// `strix` in the colors of the theme. The rest of `base` stays as it is.
+pub fn starship(theme: &Theme, variant: &Variant, base: &str) -> String {
+    let mut palette = format!(
+        "[palettes.strix]\n# The colors of {} ({}:{}), written by the theme engine\n",
+        theme.name, theme.id, variant.id
+    );
+    for (name, color) in starship_colors(variant) {
+        palette.push_str(&format!("{name} = \"{}\"\n", color.hex()));
+    }
+    let mut out = String::new();
+    let mut inside = false;
+    let mut written = false;
+    for line in base.lines() {
+        let header = line.trim_start().starts_with('[');
+        if header {
+            inside = line.trim() == "[palettes.strix]";
+            if inside {
+                out.push_str(&palette);
+                written = true;
+                continue;
+            }
+        }
+        if !inside {
+            out.push_str(line);
+            out.push('\n');
+        }
+    }
+    if !written {
+        out.push('\n');
+        out.push_str(&palette);
+    }
+    out
+}
+
 /// The named colors of libadwaita (and adw-gtk3) for one variant, in the order they are written
 fn gtk_colors(variant: &Variant) -> Vec<(&'static str, Rgb)> {
     let background = variant.color("background");
@@ -481,6 +545,29 @@ mod tests {
         let border = variant.color("border").hex();
         assert!(four.contains(&format!("--border-color: {border};")));
         assert!(four.contains(&format!("--sidebar-border-color: {border};")));
+    }
+
+    #[test]
+    fn starship_replaces_only_the_palette() {
+        let theme = good();
+        let variant = theme.variant("dark").unwrap();
+        let base = "palette = \"strix\"\n\n[directory]\nstyle = \"fg:path_text bg:path\"\n\n[palettes.strix]\npath = \"#c8102e\"\nold = \"#123456\"\n\n[time]\nformat = \"x\"\n";
+        let toml = starship(&theme, variant, base);
+        assert!(
+            toml.starts_with("palette = \"strix\"\n\n[directory]\n"),
+            "{toml}"
+        );
+        assert!(toml.contains("path = \"#c8102e\"\n"), "{toml}");
+        assert!(toml.contains("path_text = \"#ffffff\"\n"), "{toml}");
+        assert!(!toml.contains("old ="), "{toml}");
+        assert!(toml.contains("[time]\nformat = \"x\"\n"), "{toml}");
+        assert_eq!(toml.matches("[palettes.strix]").count(), 1);
+        // a base without the palette gets it at the end
+        let bare = starship(&theme, variant, "palette = \"strix\"\n");
+        assert!(
+            bare.starts_with("palette = \"strix\"\n\n[palettes.strix]\n"),
+            "{bare}"
+        );
     }
 
     #[test]

@@ -74,7 +74,7 @@ The theme of a desktop session (a user service):
 Environment: THEMES_DIR, STATE_DIR, RUNTIME_DIR, DEFAULT_THEME, PLYMOUTH_PREFIX,
 PLYMOUTH_BASE_CONF, PLYMOUTH_THEMES, PLYMOUTH_CONF, EFI_VARIABLE, EFIVARS_DIR,
 CONSOLE_DEVICE, REPOS_FILE, BUILTIN_THEMES, GIT, THEME_REPOS_ALLOW_LOCAL (tests),
-SESSION_DIR, SESSION_STATE, SESSION_SOCKET, CYCLE_PERIOD, SESSION_HOOK, PKEXEC,
+SESSION_DIR, SESSION_STATE, SESSION_SOCKET, CYCLE_PERIOD, SESSION_HOOK, PKEXEC, PROMPT_BASE,
 THEME_COMMAND.
 ";
 
@@ -1020,6 +1020,7 @@ fn session_settings(config: &Config) -> Result<session::Settings, String> {
         hook: text("SESSION_HOOK").map(PathBuf::from),
         pkexec: PathBuf::from(text("PKEXEC").unwrap_or_else(|| "pkexec".into())),
         command: text("THEME_COMMAND").map(PathBuf::from),
+        prompt: text("PROMPT_BASE").map(PathBuf::from),
     })
 }
 

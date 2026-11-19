@@ -125,6 +125,9 @@ pub struct Settings {
     /// pkexec and the theme command, for `set`
     pub pkexec: PathBuf,
     pub command: Option<PathBuf>,
+    /// The prompt's configuration (PROMPT_BASE, shell/starship.toml): written again with the
+    /// palette of the theme as starship.toml
+    pub prompt: Option<PathBuf>,
 }
 
 /// The session: which theme it shows and whether it is kept
@@ -183,7 +186,12 @@ impl Session {
     /// Shows `text` (theme or theme:variant) in this session and starts a new period
     pub fn show(&mut self, text: &str) -> Result<(), String> {
         let (theme, variant) = self.resolve(text)?;
-        write_output(&self.settings.dir, theme, variant)?;
+        write_output(
+            &self.settings.dir,
+            theme,
+            variant,
+            self.settings.prompt.as_deref(),
+        )?;
         let (theme_id, variant_id) = (theme.id.clone(), variant.id.clone());
         self.theme = theme_id;
         self.variant = variant_id;
@@ -378,9 +386,15 @@ fn read_kept(file: &Path) -> bool {
         .unwrap_or(false)
 }
 
-/// tokens.json, hyprland.lua, ghostty, btop.theme and the GTK and Zen files for one theme; tokens.json last, so
-/// whoever watches it finds the others already new
-pub fn write_output(dir: &Path, theme: &Theme, variant: &Variant) -> Result<(), String> {
+/// tokens.json, hyprland.lua, ghostty, btop.theme, the GTK and Zen files and, with the prompt's
+/// configuration `prompt`, starship.toml for one theme; tokens.json last, so whoever watches it
+/// finds the others already new
+pub fn write_output(
+    dir: &Path,
+    theme: &Theme,
+    variant: &Variant,
+    prompt: Option<&Path>,
+) -> Result<(), String> {
     let tokens = serde_json::to_string_pretty(&adapters::tokens(theme, variant))
         .map_err(|e| e.to_string())?
         + "\n";
@@ -392,8 +406,20 @@ pub fn write_output(dir: &Path, theme: &Theme, variant: &Variant) -> Result<(), 
         ("gtk4.css", adapters::gtk4(theme, variant)),
         ("zen-userChrome.css", adapters::zen_chrome(theme, variant)),
         ("zen-userContent.css", adapters::zen_content(theme, variant)),
-        ("tokens.json", tokens),
     ];
+    // The prompt never stops a change of theme: without its base, starship.toml keeps the last
+    // theme and the shells fall back to shell/starship.toml as it is
+    let prompt = prompt.and_then(|path| match fs::read_to_string(path) {
+        Ok(base) => Some(adapters::starship(theme, variant, &base)),
+        Err(e) => {
+            eprintln!("cannot read {}: {e}", path.display());
+            None
+        }
+    });
+    let files = files
+        .into_iter()
+        .chain(prompt.map(|text| ("starship.toml", text)))
+        .chain(std::iter::once(("tokens.json", tokens)));
     fs::create_dir_all(dir).map_err(|e| format!("cannot create {}: {e}", dir.display()))?;
     let _ = fs::set_permissions(dir, fs::Permissions::from_mode(0o755));
     for (name, text) in files {
@@ -635,6 +661,7 @@ mod tests {
             hook: None,
             pkexec: PathBuf::from("/nonexistent/pkexec"),
             command: None,
+            prompt: Some(base.join("starship.toml")),
         }
     }
 
@@ -680,6 +707,7 @@ mod tests {
         let base = scratch("cycle");
         let s = settings(&base);
         fs::write(base.join("selection"), "janus\n").unwrap();
+        fs::write(base.join("starship.toml"), "palette = \"strix\"\n").unwrap();
         let mut session = Session::new(s).unwrap();
         assert_eq!(session.theme, "janus");
         assert_eq!(session.system, "janus:dark");
@@ -687,6 +715,11 @@ mod tests {
         assert!(tokens.contains("\"theme\": \"janus\""), "{tokens}");
         assert!(base.join("session/hyprland.lua").is_file());
         assert!(base.join("session/ghostty").is_file());
+        let prompt = fs::read_to_string(base.join("session/starship.toml")).unwrap();
+        assert!(
+            prompt.contains("[palettes.strix]\n# The colors of"),
+            "{prompt}"
+        );
         assert!(base.join("session/btop.theme").is_file());
         assert!(base.join("session/gtk3.css").is_file());
         assert!(base.join("session/gtk4.css").is_file());

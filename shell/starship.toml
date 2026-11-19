@@ -1,65 +1,69 @@
 # The prompt of every shell in a terminal (modules/prompt.nix): segments for time, user,
-# git and the path, as powerline bars. The colors are the 16 terminal colors, so the bars
-# follow the theme like everything else. It needs a Nerd Font, which Ghostty has.
+# git and the path, as powerline bars. It needs a Nerd Font, which Ghostty has.
+#
+# The colors are the palette "strix" below. The theme engine writes this file again with the
+# palette in the colors of the session's god ($XDG_RUNTIME_DIR/<id>/theme/starship.toml): the
+# bars run from the surface to the accent, the path in the accent. The palette here is
+# Saturnus, the default, for shells without a graphical session.
 
 add_newline = true
-format = "[░▒▓](color_black2)$os$time[](fg:color_black2 bg:color_green)$hostname$localip[](fg:color_green bg:color_blue2)$username[](fg:color_blue2 bg:color_yellow)$shlvl$sudo[](fg:color_yellow bg:color_red)$git_branch$git_status$package$docker_context[](fg:color_red bg:color_white3)$directory[](fg:color_white3)$line_break$character[ ](fg:color_fg)"
+format = "[░▒▓](bar)$os$time[](fg:bar bg:host)$hostname$localip[](fg:host bg:user)$username[](fg:user bg:level)$shlvl$sudo[](fg:level bg:git)$git_branch$git_status$package$docker_context[](fg:git bg:path)$directory[](fg:path)$line_break$character[ ](fg:text)"
 palette = "strix"
 right_format = "$status$cmd_duration"
 
 [character]
 disabled = false
-error_symbol = "[❯](bold fg:color_red)"
-success_symbol = "[❯](bold fg:color_green)"
-vimcmd_replace_one_symbol = "[▶](bold fg:color_purple)"
-vimcmd_replace_symbol = "[▶](bold fg:color_purple)"
-vimcmd_symbol = "[❮](bold fg:color_green)"
-vimcmd_visual_symbol = "[V](bold fg:color_yellow)"
+error_symbol = "[❯](bold fg:error)"
+success_symbol = "[❯](bold fg:accent_text)"
+vimcmd_replace_one_symbol = "[▶](bold fg:mode)"
+vimcmd_replace_symbol = "[▶](bold fg:mode)"
+vimcmd_symbol = "[❮](bold fg:accent_text)"
+vimcmd_visual_symbol = "[V](bold fg:warning)"
 
 [cmd_duration]
 format = "[  $duration ]($style)"
 min_time = 3000
 show_milliseconds = false
-style = "fg:color_fg"
+style = "fg:text"
 
 [directory]
 disabled = false
 format = "($style)[$read_only]($read_only_style)[ $path ]($style)"
 home_symbol = " "
 read_only = ""
-read_only_style = "fg:color_red bg:color_white3"
-style = "fg:color_bg bg:color_white3"
+read_only_style = "fg:path_text bg:path"
+style = "fg:path_text bg:path"
 truncate_to_repo = true
 truncation_length = 6
 truncation_symbol = " /"
 
 [docker_context]
-format = "[[ $symbol( $context) ](fg:color_fg bg:color_red)]($style)"
-style = "bg:color_red"
+format = "[[ $symbol( $context) ](fg:git_text bg:git)]($style)"
+style = "bg:git"
 symbol = ""
 
 [git_branch]
-format = "[[ $symbol $branch ](fg:color_fg bg:color_red)]($style)"
-style = "bg:color_red"
+format = "[[ $symbol $branch ](fg:git_text bg:git)]($style)"
+style = "bg:git"
 symbol = ""
 truncation_length = 32
 truncation_symbol = "…"
 
 [git_status]
-format = "[[($all_status$ahead_behind )](fg:color_fg bg:color_red)]($style)"
-style = "bg:color_red"
+format = "[[($all_status$ahead_behind )](fg:git_text bg:git)]($style)"
+style = "bg:git"
 
 [hostname]
 disabled = false
 format = "[$ssh_symbol]($style)[ 󰍹  $hostname ]($style)"
 ssh_only = true
 ssh_symbol = " 󱘖 "
-style = "fg:color_bg bg:color_green"
+style = "fg:host_text bg:host"
 
 [jobs]
 format = "[$symbol]($style)"
 number_threshold = 1
-style = "fg:cyan bold"
+style = "fg:text_muted bold"
 symbol = "⚙ "
 symbol_threshold = 1
 
@@ -70,12 +74,12 @@ disabled = false
 disabled = false
 format = "[ 󰩟 $localipv4 ]($style)"
 ssh_only = true
-style = "fg:color_bg bg:color_green"
+style = "fg:host_text bg:host"
 
 [os]
 disabled = false
 format = "[ $symbol ]($style)"
-style = "fg:color_white3 bg:color_black2"
+style = "fg:bar_text bg:bar"
 
 [os.symbols]
 # Strix (ID=strix) is not a name starship knows: it says Linux, and gets the NixOS snowflake
@@ -84,32 +88,33 @@ NixOS = "󱄅"
 Unknown = "󱄅"
 
 [package]
-format = "[  $version ](fg:color_fg bg:color_red)"
+format = "[  $version ](fg:git_text bg:git)"
 
 [palettes.strix]
-color_fg = "white"
-color_bg = "black"
-color_red = "red"
-color_green = "green"
-color_purple = "purple"
-color_yellow = "yellow"
-color_orange = "yellow"
-color_white1 = "bright-white"
-color_white2 = "white"
-color_white3 = "white"
-color_black1 = "black"
-color_black2 = "bright-black"
-color_black3 = "bright-black"
-color_black4 = "bright-black"
-color_blue1 = "blue"
-color_blue2 = "blue"
-color_blue3 = "cyan"
-color_blue4 = "cyan"
+# Written anew per god by the theme engine (adapters::starship); these are Saturnus
+accent_text = "#f2556a"
+bar = "#1b1917"
+bar_text = "#a09a8f"
+error = "#ff6b78"
+git = "#a50d26"
+git_text = "#ffffff"
+host = "#2f2c28"
+host_text = "#ece6da"
+level = "#d9a441"
+level_text = "#0b0a09"
+mode = "#f2556a"
+path = "#c8102e"
+path_text = "#ffffff"
+text = "#ece6da"
+text_muted = "#a09a8f"
+user = "#712829"
+user_text = "#ece6da"
+warning = "#d9a441"
 
 [shlvl]
 disabled = false
 format = "[ $symbol $shlvl ]($style)"
-style = "fg:color_bg bg:color_yellow"
+style = "fg:level_text bg:level"
 symbol = ""
 threshold = 2
 
@@ -117,24 +122,24 @@ threshold = 2
 disabled = false
 format = "[$symbol$status ]($style)"
 signal_symbol = "✘ "
-style = "fg:yellow"
+style = "fg:error"
 symbol = "✘ "
 
 [sudo]
 disabled = false
 format = "[ $symbol ]($style)"
-style = "fg:color_red bg:color_yellow"
+style = "fg:level_text bg:level"
 symbol = "󰌆 "
 
 [time]
 disabled = false
-format = "[[   $time ](fg:color_white3 bg:color_black2)]($style)"
-style = "bg:color_black2"
+format = "[[   $time ](fg:bar_text bg:bar)]($style)"
+style = "bg:bar"
 time_format = "%H:%M"
 
 [username]
 disabled = false
-format = "[  ]($style)[ $user ](fg:color_bg bg:color_blue2)"
+format = "[  ]($style)[ $user ](fg:user_text bg:user)"
 show_always = true
-style_root = "fg:color_red bg:color_blue2"
-style_user = "fg:color_bg bg:color_blue2"
+style_root = "fg:accent_text bg:user"
+style_user = "fg:user_text bg:user"

@@ -8,10 +8,10 @@
 #
 # The session has its own theme on top of the machine's (Q14): the user service
 # <id>-theme-session (`<id>-theme session`) shows another god every 10 minutes unless kept,
-# writes tokens.json, hyprland.lua, ghostty, btop.theme and the files for GTK and Zen into
-# $XDG_RUNTIME_DIR/<id>/theme and reloads Hyprland, Ghostty and btop. Choosing a theme by hand in
-# the picker sets the machine's theme through pkexec; polkit lets the active local session do
-# that, and only that, without a password.
+# writes tokens.json, hyprland.lua, ghostty, btop.theme, starship.toml and the files for GTK and
+# Zen into $XDG_RUNTIME_DIR/<id>/theme and reloads Hyprland, Ghostty and btop. Choosing a theme
+# by hand in the picker sets the machine's theme through pkexec; polkit lets the active local
+# session do that, and only that, without a password.
 #
 # The shell is Quickshell with shell/qml, installed as /etc/xdg/quickshell/<id> and started by
 # the user service <id>-shell (`qs -c <id>`); it imports the QML module of StrixUI. hypridle
@@ -665,6 +665,8 @@ in
         SESSION_HOOK = "${sessionHook}";
         PKEXEC = "/run/wrappers/bin/pkexec";
         THEME_COMMAND = themeCommand;
+        # The prompt's configuration, written again in the colors of the god (modules/prompt.nix)
+        PROMPT_BASE = "${../shell/starship.toml}";
       };
       serviceConfig = {
         Type = "notify";
