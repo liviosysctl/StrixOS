@@ -187,6 +187,60 @@ let
     exec ${lib.getExe pkgs.mpv} "$@"
   '';
 
+  # Tailscale from the Wi-Fi panel: <id>-tailnet on|off|state. Turning it on for the first time
+  # opens the page where the machine joins the tailnet.
+  tailnetCommand = pkgs.writeShellApplication {
+    name = "${id}-tailnet";
+    runtimeInputs = [ config.services.tailscale.package pkgs.jq pkgs.xdg-utils pkgs.libnotify ];
+    text = ''
+      state() { tailscale status --json 2>/dev/null | jq -r '.BackendState // "Stopped"' || echo Stopped; }
+      case "''${1:-state}" in
+        state) if [ "$(state)" = Running ]; then echo on; else echo off; fi ;;
+        off) tailscale down ;;
+        on)
+          tailscale up --timeout=5s >/dev/null 2>&1 || true
+          if [ "$(state)" != Running ]; then
+            url=$(tailscale status --json 2>/dev/null | jq -r '.AuthURL // ""' || true)
+            if [ -n "$url" ]; then
+              notify-send --app-name=Network "Tailscale" "Sign in on the page that opens to join your tailnet"
+              xdg-open "$url"
+            fi
+          fi
+          ;;
+        *) echo "Usage: $(basename "$0") on|off|state" >&2; exit 64 ;;
+      esac
+    '';
+  };
+
+  # Asks GitHub whether the branch this machine follows has moved past the version installed, and
+  # what changed: $XDG_RUNTIME_DIR/<id>/update.json, which the bar shows as a mark
+  updateCheck = pkgs.writeShellApplication {
+    name = "${id}-update-check";
+    runtimeInputs = with pkgs; [ git jq curl coreutils ];
+    text = ''
+      lock=/etc/nixos/flake.lock
+      out="$XDG_RUNTIME_DIR/${id}/update.json"
+      mkdir -p "''${out%/*}"
+      read -r owner repo ref rev < <(jq -r '.nodes[.nodes.root.inputs["${id}"]]
+        | [.original.owner, .original.repo, (.original.ref // "HEAD"), .locked.rev] | join(" ")' "$lock")
+      target="refs/heads/$ref"
+      [ "$ref" != HEAD ] || target=HEAD
+      new=$(git ls-remote "https://github.com/$owner/$repo" "$target" 2>/dev/null | cut -f 1 || true)
+      # No network: what was known stays
+      [ -n "$new" ] || exit 0
+      if [ "$new" = "$rev" ]; then
+        echo '{"available": false}' >"$out.new"
+      else
+        changes=$(curl --fail --silent --max-time 15 \
+          "https://api.github.com/repos/$owner/$repo/compare/$rev...$new" \
+          | jq '[.commits[].commit.message | split("\n")[0]] | reverse' 2>/dev/null) || changes="[]"
+        jq -n --arg rev "$new" --argjson changes "''${changes:-[]}" \
+          '{available: true, rev: $rev, changes: $changes}' >"$out.new"
+      fi
+      mv -f "$out.new" "$out"
+    '';
+  };
+
   # The night light: warmer colors in the evening (hyprsunset, from 20:00 to 7:00), and by hand
   # until the next of those hours: <id>-nightlight on|off|toggle|state
   nightTemperature = 4500;
@@ -195,7 +249,7 @@ let
     runtimeInputs = [ config.programs.hyprland.package pkgs.coreutils ];
     text = ''
       state() {
-        now=$(hyprctl hyprsunset temperature 2>/dev/null | tr -dc '0-9')
+        now=$(hyprctl hyprsunset temperature 2>/dev/null | tr -dc '0-9' || true)
         if [ -n "$now" ] && [ "$now" -lt 6000 ]; then echo on; else echo off; fi
       }
       case "''${1:-state}" in
@@ -548,6 +602,8 @@ in
       (lib.hiPrio mpvThemed)
       file-roller
       nightlightCommand
+      tailnetCommand
+      updateCheck
     ]
     ++ [
       adwaita-icon-theme
@@ -580,6 +636,42 @@ in
         ExecStart = "${lib.getExe' pkgs.quickshell "qs"} -c ${id}";
         Restart = "on-failure";
         RestartSec = 1;
+        # Apps started from the bar, Search and Settings outlive a restart of the shell (an update
+        # restarts it)
+        KillMode = "process";
+      };
+    };
+
+    # Documents, Downloads, Pictures, Videos and the others exist from the first login on: Files
+    # pins them at its left, screenshots and recordings have their place
+    systemd.user.services."${id}-folders" = lib.mkIf (!cfg.live) {
+      description = "Make the folders of the home";
+      wantedBy = [ "default.target" ];
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = "${lib.getExe' pkgs.xdg-user-dirs "xdg-user-dirs-update"}";
+      };
+    };
+
+    # Tailscale, off until it is turned on in the Wi-Fi panel; the main user may do that
+    services.tailscale = lib.mkIf (!cfg.live) {
+      enable = lib.mkDefault true;
+      extraSetFlags = [ "--operator=${config.${id}.user.name}" ];
+    };
+
+    # Looks for a newer version two minutes after the login and then every hour
+    systemd.user.services."${id}-update-check" = lib.mkIf (!cfg.live) {
+      description = "Look for a newer version of ${branding.name}";
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = lib.getExe updateCheck;
+      };
+    };
+    systemd.user.timers."${id}-update-check" = lib.mkIf (!cfg.live) {
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnStartupSec = "2min";
+        OnUnitActiveSec = "1h";
       };
     };
 

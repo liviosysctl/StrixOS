@@ -46,6 +46,12 @@ symbol = "keyboard"
 words = ["keys", "shortcuts", "bindings", "keyboard"]
 
 [[page]]
+id = "versions"
+title = "Versions"
+symbol = "history"
+words = ["generations", "rollback", "go back", "previous", "undo", "update"]
+
+[[page]]
 id = "about"
 title = "About"
 symbol = "info"

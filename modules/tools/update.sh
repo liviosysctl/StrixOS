@@ -2,7 +2,8 @@
 # every connected theme repository, and switch to it.
 #   --themes [REPO]  only the theme repositories, or the one named (address or
 #                    name), as "Update now" in Settings › Themes
-# If the build fails, the old flake.lock stays, and with it the old version.
+# If the build fails, the old flake.lock stays, and with it the old version. The same when the
+# desktop does not come up with the new version: the system goes back by itself (exit 7).
 # At the end it says whether there is new firmware (fwupd).
 # A theme repository that fails keeps its commit and never stops the update.
 usage() {
@@ -83,6 +84,34 @@ firmware() {
   fi
 }
 
+# What the shell of USER (with the id UID) says to "is the screen locked": true, false, or nothing
+# when it does not run or does not work
+shell_says() {
+  runuser -u "$1" -- env XDG_RUNTIME_DIR="/run/user/$2" \
+    "$SHELL_QS" -c "$SHELL_CONFIG" ipc call lock locked 2>/dev/null || true
+}
+
+# The desktop must come up with the new version. For everyone at the desktop the shell is started
+# again, which also shows the new version at once, and has to answer within 20 seconds. A locked
+# screen is left alone: its lock cannot be started again under it.
+restarted=()
+shell_works() {
+  [ -n "${SHELL_UNIT:-}" ] || return 0
+  local uid user answer
+  while read -r uid user _; do
+    [ "$(shell_says "$user" "$uid")" = false ] || continue
+    restarted+=("$user")
+    systemctl --machine="$user@.host" --user restart "$SHELL_UNIT" || return 1
+    answer=""
+    for _ in 1 2 3 4 5 6 7 8 9 10; do
+      sleep 2
+      answer=$(shell_says "$user" "$uid")
+      [ -z "$answer" ] || break
+    done
+    [ -n "$answer" ] || return 1
+  done < <(loginctl list-users --no-legend)
+}
+
 # An interrupted run left flake.lock.prev behind: the state before it counts.
 if [ -e "$lock.prev" ]; then
   mv -f "$lock.prev" "$lock"
@@ -109,6 +138,16 @@ if ! "$REBUILD" switch; then
   mv -f "$lock.prev" "$lock"
   echo "Update failed, the previous version stays active." >&2
   exit 3
+fi
+
+if ! shell_works; then
+  echo "The desktop does not come up with the new version: going back to the previous one." >&2
+  mv -f "$lock.prev" "$lock"
+  "$REBUILD" switch --rollback || echo "Could not go back. Start the previous version from the boot menu." >&2
+  for user in "${restarted[@]}"; do
+    systemctl --machine="$user@.host" --user restart "$SHELL_UNIT" || true
+  done
+  exit 7
 fi
 
 rm -f "$lock.prev"

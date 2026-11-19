@@ -31,14 +31,14 @@ Scope {
         function open(panel: string): void {
             const screen = Hyprland.focusedMonitor ? Hyprland.focusedMonitor.name
                 : Quickshell.screens.length > 0 ? Quickshell.screens[0].name : ""
-            root.drop = ["wifi", "bluetooth", "sound", "power", "session"].indexOf(panel) >= 0 ? panel : "session"
+            root.drop = ["wifi", "bluetooth", "sound", "power", "session"].indexOf(panel) >= 0 || (panel === "update" && root.updateReady) ? panel : "session"
             root.dropOn = screen
         }
         function close(): void { root.drop = "" }
         function isOpen(): string { return root.drop }
     }
 
-    /// The quick panel under a symbol: "", "wifi", "bluetooth", "sound", "power" or "session"
+    /// The quick panel under a symbol: "", "update", "wifi", "bluetooth", "sound", "power" or "session"
     property string drop: ""
     /// The screen whose bar shows it
     property string dropOn: ""
@@ -136,6 +136,22 @@ Scope {
     property real memory: 0
     property var lastCpu: null
 
+    // A newer version of the distribution (strix-update-check, every hour): a mark in the bar
+    property var update: null
+    property string updateText: ""
+    FileView {
+        id: updateFile
+        path: Quickshell.env("XDG_RUNTIME_DIR") + "/strix/update.json"
+        printErrors: false
+        onLoaded: {
+            if (text() === root.updateText) return
+            root.updateText = text()
+            try { root.update = JSON.parse(root.updateText) } catch (e) { root.update = null }
+        }
+    }
+    readonly property bool updateReady: !!(root.update && root.update.available)
+    onUpdateReadyChanged: if (!updateReady && root.drop === "update") root.drop = ""
+
     FileView { id: stat; path: "/proc/stat" }
     FileView { id: meminfo; path: "/proc/meminfo" }
     Timer {
@@ -146,6 +162,7 @@ Scope {
         triggeredOnStart: true
         onTriggered: {
             recorder.running = true
+            updateFile.reload()
             stat.reload()
             meminfo.reload()
             const line = stat.text().split("\n")[0].trim().split(/\s+/).slice(1).map(Number)
@@ -293,6 +310,20 @@ Scope {
                 anchors { right: parent.right; rightMargin: Theme.space4; verticalCenter: parent.verticalCenter }
                 spacing: Theme.space3
 
+                // A newer version is there: the mark drops what changed and installs it
+                MeterGroup {
+                    id: upd
+                    visible: root.updateReady
+                    anchors.verticalCenter: parent.verticalCenter
+                    onClicked: root.toggleDrop("update", bar.modelData.name)
+                    Icon {
+                        name: "download"
+                        size: 14
+                        hovered: upd.hovered
+                        color: upd.hovered ? Theme.text : Theme.accentText
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                }
                 MeterGroup {
                     id: net
                     anchors.verticalCenter: parent.verticalCenter
@@ -431,8 +462,8 @@ Scope {
 
             PopupWindow {
                 id: dropWindow
-                readonly property Item source: ({ wifi: net, bluetooth: bt, sound: vol, power: bat, session: powerButton })[bar.dropShowing] || powerButton
-                readonly property Item body: ({ wifi: wifiDrop, bluetooth: btDrop, sound: soundDrop, power: powerDrop, session: sessionDrop })[bar.dropShowing] || sessionDrop
+                readonly property Item source: ({ update: upd, wifi: net, bluetooth: bt, sound: vol, power: bat, session: powerButton })[bar.dropShowing] || powerButton
+                readonly property Item body: ({ update: updateDrop, wifi: wifiDrop, bluetooth: btDrop, sound: soundDrop, power: powerDrop, session: sessionDrop })[bar.dropShowing] || sessionDrop
 
                 visible: root.shown && dropPresence.present
                 anchor.window: bar
@@ -453,6 +484,13 @@ Scope {
                     Keys.onEscapePressed: root.drop = ""
                     transform: Translate { y: -6 * (1 - dropPresence.shown) }
 
+                    UpdatePanel {
+                        id: updateDrop
+                        y: Theme.space2
+                        visible: bar.dropShowing === "update"
+                        update: root.update
+                        onDone: root.drop = ""
+                    }
                     WifiPanel {
                         id: wifiDrop
                         y: Theme.space2

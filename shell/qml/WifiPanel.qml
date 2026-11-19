@@ -1,6 +1,9 @@
 // Wi-Fi in a quick panel: the switch, the nearest networks (a saved one connects with a click, a
-// new one asks for its password in Settings) and the way to Settings › Network.
+// new one asks for its password in Settings), the switch of Tailscale and the way to
+// Settings › Network.
 import QtQuick
+import Quickshell
+import Quickshell.Io
 import Quickshell.Networking
 import Strix
 
@@ -43,6 +46,35 @@ QuickPanel {
                 if (modelData.connected) return
                 if (modelData.known) modelData.connect()
                 else root.settings("network")
+            }
+        }
+    }
+    // Tailscale (strix-tailnet): the first time it is turned on, the page to sign in opens
+    property bool tailnet: false
+    Process {
+        id: readTailnet
+        command: ["strix-tailnet", "state"]
+        stdout: StdioCollector { onStreamFinished: root.tailnet = text.trim() === "on" }
+    }
+    Process {
+        id: setTailnet
+        onExited: readTailnet.running = true
+    }
+    onActiveChanged: if (active) readTailnet.running = true
+    Component.onCompleted: readTailnet.running = true
+    Item {
+        width: parent.width
+        height: Theme.controlMd
+        Switch {
+            x: Theme.space2
+            anchors.verticalCenter: parent.verticalCenter
+            text: "Tailscale"
+            checked: root.tailnet
+            enabled: !setTailnet.running
+            onToggled: {
+                root.tailnet = checked
+                setTailnet.command = ["strix-tailnet", checked ? "on" : "off"]
+                setTailnet.running = true
             }
         }
     }

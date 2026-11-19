@@ -31,6 +31,7 @@ Scope {
         { id: "display", title: "Display", icon: "monitor" },
         { id: "power", title: "Power", icon: "zap" },
         { id: "hotkeys", title: "Hotkeys", icon: "keyboard" },
+        { id: "versions", title: "Versions", icon: "history" },
         { id: "about", title: "About", icon: "info" }
     ]
 
@@ -320,6 +321,13 @@ Scope {
                     SettingsDisplay { visible: root.page === "display"; width: parent.width }
                     SettingsPower { visible: root.page === "power"; width: parent.width }
                     SettingsHotkeys { visible: root.page === "hotkeys"; active: root.open && visible; width: parent.width }
+
+                    SettingsVersions {
+                        visible: root.page === "versions"
+                        active: root.open && visible
+                        width: parent.width
+                        onRun: script => root.asRoot(script)
+                    }
 
                     // ------------------------------------------------ About
                     Column {
