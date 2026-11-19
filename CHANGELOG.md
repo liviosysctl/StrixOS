@@ -2,6 +2,32 @@
 
 All notable changes to this project. Versions follow [Semantic Versioning](https://semver.org); entries are generated from [Conventional Commits](https://www.conventionalcommits.org) with git-cliff.
 
+## v1.0.0 — 2026-11-19
+
+The proof of concept for M245: a signed ISO with the graphical installer, a simple desktop in the Saturnus theme and a Store that installs apps with one click.
+
+### Added
+- Add Zed as the editor, in the colors of the theme
+- Add texts, facts and secrets for other front ends
+- Add a graphical installer in the look of StrixUI
+- Start into a live desktop with the graphical installer
+- Draw the GRUB menu in the look of StrixUI and the theme
+- Reduce the proof of concept to the Saturnus theme
+- Open btop from the load figures of the bar
+- Show the owl in fastfetch
+- Let the fastfetch owl follow the theme
+- Open a package in a shell with strix-shell
+- List the Store's packages below the other hits
+- Set Files up as on main
+- Open text in Zed, drop gnome-text-editor
+
+### Changed
+- Replace systemd-boot with GRUB and list Windows in the menu
+- Remove clipboard, cheat sheet and hotkey settings
+
+### Breaking
+- Make Zen the only browser — Firefox is no longer installed.
+
 ## v0.2.0 — 2026-11-13
 
 The desktop with Hyprland, the shell, the Store and Settings, a binary cache, and an ISO that starts with Secure Boot on.
