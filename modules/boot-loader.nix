@@ -21,12 +21,14 @@ let
   # After every install: show the menu when os-prober found another system
   menuForOthers = pkgs.writeShellScript "${branding.id}-grub-menu" ''
     set -eu
+    # switch-to-configuration runs this with no PATH to speak of
+    export PATH=${lib.makeBinPath [ pkgs.coreutils pkgs.gnused pkgs.gnugrep pkgs.diffutils ]}
     cfg=${grubDir}/grub.cfg
     menu=${ownDir}/menu.cfg
     mkdir -p ${ownDir}
-    if ${pkgs.gnused}/bin/sed -n '/BEGIN .*30_os-prober/,/END .*30_os-prober/p' "$cfg" | ${pkgs.gnugrep}/bin/grep -q '^menuentry'; then
+    if sed -n '/BEGIN .*30_os-prober/,/END .*30_os-prober/p' "$cfg" | grep -q '^menuentry'; then
       printf 'set timeout=%s\nset timeout_style=menu\n' ${toString cfg.menuTimeout} > "$menu.new"
-      if ! ${pkgs.diffutils}/bin/cmp -s "$menu.new" "$menu"; then mv "$menu.new" "$menu"; else rm "$menu.new"; fi
+      if ! cmp -s "$menu.new" "$menu"; then mv "$menu.new" "$menu"; else rm "$menu.new"; fi
     else
       rm -f "$menu"
     fi
