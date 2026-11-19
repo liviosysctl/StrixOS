@@ -112,7 +112,7 @@ Scope {
     function browse(step) {
         if (root.themes.length === 0) return
         root.browsed = true
-        root.selected = (root.selected + step + root.themes.length) % root.themes.length
+        root.selected = Math.max(0, Math.min(root.themes.length - 1, root.selected + step))
     }
 
     function clock(seconds) {
@@ -216,28 +216,38 @@ Scope {
                     text: "Theme"
                 }
 
-                // The plates: the chosen one wide in the middle, its neighbours to each side
-                Row {
-                    id: plates
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    spacing: -24
-                    height: 250
-                    Repeater {
-                        id: plateRepeater
-                        model: root.themes
-                        SlantCard {
-                            required property var modelData
-                            required property int index
-                            anchors.verticalCenter: parent.verticalCenter
-                            source: root.picture(modelData)
-                            name: modelData.name
-                            caption: modelData.description
-                            accent: modelData.accent || Theme.accent
-                            selected: index === root.selected
-                            opacity: Math.abs(index - root.selected) > 3 ? 0.25 : 1
-                            onClicked: {
-                                if (index === root.selected) root.choose(modelData.id, root.middle())
-                                else { root.browsed = true; root.selected = index }
+                // The carousel of StrixUI: the track slides so the chosen plate stays in the middle,
+                // while it widens and its neighbours narrow (geometry of .k-carousel in bundle.css)
+                Item {
+                    width: parent.width
+                    height: 300
+                    clip: true
+
+                    Row {
+                        id: plates
+                        // card 96, chosen 420, the slant overlaps 37 and leaves a gap of 3
+                        readonly property int step: 96 - 37 + 3
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 3 - 37
+                        x: parent.width / 2 - (root.selected * step + 420 / 2)
+                        Behavior on x { NumberAnimation { duration: Theme.durSlow; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeInOut } }
+
+                        Repeater {
+                            id: plateRepeater
+                            model: root.themes
+                            SlantCard {
+                                required property var modelData
+                                required property int index
+                                anchors.verticalCenter: parent.verticalCenter
+                                source: root.picture(modelData)
+                                name: modelData.name
+                                caption: modelData.description
+                                accent: modelData.accent || Theme.accent
+                                selected: index === root.selected
+                                onClicked: {
+                                    if (index === root.selected) root.choose(modelData.id, root.middle())
+                                    else { root.browsed = true; root.selected = index }
+                                }
                             }
                         }
                     }
