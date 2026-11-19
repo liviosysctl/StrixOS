@@ -190,7 +190,7 @@ run = ["qs", "-c", "{id}", "ipc", "call", "bar", "toggle"]
 
 [[action]]
 id = "night-light"
-title = "Night light"
+title = "Toggle the night light"
 group = "style"
 symbol = "moon"
 words = ["warm", "evening", "blue light", "sunset", "eyes"]

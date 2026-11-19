@@ -113,6 +113,13 @@ type = "choice"
 words = ["zoom", "size", "hidpi", "bigger", "smaller"]
 
 [[row]]
+id = "night-light"
+page = "display"
+title = "Night light"
+type = "switch"
+words = ["warm", "evening", "blue light", "sunset", "eyes"]
+
+[[row]]
 id = "profile"
 page = "power"
 title = "Power profile"
