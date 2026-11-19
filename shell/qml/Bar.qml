@@ -1,11 +1,11 @@
 // The top bar (TopBar in StrixUI): no surface of its own, small text and symbols straight on the
-// wallpaper. Left: search and the clock, then CPU and memory (one button for the system monitor),
-// then what is playing (a click on the title opens the media player under it). Middle: the
-// workspaces of Hyprland.
-// Right: the network (a click opens nmtui), the volume, the battery when there is one, the bell
-// with its count and power. Super Shift Space hides it (ipc: bar toggle).
+// wallpaper. Everything in it is a button that answers the pointer, and none needs a hint.
+// Left: search, the clock (a click shows the month under it), CPU and memory (the system
+// monitor), then what is playing (a click on the title opens the media player under it).
+// Middle: the workspaces of Hyprland. Right: the network, the volume (scrolling turns it) and the
+// battery when there is one, each opening its page in Settings, the bell with its count and power.
+// Super Shift Space hides it (ipc: bar toggle).
 import QtQuick
-import QtQuick.Templates as T
 import Quickshell
 import Quickshell.Io
 import Quickshell.Hyprland
@@ -36,6 +36,12 @@ Scope {
     }
     // The screen whose bar shows the media player, "" when it is closed
     property string mediaOn: ""
+    // The screen whose bar shows the month, "" when it is closed
+    property string calendarOn: ""
+
+    function settings(page) {
+        Quickshell.execDetached(["strix-settings", page])
+    }
     onPlayerChanged: {
         if (!root.player) root.mediaOn = ""
         else if (root.player.isPlaying) root.lastPlayer = root.player
@@ -132,37 +138,23 @@ Scope {
                     anchors.verticalCenter: parent.verticalCenter
                     onClicked: Quickshell.execDetached(["qs", "-c", "strix", "ipc", "call", "search", "toggle"])
                 }
-                Label {
-                    textStyle: "label"
-                    color: Theme.text
+                MeterGroup {
+                    id: clockButton
                     anchors.verticalCenter: parent.verticalCenter
-                    text: Qt.formatDateTime(clock.date, "ddd d MMM  HH:mm")
+                    onClicked: root.calendarOn = root.calendarOn === bar.modelData.name ? "" : bar.modelData.name
+                    Label {
+                        textStyle: "label"
+                        color: Theme.text
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: Qt.formatDateTime(clock.date, "ddd d MMM  HH:mm")
+                    }
                 }
                 // CPU and memory are one button: the system monitor (btop, strix-monitor)
-                T.AbstractButton {
-                    id: load
+                MeterGroup {
                     anchors.verticalCenter: parent.verticalCenter
-                    implicitWidth: loadRow.implicitWidth + 2 * Theme.space2
-                    implicitHeight: Theme.controlSm
-                    hoverEnabled: true
-                    focusPolicy: Qt.StrongFocus
                     onClicked: Quickshell.execDetached(["strix-monitor"])
-                    contentItem: Item {
-                        Row {
-                            id: loadRow
-                            x: Theme.space2
-                            anchors.verticalCenter: parent.verticalCenter
-                            spacing: Theme.space4
-                            Meter { label: "CPU"; value: root.cpu }
-                            Meter { label: "MEM"; value: root.memory }
-                        }
-                    }
-                    background: Rectangle {
-                        radius: Theme.radiusSm
-                        color: load.hovered ? Theme.surfaceRaised : "transparent"
-                        FocusRing { target: load }
-                    }
-                    ToolTip { text: "System monitor"; visible: load.hovered }
+                    Meter { label: "CPU"; value: root.cpu }
+                    Meter { label: "MEM"; value: root.memory }
                 }
 
                 Row {
@@ -216,6 +208,27 @@ Scope {
                 }
             }
 
+            PopupWindow {
+                visible: root.shown && root.calendarOn === bar.modelData.name
+                anchor.window: bar
+                anchor.rect.x: clockButton.mapToItem(null, 0, 0).x
+                anchor.rect.y: bar.height
+                implicitWidth: month.width + 2 * Theme.space4
+                implicitHeight: month.height + 2 * Theme.space4
+                color: "transparent"
+
+                Surface {
+                    anchors.fill: parent
+                    elevation: "panel"
+                    Calendar {
+                        id: month
+                        x: Theme.space4
+                        y: Theme.space4
+                        today: clock.date
+                    }
+                }
+            }
+
             Workspaces {
                 anchors.centerIn: parent
                 count: Math.max(5, ...Hyprland.workspaces.values.map(w => w.id > 0 ? w.id : 0))
@@ -228,35 +241,54 @@ Scope {
                 anchors { right: parent.right; rightMargin: Theme.space4; verticalCenter: parent.verticalCenter }
                 spacing: Theme.space3
 
-                Row {
-                    spacing: Theme.space1
+                MeterGroup {
+                    id: net
                     anchors.verticalCenter: parent.verticalCenter
-                    IconButton {
-                        small: true
-                        iconName: "wifi"
-                        onClicked: Quickshell.execDetached(["uwsm", "app", "--", "ghostty", "-e", "nmtui"])
+                    onClicked: root.settings("network")
+                    Icon {
+                        name: "wifi"
+                        size: 14
+                        hovered: net.hovered
+                        color: net.hovered ? Theme.text : Theme.textMuted
+                        anchors.verticalCenter: parent.verticalCenter
                     }
                     Label {
                         textStyle: "micro"
-                        color: root.network === "Offline" ? Theme.textFaint : Theme.textMuted
+                        color: root.network === "Offline" ? Theme.textFaint : net.hovered ? Theme.text : Theme.textMuted
                         anchors.verticalCenter: parent.verticalCenter
                         text: root.network
                         elide: Text.ElideRight
                         width: Math.min(implicitWidth, 140)
                     }
                 }
-                Meter {
+                MeterGroup {
                     anchors.verticalCenter: parent.verticalCenter
-                    label: "VOL"
-                    value: root.muted ? 0 : root.volume
-                    valueText: root.muted ? "off" : Math.round(root.volume * 100) + "%"
+                    onClicked: root.settings("sound")
+                    Meter {
+                        label: "VOL"
+                        value: root.muted ? 0 : root.volume
+                        valueText: root.muted ? "off" : Math.round(root.volume * 100) + "%"
+                    }
+                    // Scrolling turns the volume in steps of 5 %
+                    WheelHandler {
+                        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                        onWheel: event => {
+                            if (!root.sink || !root.sink.audio) return
+                            const step = event.angleDelta.y > 0 ? 0.05 : event.angleDelta.y < 0 ? -0.05 : 0
+                            root.sink.audio.muted = false
+                            root.sink.audio.volume = Math.max(0, Math.min(1, root.sink.audio.volume + step))
+                        }
+                    }
                 }
-                Meter {
+                MeterGroup {
                     visible: root.hasBattery
                     anchors.verticalCenter: parent.verticalCenter
-                    label: root.charging ? "AC" : "BAT"
-                    value: root.charge
-                    valueText: Math.round(root.charge * 100) + "%"
+                    onClicked: root.settings("power")
+                    Meter {
+                        label: root.charging ? "AC" : "BAT"
+                        value: root.charge
+                        valueText: Math.round(root.charge * 100) + "%"
+                    }
                 }
                 Row {
                     spacing: Theme.space1
