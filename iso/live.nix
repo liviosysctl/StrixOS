@@ -24,14 +24,14 @@ in
 
   ${id}.desktop = {
     live = true;
-    # The window floats in the middle at its own size instead of being tiled
+    # The window floats in the middle instead of being tiled, at the size it asks for (it
+    # shrinks itself to fit a small screen)
     extraConfig = ''
       hl.window_rule({
           name = "${id}-installer",
           match = { title = "^Installer$" },
           float = true,
           center = true,
-          size = "1040 700",
       })
     '';
   };
