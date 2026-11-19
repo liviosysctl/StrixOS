@@ -41,7 +41,7 @@ Scope {
         function count(): int { return root.rows.length }
     }
 
-    onOpenChanged: if (!open) field.text = ""
+    onOpenChanged: if (!open) { field.text = ""; scroll.contentY = 0 }
 
     Presence { id: presence; open: root.open }
 
@@ -72,17 +72,20 @@ Scope {
             transformOrigin: Item.Top
             transform: Translate { y: -8 * (1 - presence.shown) }
             width: Math.min(parent.width - Theme.space8 * 2, 1080)
-            height: Math.min(parent.height - Theme.space8 * 2, body.implicitHeight + Theme.space5 * 2)
+            height: body.implicitHeight + Theme.space5 * 2
             anchors.centerIn: parent
 
             MouseArea { anchors.fill: parent }
 
             Column {
                 id: body
-                anchors { fill: parent; margins: Theme.space5 }
+                x: Theme.space5
+                y: Theme.space5
+                width: parent.width - 2 * Theme.space5
                 spacing: Theme.space4
 
                 Row {
+                    id: head
                     width: parent.width
                     spacing: Theme.space3
                     Label { textStyle: "title"; text: "Keys"; anchors.verticalCenter: parent.verticalCenter }
@@ -100,24 +103,38 @@ Scope {
                     }
                 }
 
-                Flow {
+                // The groups scroll when they are taller than the screen (a small or scaled one)
+                Flickable {
+                    id: scroll
                     width: parent.width
-                    spacing: Theme.space5
-                    Repeater {
-                        model: root.groups
-                        Column {
-                            required property var modelData
-                            width: (body.width - Theme.space5 * 2) / 3
-                            spacing: Theme.space1
-                            Label { textStyle: "aside"; color: Theme.accentText; text: modelData.name }
-                            Repeater {
-                                model: modelData.rows
-                                HotkeyRow {
-                                    required property var modelData
-                                    width: parent.width
-                                    action: modelData.title
-                                    target: modelData.scope === "picker" ? "In the theme picker" : modelData.target
-                                    keys: modelData.keys
+                    height: Math.min(flow.implicitHeight,
+                        overlay.height - Theme.space8 * 2 - Theme.space5 * 2 - head.height - body.spacing)
+                    contentHeight: flow.implicitHeight
+                    clip: true
+                    boundsBehavior: Flickable.StopAtBounds
+
+                    Flow {
+                        id: flow
+                        width: scroll.width
+                        spacing: Theme.space5
+                        // Three columns, two where a row would get too narrow for its keys
+                        readonly property int columns: width >= 960 ? 3 : 2
+                        Repeater {
+                            model: root.groups
+                            Column {
+                                required property var modelData
+                                width: (flow.width - Theme.space5 * (flow.columns - 1)) / flow.columns
+                                spacing: Theme.space1
+                                Label { textStyle: "aside"; color: Theme.accentText; text: modelData.name }
+                                Repeater {
+                                    model: modelData.rows
+                                    HotkeyRow {
+                                        required property var modelData
+                                        width: parent.width
+                                        action: modelData.title
+                                        target: modelData.scope === "picker" ? "In the theme picker" : modelData.target
+                                        keys: modelData.keys
+                                    }
                                 }
                             }
                         }
@@ -125,6 +142,12 @@ Scope {
                 }
             }
         }
+
+        // Up, Down and the page keys scroll; typing still goes to the filter
+        Shortcut { sequence: "Down"; enabled: root.open; onActivated: scroll.contentY = Math.min(scroll.contentY + 72, Math.max(0, scroll.contentHeight - scroll.height)) }
+        Shortcut { sequence: "Up"; enabled: root.open; onActivated: scroll.contentY = Math.max(0, scroll.contentY - 72) }
+        Shortcut { sequence: "PgDown"; enabled: root.open; onActivated: scroll.contentY = Math.min(scroll.contentY + scroll.height, Math.max(0, scroll.contentHeight - scroll.height)) }
+        Shortcut { sequence: "PgUp"; enabled: root.open; onActivated: scroll.contentY = Math.max(0, scroll.contentY - scroll.height) }
 
         Shortcut {
             sequence: "Escape"
