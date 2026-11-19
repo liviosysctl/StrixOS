@@ -2,9 +2,9 @@
 
 All notable changes to this project. Versions follow [Semantic Versioning](https://semver.org); entries are generated from [Conventional Commits](https://www.conventionalcommits.org) with git-cliff.
 
-## v0.6.0 — 2026-11-17
+## v0.6.0 — 2026-11-19
 
-One Rust program installs, the owl shows up wherever Strix shows itself, Zen is the browser, and main has no Store.
+Installer fully in Rust, the theme's owl from boot menu to lock screen, Neovim for text and Zen as the only browser.
 
 ### Added
 - Open btop from the load figures of the bar
@@ -16,14 +16,21 @@ One Rust program installs, the owl shows up wherever Strix shows itself, Zen is 
 - Draw the boot pictures in Rust, complete outside themes
 - Let theme repositories join the change of gods
 - Show the owl in the login, in About and in the README
+- Give the partition labels a suffix per machine
+- Draw the owl of the theme in the boot menu
+- Copy the caption with a borrowed picture
+- Open text in Neovim, drop gnome-text-editor
+- Set Files up as in the own configuration
 
 ### Fixed
 - Ship only the themes of StrixUI, not its whole repository
 
 ### Breaking
-- Rewrite the installer in Rust, drop the console UI — there is no interactive console installer any more. Without a screen, run strix-install --core --answers FILE (README).
+- Rewrite the installer in Rust, drop the console UI — there is no interactive console installer any more.
+Without a screen, run strix-install --core --answers FILE (README).
 - Make Zen the only browser — Firefox is no longer installed.
-- Remove the Store from main — there is no Store window or strix-store service on machines that follow main.
+- Remove the Store from main — there is no Store window or strix-store service on
+machines that follow main.
 
 ## v0.5.0 — 2026-11-14
 
