@@ -2,6 +2,13 @@
 
 All notable changes to this project. Versions follow [Semantic Versioning](https://semver.org); entries are generated from [Conventional Commits](https://www.conventionalcommits.org) with git-cliff.
 
+## v1.1.1 — 2026-11-19
+
+Updates install the boot loader again.
+
+### Fixed
+- Let the update install the boot loader again
+
 ## v1.1.0 — 2026-11-19
 
 Secure Boot asks once, for the stick; clicks in the bar, Search and the Store work again.

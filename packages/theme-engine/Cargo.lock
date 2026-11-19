@@ -125,7 +125,7 @@ dependencies = [
 
 [[package]]
 name = "theme-engine"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "libc",
  "serde",
