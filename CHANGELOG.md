@@ -17,6 +17,7 @@ Secure Boot asks once, for the stick; clicks in the bar, Search and the Store wo
 
 ### Fixed
 - Start programs from the bar, Search and the Store
+- Stop the GRUB errors at every start
 
 ## v1.0.1 — 2026-11-19
 
