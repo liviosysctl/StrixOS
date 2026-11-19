@@ -86,7 +86,20 @@ ShellRoot {
         color: Theme.background
         title: "Strix"
 
-        Wallpaper { anchors.fill: parent; dim: true }
+        // cage gives the window its size only after it exists, and the blurred picture kept the
+        // first, tiny one stretched over the screen: draw it again once the size has settled
+        Loader {
+            id: wallpaper
+            anchors.fill: parent
+            sourceComponent: Wallpaper { dim: true }
+            onWidthChanged: settle.restart()
+            onHeightChanged: settle.restart()
+        }
+        Timer {
+            id: settle
+            interval: 80
+            onTriggered: { wallpaper.active = false; wallpaper.active = true }
+        }
 
         Column {
             anchors { left: parent.left; leftMargin: Theme.space8 * 2; verticalCenter: parent.verticalCenter }
