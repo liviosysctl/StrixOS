@@ -8,10 +8,10 @@
 #
 # The session has its own theme on top of the machine's (Q14): the user service
 # <id>-theme-session (`<id>-theme session`) shows another god every 10 minutes unless kept,
-# writes tokens.json, hyprland.lua, ghostty and btop.theme into $XDG_RUNTIME_DIR/<id>/theme and
-# reloads Hyprland, Ghostty and btop. Choosing a theme by hand in the picker sets the machine's
-# theme through pkexec; polkit lets the active local session do that, and only that, without a
-# password.
+# writes tokens.json, hyprland.lua, ghostty, btop.theme and the files for GTK and Zen into
+# $XDG_RUNTIME_DIR/<id>/theme and reloads Hyprland, Ghostty and btop. Choosing a theme by hand in
+# the picker sets the machine's theme through pkexec; polkit lets the active local session do
+# that, and only that, without a password.
 #
 # The shell is Quickshell with shell/qml, installed as /etc/xdg/quickshell/<id> and started by
 # the user service <id>-shell (`qs -c <id>`); it imports the QML module of StrixUI. hypridle
@@ -56,7 +56,14 @@ let
   };
 
   # The browser: Zen, the only one installed (flake input zen-browser, not in nixpkgs)
-  zen = distroFlake.inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default;
+  # It reads userChrome.css of the profile, where the colors of the theme arrive (see the
+  # <id>-zen-colors service); Zen leaves that switched off by itself.
+  zen = distroFlake.inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default.override {
+    extraPolicies.Preferences."toolkit.legacyUserProfileCustomizations.stylesheets" = {
+      Value = true;
+      Status = "default";
+    };
+  };
   xkb = config.services.xserver.xkb;
   runtimeDir = "/run/${id}/theme";
   luaString = s: builtins.toJSON s;
@@ -598,6 +605,48 @@ in
           ln -s "$target" "$file"
         done
       '';
+    };
+
+    # Zen takes the god's colors from the session's zen-userChrome.css and zen-userContent.css,
+    # linked into chrome/ of every profile. As with GTK, a file of the user's own stays. Zen makes
+    # its profile at its first start, so the path unit links it then; Zen reads the files when it
+    # starts, so the colors show from the next start on.
+    systemd.user.services."${id}-zen-colors" = {
+      description = "Give Zen the colors of the session's theme";
+      wantedBy = [ "default.target" ];
+      serviceConfig.Type = "oneshot";
+      path = [ pkgs.coreutils pkgs.gnused ];
+      script = ''
+        [ -w "$HOME" ] || exit 0
+        for ini in "$HOME/.config/zen/profiles.ini" "$HOME/.zen/profiles.ini"; do
+          [ -r "$ini" ] || continue
+          sed -n 's/^Path=//p' "$ini" | while IFS= read -r path; do
+            case "$path" in
+              /*) profile=$path ;;
+              *) profile=''${ini%/*}/$path ;;
+            esac
+            [ -d "$profile" ] || continue
+            mkdir -p "$profile/chrome"
+            for name in userChrome userContent; do
+              target="$XDG_RUNTIME_DIR/${id}/theme/zen-$name.css"
+              file="$profile/chrome/$name.css"
+              if [ -L "$file" ] && [ "$(readlink "$file")" = "$target" ]; then
+                continue
+              fi
+              if [ -e "$file" ] || [ -L "$file" ]; then
+                echo "$file is the user's own, left alone"
+                continue
+              fi
+              ln -s "$target" "$file"
+            done
+          done
+        done
+      '';
+    };
+    systemd.user.paths."${id}-zen-colors" = {
+      description = "Link the colors into a new Zen profile";
+      wantedBy = [ "default.target" ];
+      pathConfig.PathChanged = [ "%h/.config/zen/profiles.ini" "%h/.zen/profiles.ini" ];
     };
 
     # The session's theme (Q14, Q15): its own colors, another god every period unless kept, the

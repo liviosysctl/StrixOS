@@ -378,7 +378,7 @@ fn read_kept(file: &Path) -> bool {
         .unwrap_or(false)
 }
 
-/// tokens.json, hyprland.lua, ghostty, btop.theme and the GTK files for one theme; tokens.json last, so
+/// tokens.json, hyprland.lua, ghostty, btop.theme and the GTK and Zen files for one theme; tokens.json last, so
 /// whoever watches it finds the others already new
 pub fn write_output(dir: &Path, theme: &Theme, variant: &Variant) -> Result<(), String> {
     let tokens = serde_json::to_string_pretty(&adapters::tokens(theme, variant))
@@ -390,6 +390,8 @@ pub fn write_output(dir: &Path, theme: &Theme, variant: &Variant) -> Result<(), 
         ("btop.theme", adapters::btop(theme, variant)),
         ("gtk3.css", adapters::gtk3(theme, variant)),
         ("gtk4.css", adapters::gtk4(theme, variant)),
+        ("zen-userChrome.css", adapters::zen_chrome(theme, variant)),
+        ("zen-userContent.css", adapters::zen_content(theme, variant)),
         ("tokens.json", tokens),
     ];
     fs::create_dir_all(dir).map_err(|e| format!("cannot create {}: {e}", dir.display()))?;
@@ -688,6 +690,8 @@ mod tests {
         assert!(base.join("session/btop.theme").is_file());
         assert!(base.join("session/gtk3.css").is_file());
         assert!(base.join("session/gtk4.css").is_file());
+        assert!(base.join("session/zen-userChrome.css").is_file());
+        assert!(base.join("session/zen-userContent.css").is_file());
 
         // Ten minutes later: another god, never the outside theme
         for _ in 0..20 {

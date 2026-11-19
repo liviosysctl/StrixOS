@@ -268,6 +268,101 @@ pub fn gtk4(theme: &Theme, variant: &Variant) -> String {
     out
 }
 
+/// The colors Zen draws itself with, by the names of Zen and Firefox
+fn zen_colors(variant: &Variant) -> Vec<(&'static str, Rgb)> {
+    let background = variant.color("background");
+    let surface = variant.color("surface");
+    let raised = extra_or(variant, "surface-raised", "surface");
+    let sunken = extra_or(variant, "surface-sunken", "background");
+    let border = variant.color("border");
+    let strong = extra_or(variant, "border-strong", "border");
+    let text = variant.color("text");
+    let accent = variant.color("accent");
+    vec![
+        // Zen mixes most of its palette from this one
+        ("zen-primary-color", accent),
+        ("zen-colors-primary", accent),
+        ("zen-colors-secondary", raised),
+        ("zen-colors-tertiary", surface),
+        ("zen-colors-hover-bg", raised),
+        ("zen-colors-primary-foreground", text),
+        ("zen-colors-border", border),
+        ("zen-colors-border-contrast", strong),
+        ("zen-colors-input-bg", sunken),
+        ("zen-main-browser-background", background),
+        ("zen-dialog-background", raised),
+        ("zen-toolbar-element-bg", surface),
+        ("zen-toolbar-element-bg-hover", raised),
+        ("zen-urlbar-background", surface),
+        ("zen-branding-dark", background),
+        ("zen-sidebar-notification-bg", accent),
+        ("zen-sidebar-themed-icon-fill", text),
+        ("toolbar-bgcolor", surface),
+        ("toolbar-color", text),
+        ("toolbox-textcolor", text),
+        ("tab-selected-bgcolor", raised),
+        ("tab-selected-textcolor", text),
+        ("arrowpanel-background", raised),
+        ("arrowpanel-color", text),
+        ("arrowpanel-border-color", border),
+    ]
+}
+
+/// zen-userChrome.css: the window of Zen (sidebar, toolbars, tabs, address bar, menus). Zen sets
+/// its accent and the color of its ground as inline styles on the space and on the element that
+/// paints the ground, so the names are set there as well, and with !important, which an inline
+/// style without it loses to. Zen reads the file when it starts.
+pub fn zen_chrome(theme: &Theme, variant: &Variant) -> String {
+    let mut out = format!(
+        "/* The colors of {} ({}:{}), written by the theme engine. */\n\
+         :root, zen-workspace, .zen-browser-generic-background {{\n",
+        theme.name, theme.id, variant.id
+    );
+    for (name, color) in zen_colors(variant) {
+        out.push_str(&format!("  --{name}: {} !important;\n", color.hex()));
+    }
+    // Zen blends its ground as "screen", which only ever lightens it
+    out.push_str(
+        "}\n.zen-browser-generic-background {\n  background-blend-mode: normal !important;\n}\n",
+    );
+    out
+}
+
+/// zen-userContent.css: the pages of the browser itself (new tab, settings, about:), by the names
+/// Firefox gives their colors. Web pages are left alone.
+pub fn zen_content(theme: &Theme, variant: &Variant) -> String {
+    let surface = variant.color("surface");
+    let colors = [
+        ("in-content-page-background", variant.color("background")),
+        ("in-content-page-color", variant.color("text")),
+        ("in-content-box-background", surface),
+        ("in-content-box-background-odd", surface),
+        ("in-content-box-border-color", variant.color("border")),
+        (
+            "in-content-primary-button-background",
+            variant.color("accent"),
+        ),
+        (
+            "in-content-primary-button-text-color",
+            variant.color("on-accent"),
+        ),
+        ("color-accent-primary", variant.color("accent")),
+        ("newtab-background-color", variant.color("background")),
+        ("newtab-background-color-secondary", surface),
+        ("newtab-text-primary-color", variant.color("text")),
+    ];
+    let mut out = format!(
+        "/* The colors of {} ({}:{}), written by the theme engine. */\n\
+         @-moz-document url-prefix(\"about:\") {{\n  :root {{\n",
+        theme.name, theme.id, variant.id
+    );
+    for (name, color) in colors {
+        out.push_str(&format!("    --{name}: {} !important;\n", color.hex()));
+    }
+    out.push_str("  }\n}\n");
+    out
+}
+
 /// The console palette as the kernel takes it (`PIO_CMAP`): 16 RGB triples in
 /// ANSI order. The console draws its text in color 7 on color 0, so those two
 /// become the terminal's foreground and background. The console then looks
@@ -408,6 +503,31 @@ mod tests {
         assert!(btop.contains("theme[main_bg]=\"#000000\"\n"));
         assert!(btop.contains("theme[cpu_end]=\"#c8102e\"\n"));
         assert_eq!(btop.matches("theme[").count(), 45);
+    }
+
+    #[test]
+    fn zen_takes_the_colors_where_it_sets_its_own() {
+        let theme = good();
+        let variant = theme.variant("dark").unwrap();
+        let chrome = zen_chrome(&theme, variant);
+        assert!(chrome.starts_with("/* The colors of Test (test:dark)"));
+        assert!(chrome.contains(":root, zen-workspace, .zen-browser-generic-background {\n"));
+        assert!(
+            chrome.contains("  --zen-primary-color: #c8102e !important;\n"),
+            "{chrome}"
+        );
+        assert!(chrome.contains("  --zen-main-browser-background: #000000 !important;\n"));
+        assert!(chrome.contains("background-blend-mode: normal !important;"));
+        // Every color wins over an inline style
+        assert_eq!(
+            chrome.matches("  --").count(),
+            chrome.matches(" !important;\n").count() - 1
+        );
+        let content = zen_content(&theme, variant);
+        assert!(content.contains("@-moz-document url-prefix(\"about:\") {\n"));
+        assert!(content.contains("    --in-content-page-background: #000000 !important;\n"));
+        assert!(content.contains("    --color-accent-primary: #c8102e !important;\n"));
+        assert_eq!(content.matches('{').count(), content.matches('}').count());
     }
 
     #[test]
