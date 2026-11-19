@@ -27,7 +27,7 @@
     let
       # The version of the distribution. A release commit changes it here and in every
       # Cargo.toml together (CONTRIBUTING.md).
-      version = "0.6.2";
+      version = "0.6.3";
 
       # Where installed machines get updates from. Machines installed from a
       # release ISO follow ref (stable, moved by the release workflow). The dev

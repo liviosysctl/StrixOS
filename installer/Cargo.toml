@@ -1,6 +1,6 @@
 [package]
 name = "installer"
-version = "0.6.2"
+version = "0.6.3"
 edition = "2024"
 description = "The installer: knows the computer, installs from an answers file, serves the graphical installer"
 license = "MIT"
