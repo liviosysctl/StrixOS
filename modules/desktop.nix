@@ -187,6 +187,13 @@ let
       ${lib.getExe pkgs.cage} -s -d -- ${lib.getExe' pkgs.quickshell "qs"} -c ${id}-greeter
   '';
   qmlPath = "/run/current-system/sw/share/${id}-ui/qml";
+  # PATH for user services that start programs: the user's profiles, the setuid wrappers, the system
+  sessionPath = lib.concatStringsSep ":" [
+    "%h/.nix-profile/bin"
+    "/etc/profiles/per-user/%u/bin"
+    "/run/wrappers/bin"
+    "/run/current-system/sw/bin"
+  ];
 
   hypridleConfig = pkgs.writeText "hypridle.conf" ''
     # Idle and sleep (modules/desktop.nix): lock through the shell of ${branding.name}
@@ -452,6 +459,9 @@ in
       after = [ "graphical-session.target" ];
       wantedBy = [ "graphical-session.target" ];
       environment.QML_IMPORT_PATH = qmlPath;
+      # Programs started from here (Search, the bar, the keys) need the session's commands on
+      # PATH: NixOS gives a user service only a handful of tools
+      environment.PATH = lib.mkForce sessionPath;
       # Theme.qml finds the wallpapers next to the module, the path must not be resolved
       restartTriggers = [ ui ../shell/qml ];
       serviceConfig = {
@@ -596,6 +606,8 @@ in
 
     # The theme picker sets the machine's theme through pkexec: the active local session may run
     # exactly `<id>-theme set <theme>` without a password. Every other pkexec still asks.
+    # nixpkgs no longer installs the setuid pkexec by itself.
+    security.polkit.enablePkexecWrapper = true;
     security.polkit.extraConfig = ''
       polkit.addRule(function (action, subject) {
         if (action.id == "org.freedesktop.policykit.exec" &&

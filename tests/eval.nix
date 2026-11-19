@@ -195,6 +195,11 @@ in
       reference' = reference.config;
     in
     assert reference'.programs.hyprland.withUWSM;
+    # The theme picker (and the Store) call /run/wrappers/bin/pkexec
+    assert reference'.security.wrappers.pkexec.enable;
+    # The shell and Search start programs by name: they need the session's PATH
+    assert lib.hasInfix "/run/current-system/sw/bin" reference'.systemd.user.services."${branding.id}-shell".environment.PATH;
+    assert lib.hasInfix "/run/current-system/sw/bin" reference'.systemd.user.services."${branding.id}-search".environment.PATH;
     # Zen is the browser, the only one
     assert !reference'.programs.firefox.enable;
     assert reference'.xdg.mime.defaultApplications."x-scheme-handler/https" == "zen-beta.desktop";

@@ -75,6 +75,9 @@ in
     wantedBy = [ "graphical-session.target" ];
     unitConfig.ConditionUser = "nixos";
     environment.QML_IMPORT_PATH = "/run/current-system/sw/share/${id}-ui/qml";
+    # The window switches the keyboard with sh and hyprctl: the session's PATH, not the handful of
+    # tools NixOS gives a user service
+    environment.PATH = lib.mkForce "/run/wrappers/bin:/run/current-system/sw/bin";
     serviceConfig = {
       ExecStart = "${qs} -c ${id}-installer";
       Restart = "always";
