@@ -3,8 +3,8 @@
 // The session's theme service (strix-theme session, Backend "theme") runs the cycle and the
 // choice; Enter sets the machine's theme, which the boot splash follows too.
 //
-// Super Ctrl Space opens it (ipc: theme picker). Left and Right or the wheel browse, Enter or a
-// click on the middle plate chooses, K keeps, Esc closes.
+// Super Ctrl Space opens it (ipc: theme picker). Left and Right or the wheel browse, Space (or
+// Enter) or a click on the middle plate chooses, K keeps, Esc closes.
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -305,7 +305,7 @@ Scope {
                     anchors.horizontalCenter: parent.horizontalCenter
                     spacing: Theme.space4
                     Row { spacing: Theme.space1; KeyCaps { keys: "Left Right" } Label { textStyle: "caption"; color: Theme.textFaint; text: "browse" } }
-                    Row { spacing: Theme.space1; KeyCaps { keys: "Enter" } Label { textStyle: "caption"; color: Theme.textFaint; text: "choose" } }
+                    Row { spacing: Theme.space1; KeyCaps { keys: "Space" } Label { textStyle: "caption"; color: Theme.textFaint; text: "choose" } }
                     Row { spacing: Theme.space1; KeyCaps { keys: "Esc" } Label { textStyle: "caption"; color: Theme.textFaint; text: "close" } }
                 }
             }
@@ -324,7 +324,7 @@ Scope {
 
             Shortcut { sequence: "Left"; enabled: root.open && !root.applying; onActivated: root.browse(-1) }
             Shortcut { sequence: "Right"; enabled: root.open && !root.applying; onActivated: root.browse(1) }
-            Shortcut { sequences: ["Return", "Enter"]; enabled: root.open && !root.applying; onActivated: if (root.shown) root.choose(root.shown.id, root.middle()) }
+            Shortcut { sequences: ["Space", "Return", "Enter"]; enabled: root.open && !root.applying; onActivated: if (root.shown) root.choose(root.shown.id, root.middle()) }
             Shortcut { sequence: "K"; enabled: root.open && !root.applying; onActivated: root.keep(!(root.state && root.state.keep)) }
             Shortcut { sequence: "Escape"; enabled: root.open && !root.applying; onActivated: root.open = false }
 
