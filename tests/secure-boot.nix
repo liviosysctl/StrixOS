@@ -4,7 +4,8 @@
 #
 #   nix build .#tests.secure-boot-iso -L   the signed ISO boots from a stick
 #   nix build .#tests.secure-boot -L       an installed machine boots through
-#                                          shim and GRUB in its theme, keeps
+#                                          shim and GRUB (with the signature
+#                                          CI made) in its theme, keeps
 #                                          booting after a new boot loader
 #                                          install, and refuses an unsigned
 #                                          GRUB
@@ -179,7 +180,11 @@ in
         virtualisation.useEFIBoot = true;
         virtualisation.efi = {
           OVMF = ovmf;
-          variables = variables "machine" [ "${testKey}/cert.pem" ];
+          # The distro key from the stick, the test key for kernels CI has not signed
+          variables = variables "machine" [
+            "${../secure-boot}/${id}.crt"
+            "${testKey}/cert.pem"
+          ];
           keepVariables = false;
         };
         boot.consoleLogLevel = lib.mkForce 7;
@@ -192,7 +197,9 @@ in
       with subtest("booted through shim with Secure Boot on"):
           machine.succeed("mokutil --sb-state | grep -x 'SecureBoot enabled'")
           print(machine.succeed("${id}-secure-boot status"))
-          machine.succeed("${id}-secure-boot status | grep '^signed: *kernels/'")
+          # GRUB with the signature CI made, the kernel with that or the machine key
+          machine.succeed("${id}-secure-boot status | grep -x '${branding.name} key: EFI/BOOT/grubx64.efi'")
+          machine.succeed("${id}-secure-boot status | grep -E '^(${branding.name}|machine) key: kernels/'")
           machine.succeed("cmp /boot/EFI/BOOT/BOOTX64.EFI ${self.packages.${system}.shim}/share/shim/shimx64.efi")
           machine.fail("${id}-secure-boot status | grep '^unsigned'")
           machine.succeed("test -s /boot/${id}.cer")

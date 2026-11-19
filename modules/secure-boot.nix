@@ -1,11 +1,12 @@
 # Secure Boot on installed machines (main only, the school proof of concept).
 #
 # The machine boots shim (signed by Microsoft) -> GRUB -> kernel, the same
-# way the signed ISO does. GRUB (one image with every module it needs, since
-# it may load none from disk under Secure Boot) and the kernels are signed
-# with a key made on the machine at install time
-# (/var/lib/<id>/secure-boot, root only). shim trusts it once MokManager has
-# enrolled it: the installer asks for that when Secure Boot is on, later
+# way the signed ISO does, and with the same key: CI signs GRUB (one image
+# with every module it needs, the same on every machine) and the kernel once
+# (secure-boot/README.md), so a machine whose shim trusts the stick needs no
+# further enrollment. A kernel CI has not signed is signed with a key made on
+# the machine (/var/lib/<id>/secure-boot, root only); only that one needs
+# MokManager again: the installer asks for it when needed, later
 # `sudo <id>-secure-boot enroll` does the same.
 #
 # With Secure Boot off everything boots as before, shim then starts GRUB
@@ -22,7 +23,7 @@ let
   system = pkgs.stdenv.hostPlatform.system;
 
   tool = pkgs.callPackage ../packages/secure-boot {
-    inherit (distroFlake.packages.${system}) shim grub-sb;
+    inherit (distroFlake.packages.${system}) shim grub-image;
     esp = config.boot.loader.efi.efiSysMountPoint;
     testKeyDir = cfg.testKey;
   };
@@ -34,8 +35,9 @@ in
       default = true;
       description = ''
         Boot through shim, so the machine also starts with Secure Boot on.
-        GRUB and every kernel are signed with a key made on this
-        machine after each boot loader install. Turning it off leaves the
+        GRUB and every kernel get the distro signature after each boot
+        loader install, a kernel without one a signature with a key made on
+        this machine. Turning it off leaves the
         files on the ESP until the next install of the boot loader.
       '';
     };

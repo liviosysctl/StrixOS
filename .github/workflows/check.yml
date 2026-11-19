@@ -3,6 +3,11 @@
 # On every push and pull request: the fast checks (L0). Every machine, the ISO
 # and the installer functions evaluate, plus the assertions in tests/eval.nix.
 #
+# First, on every run: the sign job makes the distro signatures of the boot
+# files installed machines use (GRUB, the kernel) that are still missing,
+# commits them to m245-poc and ends the run there; the push starts the next
+# one, so everything below always works on signed boot files.
+#
 # On every push to m245-poc: the cache job pushes the own packages and the
 # reference system to the binary cache (modules/cache.nix), then the ISO is
 # built, signed for Secure Boot and published as the pre-release poc with
@@ -24,7 +29,45 @@ permissions:
   contents: read
 
 jobs:
+  # secure-boot/README.md. Signs only on m245-poc, where the key is; elsewhere a
+  # missing signature makes the flake check fail.
+  sign:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    outputs:
+      changed: ${{ steps.sign.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # A push with this token starts the next run, one with GITHUB_TOKEN would not
+          token: ${{ secrets.STABLE_PUSH_TOKEN || github.token }}
+
+      - uses: ./.github/actions/nix
+        with:
+          cachix-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Sign new boot files
+        id: sign
+        env:
+          KEY_PEM: >-
+            ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/m245-poc'
+            && secrets.SECURE_BOOT_KEY || '' }}
+        run: ./.github/scripts/sign-boot-files.sh
+
+      - name: Commit the signatures
+        if: steps.sign.outputs.changed == 'true'
+        run: |
+          git config user.name "Liviosysctl"
+          git config user.email "livio.deganutti@pm.me"
+          git add -A secure-boot/signatures
+          git commit -m "chore(secure-boot): sign the new boot files"
+          git push origin HEAD:m245-poc
+
   flake:
+    needs: sign
+    if: needs.sign.outputs.changed != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:

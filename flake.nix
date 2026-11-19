@@ -197,6 +197,21 @@
           homepage = "https://github.com/${upstream.owner}/${upstream.repo}";
         };
         sign-iso = pkgs.callPackage ./packages/sign-iso { inherit (self.packages.${system}) shim; };
+
+        # GRUB for installed machines, the same image everywhere (packages/grub-image)
+        grub-image = pkgs.callPackage ./packages/grub-image { inherit (self.packages.${system}) grub-sb; };
+
+        # The boot files of an installed machine that CI signs with the distro key
+        # (.github/scripts/sign-boot-files.sh): GRUB and the kernel of the
+        # reference system, as links, so building it fetches them.
+        boot-files =
+          let
+            ref = self.nixosConfigurations."${branding.id}-reference".config;
+          in
+          pkgs.linkFarm "${branding.id}-boot-files" {
+            "grubx64.efi" = "${self.packages.${system}.grub-image}/grubx64.efi";
+            kernel = "${ref.boot.kernelPackages.kernel}/${ref.system.boot.loader.kernelFile}";
+          };
         secure-boot-key = pkgs.callPackage ./packages/secure-boot-key { };
 
         # The design system: QML module, wallpapers, fonts
@@ -221,7 +236,27 @@
         machine-lock = machineLock upstream.ref;
       };
 
-      checks.${system} = import ./tests/eval.nix { inherit self pkgs; };
+      checks.${system} = import ./tests/eval.nix { inherit self pkgs; } // {
+        # Every boot file CI signs has a signature in secure-boot/signatures that
+        # fits the file and the distro certificate. Fails after a kernel update
+        # until CI has signed the new kernel (the sign job runs before this check).
+        boot-signatures =
+          pkgs.runCommand "${branding.id}-boot-signatures" { nativeBuildInputs = [ pkgs.sbsigntool ]; }
+            ''
+              for file in ${self.packages.${system}.boot-files}/*; do
+                sha=$(sha256sum < "$file" | cut -d " " -f 1)
+                sig=${./secure-boot/signatures}/$sha.p7
+                if [ ! -e "$sig" ]; then
+                  echo "$(basename "$file") ($sha) has no signature yet: CI signs it on the next push to m245-poc" >&2
+                  exit 1
+                fi
+                install -m 0644 "$file" signed.efi
+                sbattach --attach "$sig" signed.efi >/dev/null
+                sbverify --cert ${./secure-boot}/${branding.id}.crt signed.efi
+              done
+              touch $out
+            '';
+      };
 
       # Tests that boot VMs, too slow for every push: nix build .#tests.theme -L
       legacyPackages.${system}.tests = {

@@ -259,10 +259,11 @@ in_target() {
   nixos-enter --root /mnt -c "PATH=/run/wrappers/bin:/nix/var/nix/profiles/system/sw/bin; $1"
 }
 
-# Only machines with modules/secure-boot.nix (main) have this tool, so the
-# same installer works on every branch. It points a firmware boot entry at
-# shim and, with Secure Boot on, asks MokManager to enroll the machine's key
-# at the next start; the done screen shows the code to type there.
+# Only machines with modules/secure-boot.nix have this tool, so the same
+# installer works on every branch. It points a firmware boot entry at shim
+# and, with Secure Boot on and only if shim does not trust the keys of the
+# boot files yet, asks MokManager to enroll them at the next start; the done
+# screen then shows the code to type there.
 mok_code=""
 mok_from_disk=0
 setup_secure_boot() {
@@ -271,6 +272,12 @@ setup_secure_boot() {
   run in_target "$tool boot-entry" ||
     log "No boot entry for shim, the firmware will start the fallback path EFI/BOOT/BOOTX64.EFI."
   secure_boot_enabled || return 0
+  # GRUB and the kernel normally carry the distro signature, and shim trusts
+  # that key since the stick: then nothing is left to enroll
+  if ! in_target "$tool needs-enroll" >/dev/null 2>&1; then
+    log "shim already trusts the keys of GRUB and the kernel, nothing to enroll."
+    return 0
+  fi
   code=$(shuf -i 1000-9999 -n 1)
   if run in_target "$tool enroll --code $code"; then
     mok_code=$code
