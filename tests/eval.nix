@@ -456,7 +456,21 @@ in
     assert lib.hasInfix "theme/theme.txt" grub.extraConfig;
     assert cfg.systemd.paths."${branding.id}-grub-theme".pathConfig.PathChanged == "/run/${branding.id}/theme/tokens.json";
     assert lib.hasSuffix "${branding.id}-saturnus-dark" iso.isoImage.grubTheme.name;
-    ok "grub";
+    # What runs after GRUB is installed finds its tools with no PATH at all, as under
+    # switch-to-configuration. There is no ESP here, so the scripts may fail, but never for a
+    # missing command.
+    pkgs.runCommand "check-grub" { } ''
+      cat > install.sh <<'EOF'
+      ${install}
+      EOF
+      env -i ${pkgs.runtimeShell} install.sh > log.txt 2>&1 || true
+      cat log.txt
+      if grep -q "command not found" log.txt; then
+        echo "a script run after the GRUB install needs a PATH"
+        exit 1
+      fi
+      touch $out
+    '';
 
   # The binary cache is only used once its public key is in modules/cache.nix
   cache =
