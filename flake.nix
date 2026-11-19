@@ -26,7 +26,7 @@
     { self, nixpkgs, disko, strixui, ... }:
     let
       # The only place with the version number. bump_version.py replaces exactly this line.
-      version = "1.0.0";
+      version = "1.0.1";
 
       # Where installed machines get updates from. The proof of concept has no
       # releases: every machine installed from its ISO follows the branch

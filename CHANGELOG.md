@@ -2,9 +2,9 @@
 
 All notable changes to this project. Versions follow [Semantic Versioning](https://semver.org); entries are generated from [Conventional Commits](https://www.conventionalcommits.org) with git-cliff.
 
-## v1.0.0 — 2026-11-19
+## v1.0.1 — 2026-11-19
 
-The proof of concept for M245: a signed ISO with the graphical installer, a simple desktop in the Saturnus theme and a Store that installs apps with one click.
+Fixes the graphical installer: it sets the password and the Secure Boot key again, and its window fits small screens.
 
 ### Added
 - Add Zed as the editor, in the colors of the theme
@@ -24,6 +24,10 @@ The proof of concept for M245: a signed ISO with the graphical installer, a simp
 ### Changed
 - Replace systemd-boot with GRUB and list Windows in the menu
 - Remove clipboard, cheat sheet and hotkey settings
+
+### Fixed
+- Give commands in the new system its own PATH
+- Fit the window on small screens
 
 ### Breaking
 - Make Zen the only browser — Firefox is no longer installed.
