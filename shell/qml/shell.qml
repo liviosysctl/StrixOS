@@ -1,4 +1,4 @@
-// The shell of Strix (12-desktop): wallpaper, top bar, lock screen, search, cheat sheet,
+// The shell of Strix (12-desktop): wallpaper, top bar, dock, lock screen, search, cheat sheet,
 // notifications, the OSD, the clipboard history, the theme picker and Settings, built from the QML module of StrixUI (import Strix).
 // The colors are the session's theme (strix-theme session), which changes every 10 minutes.
 //
@@ -22,6 +22,7 @@ ShellRoot {
     // Covered by the lock screen or the theme picker, the wallpaper changes without its reveal
     Background { quiet: lock.active || picker.present }
     Bar { id: bar }
+    Dock { bar: bar }
     Lock { id: lock; themeFile: themeFile }
     SearchPanel {}
     Cheatsheet {}

@@ -90,7 +90,8 @@ Scope {
     FileView { id: meminfo; path: "/proc/meminfo" }
     Timer {
         interval: 2000
-        running: root.shown
+        // The dock shows the same figures, also while the bar is hidden
+        running: true
         repeat: true
         triggeredOnStart: true
         onTriggered: {

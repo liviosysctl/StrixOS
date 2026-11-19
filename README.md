@@ -36,7 +36,7 @@ The look comes from [StrixUI](https://github.com/liviosysctl/StrixUI), the desig
 | ![The boot splash](docs/images/boot-splash.jpg) | ![The QML components under Saturnus](docs/images/qml-gallery.jpg) |
 | *The boot splash* | *The QML components under Saturnus* |
 
-These are renderings of the design from StrixUI; the shell in this repository is built from the same components. The dock is designed but not built yet. Sources and licences of every picture are in [docs/images/README.md](docs/images/README.md).
+These are renderings of the design from StrixUI; the shell in this repository is built from the same components. Sources and licences of every picture are in [docs/images/README.md](docs/images/README.md).
 
 ## Branches
 
