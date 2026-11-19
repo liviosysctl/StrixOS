@@ -178,8 +178,11 @@ pkgs.testers.runNixOSTest {
             "printf '%s\\n' ${password} > /run/${id}-install/user.pass",
             "printf '%s' ${password} > /tmp/${id}-luks.key",
         )
+        # With hardly any PATH, as the graphical installer starts it (sudo from a user service):
+        # the installer has to bring its own tools and give the new system its own
         status, _ = installer.execute(
-            "${id}-install --core --answers ${answers} --hardware-nix ${hardwareNix} --no-unmount >&2"
+            "env PATH=/run/wrappers/bin $(command -v ${id}-install)"
+            " --core --answers ${answers} --hardware-nix ${hardwareNix} --no-unmount >&2"
         )
         if status != 0:
             # Most likely the installer built a different system than the

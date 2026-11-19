@@ -234,7 +234,7 @@ install_from_answers() {
   run nixos-install --root /mnt --flake "/mnt/etc/nixos#${DISTRO_ID}" --no-root-passwd --no-channel-copy
 
   step 7
-  printf '%s:%s\n' "$user_name" "$(<"$password_file")" | nixos-enter --root /mnt -c chpasswd
+  printf '%s:%s\n' "$user_name" "$(<"$password_file")" | in_target chpasswd
   shred_secrets
 
   step 8
@@ -252,6 +252,13 @@ install_from_answers() {
   [ "$ui_fancy" -eq 1 ] || printf 'MOK %s %s\n' "${mok_code:--}" "$mok_from_disk" >&2
 }
 
+# Runs a shell command inside the new system, with that system's PATH: nixos-enter
+# passes the caller's PATH on, and the graphical installer runs through sudo from a
+# user service, whose PATH only holds the installer's own tools.
+in_target() {
+  nixos-enter --root /mnt -c "PATH=/run/wrappers/bin:/nix/var/nix/profiles/system/sw/bin; $1"
+}
+
 # Only machines with modules/secure-boot.nix (main) have this tool, so the
 # same installer works on every branch. It points a firmware boot entry at
 # shim and, with Secure Boot on, asks MokManager to enroll the machine's key
@@ -260,12 +267,12 @@ mok_code=""
 mok_from_disk=0
 setup_secure_boot() {
   local tool="${DISTRO_ID}-secure-boot" code
-  nixos-enter --root /mnt -c "command -v $tool" >/dev/null 2>&1 || return 0
-  run nixos-enter --root /mnt -c "$tool boot-entry" ||
+  in_target "command -v $tool" >/dev/null 2>&1 || return 0
+  run in_target "$tool boot-entry" ||
     log "No boot entry for shim, the firmware will start the fallback path EFI/BOOT/BOOTX64.EFI."
   secure_boot_enabled || return 0
   code=$(shuf -i 1000-9999 -n 1)
-  if run nixos-enter --root /mnt -c "$tool enroll --code $code"; then
+  if run in_target "$tool enroll --code $code"; then
     mok_code=$code
   else
     log "Could not ask MokManager to enroll the key, it can still be enrolled from disk."
