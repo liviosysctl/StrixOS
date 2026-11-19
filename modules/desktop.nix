@@ -94,9 +94,52 @@ let
     end
   '';
 
+  # The pointer: Bibata; the ISO keeps the one GTK brings, for its size
+  cursorTheme = if cfg.live then "Adwaita" else "Bibata-Modern-Classic";
+
+  # The symbols of Files and every GTK app: Papirus, and for every god a small theme on top of it
+  # whose folders have the color nearest to the god's (Papirus draws its folders in these colors)
+  folderColors = {
+    saturnus = "carmine";
+    janus = "teal";
+    apollo = "palebrown";
+    mars = "deeporange";
+    vulcanus = "green";
+    neptunus = "bluegrey";
+    pluto = "violet";
+    bacchus = "red";
+  };
+  iconThemes = pkgs.runCommand "${id}-icons" { } (
+    lib.concatStrings (
+      lib.mapAttrsToList (god: color: ''
+        papirus=${pkgs.papirus-icon-theme}/share/icons
+        theme=$out/share/icons/${branding.name}-${god}
+        mkdir -p $theme
+        sed -e 's/^Name=.*/Name=${branding.name} ${god}/' -e 's/^Inherits=.*/Inherits=Papirus-Dark,Adwaita,hicolor/' \
+          $papirus/Papirus-Dark/index.theme >$theme/index.theme
+        found=0
+        for file in $papirus/Papirus/*/places/folder-${color}*.svg; do
+          size=''${file#$papirus/Papirus/}
+          size=''${size%%/*}
+          name=''${file##*/}
+          mkdir -p $theme/$size/places
+          ln -s $file $theme/$size/places/folder''${name#folder-${color}}
+          found=1
+        done
+        [ $found = 1 ] || { echo "Papirus has no folders in ${color}"; exit 1; }
+      '') folderColors
+    )
+  );
+
   # After every change of the session's theme: Hyprland and every Ghostty window read their
-  # colors again
+  # colors again, and GTK apps take the folders of the god
   sessionHook = pkgs.writeShellScript "${id}-theme-reload" ''
+    theme=$(${lib.getExe pkgs.jq} -r '.theme // ""' "$XDG_RUNTIME_DIR/${id}/theme/tokens.json" 2>/dev/null)
+    icons=Papirus-Dark
+    if [ -n "$theme" ] && [ -d "${iconThemes}/share/icons/${branding.name}-$theme" ]; then
+      icons="${branding.name}-$theme"
+    fi
+    ${lib.getExe pkgs.dconf} write /org/gnome/desktop/interface/icon-theme "'$icons'" || true
     # Hyprland's socket may not answer in time while it is busy (software rendering): try for
     # up to two minutes; this runs beside the session service and holds nothing up
     for try in 1 2 3 4 5 6 7 8 9 10; do
@@ -276,7 +319,7 @@ let
     export STRIX_LOGOS=${config.${id}.theme.logos}
     export XKB_DEFAULT_LAYOUT=${lib.escapeShellArg xkb.layout} XKB_DEFAULT_VARIANT=${lib.escapeShellArg xkb.variant}
     export XKB_DEFAULT_OPTIONS=${lib.escapeShellArg xkb.options}
-    export XCURSOR_THEME=Adwaita XCURSOR_SIZE=24
+    export XCURSOR_THEME=${cursorTheme} XCURSOR_SIZE=24
     # cage does not scale: a laptop's own Full HD screen gets the 125 % of the desktop
     # (shell/hypr/hyprland.lua), so the login is as large as what follows it
     for modes in /sys/class/drm/card*-eDP-*/modes; do
@@ -420,7 +463,7 @@ in
     environment.etc."xdg/${id}/ghostty/user".source = ghosttyUser;
     environment.sessionVariables = {
       HYPRLAND_CONFIG = "/etc/xdg/${id}/hypr/hyprland.lua";
-      XCURSOR_THEME = "Adwaita";
+      XCURSOR_THEME = cursorTheme;
       XCURSOR_SIZE = "24";
       NIXOS_OZONE_WL = "1";
     };
@@ -492,7 +535,8 @@ in
           settings."org/gnome/desktop/interface" = {
             color-scheme = "prefer-dark";
             gtk-theme = "adw-gtk3-dark";
-            cursor-theme = "Adwaita";
+            cursor-theme = cursorTheme;
+            icon-theme = if cfg.live then "Adwaita" else "Papirus-Dark";
             monospace-font-name = "JetBrains Mono 11";
           };
         }
@@ -609,6 +653,9 @@ in
       tailnetCommand
       idleCommand
       updateCheck
+      bibata-cursors
+      papirus-icon-theme
+      iconThemes
     ]
     ++ [
       adwaita-icon-theme
@@ -645,6 +692,54 @@ in
         # restarts it)
         KillMode = "process";
       };
+    };
+
+    # Qt apps: qt6ct and qt5ct give them the palette of the session's theme (qt6.conf and qt5.conf
+    # of the theme engine) and the symbols of GTK. Their settings are written once for a user,
+    # because they name the palette by its whole path; an app takes new colors when it starts.
+    qt = lib.mkIf (!cfg.live) {
+      enable = true;
+      platformTheme = "qt5ct";
+    };
+    systemd.user.services."${id}-qt-colors" = lib.mkIf (!cfg.live) {
+      description = "Give Qt apps the colors of the session's theme";
+      wantedBy = [ "default.target" ];
+      serviceConfig.Type = "oneshot";
+      script = ''
+        [ -w "$HOME" ] || exit 0
+        for version in 6 5; do
+          file="$HOME/.config/qt''${version}ct/qt''${version}ct.conf"
+          [ ! -e "$file" ] || continue
+          mkdir -p "''${file%/*}"
+          printf '%s\n' "[Appearance]" \
+            "color_scheme_path=$XDG_RUNTIME_DIR/${id}/theme/qt$version.conf" \
+            "custom_palette=true" "icon_theme=Papirus-Dark" "style=Fusion" >"$file"
+        done
+      '';
+    };
+
+    # The first login shows the cheat sheet once: the keys are all one needs to know
+    systemd.user.services."${id}-welcome" = lib.mkIf (!cfg.live) {
+      description = "Show the cheat sheet at the first login";
+      partOf = [ "graphical-session.target" ];
+      after = [ "${id}-shell.service" ];
+      wantedBy = [ "graphical-session.target" ];
+      path = [ pkgs.quickshell pkgs.coreutils ];
+      serviceConfig.Type = "oneshot";
+      script = ''
+        seen="''${XDG_STATE_HOME:-$HOME/.local/state}/${id}/welcomed"
+        [ ! -e "$seen" ] || exit 0
+        for _ in $(seq 1 30); do
+          if [ "$(qs -c ${id} ipc call cheatsheet isOpen 2>/dev/null)" = false ]; then
+            sleep 3
+            qs -c ${id} ipc call cheatsheet toggle
+            mkdir -p "''${seen%/*}"
+            touch "$seen"
+            exit 0
+          fi
+          sleep 2
+        done
+      '';
     };
 
     # Documents, Downloads, Pictures, Videos and the others exist from the first login on: Files

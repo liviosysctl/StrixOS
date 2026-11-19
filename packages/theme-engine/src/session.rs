@@ -386,7 +386,8 @@ fn read_kept(file: &Path) -> bool {
         .unwrap_or(false)
 }
 
-/// tokens.json, hyprland.lua, ghostty, btop.theme, the GTK and Zen files, mpv.conf, lazygit.yml
+/// tokens.json, hyprland.lua, ghostty, btop.theme, the GTK and Zen files, mpv.conf, lazygit.yml, the
+/// palettes of Qt (qt6.conf, qt5.conf), shell.sh
 /// and, with the prompt's
 /// configuration `prompt`, starship.toml for one theme; tokens.json last, so whoever watches it
 /// finds the others already new
@@ -409,6 +410,9 @@ pub fn write_output(
         ("zen-userContent.css", adapters::zen_content(theme, variant)),
         ("mpv.conf", adapters::mpv(theme, variant)),
         ("lazygit.yml", adapters::lazygit(theme, variant)),
+        ("qt6.conf", adapters::qt_colors(theme, variant, true)),
+        ("qt5.conf", adapters::qt_colors(theme, variant, false)),
+        ("shell.sh", adapters::shell_env(theme, variant)),
     ];
     // The prompt never stops a change of theme: without its base, starship.toml keeps the last
     // theme and the shells fall back to shell/starship.toml as it is

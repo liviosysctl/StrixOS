@@ -181,6 +181,109 @@ pub fn lazygit(theme: &Theme, variant: &Variant) -> String {
     out
 }
 
+/// The palette of Qt apps for qt6ct (`qt6`, 22 roles) or qt5ct (21 roles): the same grounds,
+/// text and accent as GTK apps get. The roles stand in the order of QPalette.
+pub fn qt_colors(theme: &Theme, variant: &Variant, qt6: bool) -> String {
+    let background = variant.color("background");
+    let surface = variant.color("surface");
+    let raised = extra_or(variant, "surface-raised", "surface");
+    let sunken = extra_or(variant, "surface-sunken", "background");
+    let border = variant.color("border");
+    let strong = extra_or(variant, "border-strong", "border");
+    let text = variant.color("text");
+    let muted = variant.color("text-muted");
+    let faint = extra_or(variant, "text-faint", "text-muted");
+    let accent = variant.color("accent");
+    let on_accent = variant.color("on-accent");
+    let accent_text = extra_or(variant, "accent-text", "accent");
+    // WindowText, Button, Light, Midlight, Dark, Mid, Text, BrightText, ButtonText, Base, Window,
+    // Shadow, Highlight, HighlightedText, Link, LinkVisited, AlternateBase, NoRole, ToolTipBase,
+    // ToolTipText, PlaceholderText, Accent
+    let active = [
+        text,
+        raised,
+        strong,
+        border,
+        sunken,
+        border,
+        text,
+        text,
+        text,
+        sunken,
+        background,
+        sunken,
+        accent,
+        on_accent,
+        accent_text,
+        muted,
+        surface,
+        background,
+        raised,
+        text,
+        faint,
+        accent,
+    ];
+    let mut disabled = active;
+    for role in [0, 6, 8] {
+        disabled[role] = faint;
+    }
+    disabled[12] = border;
+    disabled[13] = muted;
+    let roles = if qt6 { 22 } else { 21 };
+    let row = |colors: &[Rgb; 22]| {
+        colors[..roles]
+            .iter()
+            .map(|c| format!("#ff{}", bare(*c)))
+            .collect::<Vec<_>>()
+            .join(", ")
+    };
+    format!(
+        "# The colors of {} ({}:{}), written by the theme engine.\n[ColorScheme]\n\
+         active_colors={}\ndisabled_colors={}\ninactive_colors={}\n",
+        theme.name,
+        theme.id,
+        variant.id,
+        row(&active),
+        row(&disabled),
+        row(&active),
+    )
+}
+
+/// shell.sh: what the tools of the terminal take from the environment, read by the shells before
+/// every prompt. Folders in listings (eza, ls) and what fzf marks stand in the accent.
+pub fn shell_env(theme: &Theme, variant: &Variant) -> String {
+    let accent = extra_or(variant, "accent-text", "accent");
+    let muted = variant.color("text-muted");
+    let ansi = |c: Rgb| format!("38;2;{};{};{}", c.r, c.g, c.b);
+    let fzf = [
+        ("fg", variant.color("text-muted")),
+        ("fg+", variant.color("text")),
+        ("bg+", extra_or(variant, "surface-raised", "surface")),
+        ("hl", accent),
+        ("hl+", accent),
+        ("pointer", accent),
+        ("marker", accent),
+        ("prompt", accent),
+        ("spinner", accent),
+        ("info", extra_or(variant, "text-faint", "text-muted")),
+        ("border", variant.color("border")),
+        ("header", muted),
+    ]
+    .map(|(name, color)| format!("{name}:{}", color.hex()))
+    .join(",");
+    format!(
+        "# The colors of {} ({}:{}), written by the theme engine.\n\
+         export EZA_COLORS='di=1;{dir}:da={date}'\n\
+         export LS_COLORS='di=1;{dir}'\n\
+         export FZF_DEFAULT_OPTS='--color={fzf}'\n",
+        theme.name,
+        theme.id,
+        variant.id,
+        dir = ansi(accent),
+        date = ansi(muted),
+    )
+}
+
 /// btop.theme: the system monitor in the colors of the theme. The boxes and lines are the
 /// borders, figures that need attention the accent; loads run from quiet text to the accent,
 /// temperatures from success over warning to error.
@@ -669,6 +772,32 @@ mod tests {
             "{lazygit}"
         );
         assert!(lazygit.contains("    cherryPickedCommitBgColor: [\"#c8102e\"]\n"));
+    }
+
+    #[test]
+    fn qt_and_the_shell_take_the_colors() {
+        let theme = good();
+        let variant = &theme.variants["dark"];
+        let qt6 = qt_colors(&theme, variant, true);
+        let line = qt6
+            .lines()
+            .find(|l| l.starts_with("active_colors="))
+            .unwrap();
+        assert_eq!(line.split(", ").count(), 22);
+        assert!(line.ends_with("#ffc8102e"), "{line}");
+        let qt5 = qt_colors(&theme, variant, false);
+        let line = qt5
+            .lines()
+            .find(|l| l.starts_with("disabled_colors="))
+            .unwrap();
+        assert_eq!(line.split(", ").count(), 21);
+        let shell = shell_env(&theme, variant);
+        assert!(shell.contains("export EZA_COLORS='di=1;38;2;"), "{shell}");
+        assert!(
+            shell.contains("export FZF_DEFAULT_OPTS='--color=fg:#"),
+            "{shell}"
+        );
+        assert!(!shell.contains('"'));
     }
 
     #[test]

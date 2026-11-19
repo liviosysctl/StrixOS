@@ -1,6 +1,7 @@
 # The terminal, set up for every user: zsh with suggestions and colors, eza and bat in place of plain listings, ripgrep
 # and fd to search, lazygit in the colors of the theme, direnv for the environment of a project.
-# eza and bat take the 16 colors of the terminal, which the theme engine sets. Whoever has an
+# eza and bat take the 16 colors of the terminal, which the theme engine sets; folders in
+# listings and the marks of fzf take the accent (shell.sh of the theme engine). Whoever has an
 # own lazygit config gets it as is.
 { config, lib, pkgs, ... }:
 
@@ -23,6 +24,14 @@ let
     };
   });
 
+  # Reads shell.sh of the session's theme, else of the machine's
+  colors = ''
+    local dir
+    for dir in ''${XDG_RUNTIME_DIR:+"$XDG_RUNTIME_DIR/${id}/theme"} /run/${id}/theme; do
+      if [[ -r "$dir/shell.sh" ]]; then source "$dir/shell.sh"; break; fi
+    done
+  '';
+
   lazygit = pkgs.writeShellScriptBin "lazygit" ''
     own="''${XDG_CONFIG_HOME:-$HOME/.config}/lazygit/config.yml"
     if [ -z "''${LG_CONFIG_FILE:-}" ] && [ ! -e "$own" ]; then
@@ -43,6 +52,7 @@ in
     bat
     ripgrep
     fd
+    fzf
     (lib.hiPrio lazygit)
     pkgs.lazygit
     git
@@ -95,8 +105,24 @@ in
       bindkey '^[[H' beginning-of-line
       bindkey '^[[F' end-of-line
       bindkey '^[[3~' delete-char
+      # The colors of the theme for eza, ls and fzf (shell.sh of the theme engine), before every
+      # prompt, so a change of theme shows at once
+      ${id}_colors() { ${colors} }
+      autoload -Uz add-zsh-hook
+      add-zsh-hook precmd ${id}_colors
     '';
   };
+
+  # Ctrl R looks through the history with fzf, Ctrl T through the files, ** Tab completes
+  programs.fzf = {
+    keybindings = true;
+    fuzzyCompletion = true;
+  };
+
+  programs.bash.interactiveShellInit = ''
+    ${id}_colors() { ${colors} }
+    PROMPT_COMMAND="${id}_colors''${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
+  '';
 
   # bat in the colors of the terminal, so it follows the theme; plain when piped
   environment.variables.BAT_THEME = "ansi";
