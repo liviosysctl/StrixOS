@@ -1,5 +1,6 @@
 // Battery and brightness in a quick panel: the charge with the time left, the brightness of the
-// screen (when it has a backlight), the power profile and the way to Settings › Power.
+// screen (when it has a backlight), the power profile, the night light and the way to
+// Settings › Power.
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -41,8 +42,15 @@ QuickPanel {
             }
         }
     }
-    onActiveChanged: if (active) readLight.running = true
-    Component.onCompleted: readLight.running = true
+    // The night light comes on by itself in the evening; here it is switched by hand
+    property bool night: false
+    Process {
+        id: readNight
+        command: ["strix-nightlight", "state"]
+        stdout: StdioCollector { onStreamFinished: root.night = text.trim() === "on" }
+    }
+    onActiveChanged: if (active) { readLight.running = true; readNight.running = true }
+    Component.onCompleted: { readLight.running = true; readNight.running = true }
 
     title: "Power"
     corner: Label {
@@ -92,6 +100,20 @@ QuickPanel {
             model: root.profiles.map(p => root.names[p])
             currentIndex: Math.max(0, root.profiles.indexOf(PowerProfiles.profile))
             onActivated: index => PowerProfiles.profile = root.profiles[index]
+        }
+    }
+    Item {
+        width: parent.width
+        height: Theme.controlMd
+        Switch {
+            x: Theme.space2
+            anchors.verticalCenter: parent.verticalCenter
+            text: "Night light"
+            checked: root.night
+            onToggled: {
+                root.night = checked
+                Quickshell.execDetached(["strix-nightlight", checked ? "on" : "off"])
+            }
         }
     }
     ListRow { width: parent.width; iconName: "settings"; text: "Power settings"; onClicked: root.settings("power") }

@@ -386,7 +386,8 @@ fn read_kept(file: &Path) -> bool {
         .unwrap_or(false)
 }
 
-/// tokens.json, hyprland.lua, ghostty, btop.theme, the GTK and Zen files and, with the prompt's
+/// tokens.json, hyprland.lua, ghostty, btop.theme, the GTK and Zen files, mpv.conf, lazygit.yml
+/// and, with the prompt's
 /// configuration `prompt`, starship.toml for one theme; tokens.json last, so whoever watches it
 /// finds the others already new
 pub fn write_output(
@@ -406,6 +407,8 @@ pub fn write_output(
         ("gtk4.css", adapters::gtk4(theme, variant)),
         ("zen-userChrome.css", adapters::zen_chrome(theme, variant)),
         ("zen-userContent.css", adapters::zen_content(theme, variant)),
+        ("mpv.conf", adapters::mpv(theme, variant)),
+        ("lazygit.yml", adapters::lazygit(theme, variant)),
     ];
     // The prompt never stops a change of theme: without its base, starship.toml keeps the last
     // theme and the shells fall back to shell/starship.toml as it is
@@ -721,6 +724,8 @@ mod tests {
             "{prompt}"
         );
         assert!(base.join("session/btop.theme").is_file());
+        assert!(base.join("session/mpv.conf").is_file());
+        assert!(base.join("session/lazygit.yml").is_file());
         assert!(base.join("session/gtk3.css").is_file());
         assert!(base.join("session/gtk4.css").is_file());
         assert!(base.join("session/zen-userChrome.css").is_file());

@@ -31,6 +31,9 @@ let
     extraEnv = {
       REBUILD = lib.getExe rebuild;
     }
+    // lib.optionalAttrs config.services.fwupd.enable {
+      FWUPDMGR = "${pkgs.fwupd}/bin/fwupdmgr";
+    }
     # The theme repositories are fetched by the theme engine
     // lib.optionalAttrs config.${branding.id}.theme.enable {
       THEME_COMMAND = lib.getExe config.${branding.id}.theme.package;

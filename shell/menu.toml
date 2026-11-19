@@ -188,6 +188,15 @@ words = ["bar", "hide", "show", "panel"]
 keys = "Super Shift Space"
 run = ["qs", "-c", "{id}", "ipc", "call", "bar", "toggle"]
 
+[[action]]
+id = "night-light"
+title = "Night light"
+group = "style"
+symbol = "moon"
+words = ["warm", "evening", "blue light", "sunset", "eyes"]
+keys = "Super Ctrl N"
+run = ["{id}-nightlight", "toggle"]
+
 # ------------------------------------------------------------------ Capture
 
 [[action]]

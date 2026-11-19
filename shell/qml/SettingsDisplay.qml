@@ -1,4 +1,4 @@
-// Settings › Display: every screen with its size and its scale. A new scale is written to
+// Settings › Display: every screen with its size and its scale, and the night light. A new scale is written to
 // ~/.config/strix/monitors.lua (one hl.monitor per screen, read by the Hyprland configuration of
 // Strix) and Hyprland reloads; monitors.json beside it keeps the choices for this page.
 import QtQuick
@@ -60,6 +60,27 @@ Column {
                     return best
                 }
                 onActivated: index => page.setScale(modelData.name, page.scales[index])
+            }
+        }
+    }
+
+    // The night light (strix-nightlight): hyprsunset makes the colors warmer from 20:00 to 7:00
+    property bool night: false
+    Process {
+        id: readNight
+        command: ["strix-nightlight", "state"]
+        running: true
+        stdout: StdioCollector { onStreamFinished: page.night = text.trim() === "on" }
+    }
+    SettingRow {
+        width: page.width
+        title: "Night light"
+        text: "Warmer colours, by itself from 20:00 to 7:00"
+        Switch {
+            checked: page.night
+            onToggled: {
+                page.night = checked
+                Quickshell.execDetached(["strix-nightlight", checked ? "on" : "off"])
             }
         }
     }

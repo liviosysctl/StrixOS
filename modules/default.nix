@@ -14,6 +14,8 @@
     ./desktop.nix
     ./neovim.nix
     ./tools.nix
+    ./terminal.nix
+    ./hardware.nix
     ./fastfetch.nix
     ./apps.nix
     ./secure-boot.nix

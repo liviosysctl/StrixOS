@@ -3,6 +3,7 @@
 #   --themes [REPO]  only the theme repositories, or the one named (address or
 #                    name), as "Update now" in Settings › Themes
 # If the build fails, the old flake.lock stays, and with it the old version.
+# At the end it says whether there is new firmware (fwupd).
 # A theme repository that fails keeps its commit and never stops the update.
 usage() {
   echo "Usage: $(basename "$0") [--themes [REPO]]"
@@ -72,6 +73,16 @@ if $themes_only; then
   exit 0
 fi
 
+# New firmware for the machine and its devices (fwupd) is only announced: installing it wants
+# a restart, which is the person's to decide.
+firmware() {
+  [ -n "${FWUPDMGR:-}" ] || return 0
+  "$FWUPDMGR" refresh >/dev/null 2>&1 || return 0
+  if "$FWUPDMGR" get-updates >/dev/null 2>&1; then
+    echo "New firmware is available: fwupdmgr update installs it."
+  fi
+}
+
 # An interrupted run left flake.lock.prev behind: the state before it counts.
 if [ -e "$lock.prev" ]; then
   mv -f "$lock.prev" "$lock"
@@ -90,6 +101,7 @@ fi
 if cmp -s "$lock" "$lock.prev" && ! $themes_changed; then
   rm -f "$lock.prev"
   echo "Already up to date."
+  firmware
   exit 0
 fi
 
@@ -100,3 +112,4 @@ if ! "$REBUILD" switch; then
 fi
 
 rm -f "$lock.prev"
+firmware

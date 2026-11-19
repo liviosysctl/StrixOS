@@ -36,7 +36,7 @@ Build and boot:
                           Check every theme in DIR, exit 1 on any problem
   render KIND THEME [--themes DIR]
                           Print what an adapter needs: tokens, plymouth,
-                          palette, hyprland, ghostty, btop, gtk3, gtk4
+                          palette, hyprland, ghostty, btop, gtk3, gtk4, mpv, lazygit
                           (gtk.css of GTK apps, Files among them), owl (SVG),
                           owl-half and owl-closed (the frames of a blink)
   complete DIR --base BASE [--wallpaper FILE]
@@ -699,6 +699,8 @@ fn render(config: &Config, kind: &str, text: &str, themes: Option<&Path>) -> Res
         "btop" => adapters::btop(theme, variant),
         "gtk3" => adapters::gtk3(theme, variant),
         "gtk4" => adapters::gtk4(theme, variant),
+        "mpv" => adapters::mpv(theme, variant),
+        "lazygit" => adapters::lazygit(theme, variant),
         // The owl in the accent, its lines in the terminal's background; the two frames of a blink
         "owl" | "owl-half" | "owl-closed" => {
             let lid = match kind {
@@ -714,7 +716,7 @@ fn render(config: &Config, kind: &str, text: &str, themes: Option<&Path>) -> Res
         }
         other => {
             return Err(format!(
-                "unknown kind \"{other}\" (known: tokens, plymouth, palette, hyprland, ghostty, btop, gtk3, gtk4, owl, owl-half, owl-closed)"
+                "unknown kind \"{other}\" (known: tokens, plymouth, palette, hyprland, ghostty, btop, gtk3, gtk4, mpv, lazygit, owl, owl-half, owl-closed)"
             ));
         }
     };

@@ -98,6 +98,89 @@ pub fn ghostty(theme: &Theme, variant: &Variant) -> String {
     out
 }
 
+/// mpv.conf: the video player in the colors of the theme. The window behind the picture, the
+/// text over it and the controls (the bar of mpv, its `osc` script).
+pub fn mpv(theme: &Theme, variant: &Variant) -> String {
+    let background = variant.color("background");
+    let text = variant.color("text");
+    let muted = variant.color("text-muted");
+    let accent = variant.color("accent");
+    let raised = extra_or(variant, "surface-raised", "surface");
+    let mut out = format!(
+        "# The colors of {} ({}:{}), written by the theme engine.\n\
+         background-color={}\nosd-color={}\nosd-border-color={}\nosd-bar-border-size=0\n",
+        theme.name,
+        theme.id,
+        variant.id,
+        background.hex(),
+        text.hex(),
+        background.hex(),
+    );
+    let controls = [
+        ("background_color", background),
+        ("timecode_color", muted),
+        ("title_color", text),
+        ("time_pos_color", text),
+        ("time_pos_outline_color", background),
+        ("buttons_color", text),
+        ("small_buttonsL_color", muted),
+        ("small_buttonsR_color", muted),
+        ("top_buttons_color", muted),
+        ("held_element_color", accent),
+        ("seekbarfg_color", accent),
+        ("seekbarbg_color", raised),
+    ];
+    for (name, color) in controls {
+        out.push_str(&format!("script-opts-append=osc-{name}={}\n", color.hex()));
+    }
+    out
+}
+
+/// lazygit.yml: the colors of lazygit, read after its settings. The frame of the active pane and
+/// the search stand in the accent, the chosen line on the raised surface.
+pub fn lazygit(theme: &Theme, variant: &Variant) -> String {
+    let accent_text = extra_or(variant, "accent-text", "accent").hex();
+    let row = |name: &str, color: Rgb, bold: bool| {
+        let bold = if bold { ", bold" } else { "" };
+        format!("    {name}: [\"{}\"{bold}]\n", color.hex())
+    };
+    let mut out = format!(
+        "# The colors of {} ({}:{}), written by the theme engine.\ngui:\n  theme:\n",
+        theme.name, theme.id, variant.id
+    );
+    out.push_str(&format!(
+        "    activeBorderColor: [\"{accent_text}\", bold]\n"
+    ));
+    out.push_str(&format!(
+        "    searchingActiveBorderColor: [\"{accent_text}\", bold]\n"
+    ));
+    out.push_str(&row("inactiveBorderColor", variant.color("border"), false));
+    out.push_str(&row("optionsTextColor", variant.color("text-muted"), false));
+    out.push_str(&row(
+        "selectedLineBgColor",
+        extra_or(variant, "surface-raised", "surface"),
+        false,
+    ));
+    out.push_str(&row(
+        "inactiveViewSelectedLineBgColor",
+        variant.color("surface"),
+        false,
+    ));
+    out.push_str(&row(
+        "cherryPickedCommitBgColor",
+        variant.color("accent"),
+        false,
+    ));
+    out.push_str(&row(
+        "cherryPickedCommitFgColor",
+        variant.color("on-accent"),
+        false,
+    ));
+    out.push_str(&row("unstagedChangesColor", variant.color("error"), false));
+    out.push_str(&row("defaultFgColor", variant.color("text"), false));
+    out
+}
+
 /// btop.theme: the system monitor in the colors of the theme. The boxes and lines are the
 /// borders, figures that need attention the accent; loads run from quiet text to the accent,
 /// temperatures from success over warning to error.
@@ -568,6 +651,24 @@ mod tests {
             bare.starts_with("palette = \"strix\"\n\n[palettes.strix]\n"),
             "{bare}"
         );
+    }
+
+    #[test]
+    fn mpv_and_lazygit_take_the_accent() {
+        let theme = good();
+        let variant = &theme.variants["dark"];
+        let mpv = mpv(&theme, variant);
+        assert!(
+            mpv.contains("script-opts-append=osc-seekbarfg_color=#c8102e\n"),
+            "{mpv}"
+        );
+        assert!(mpv.contains("\nbackground-color=#"));
+        let lazygit = lazygit(&theme, variant);
+        assert!(
+            lazygit.contains("gui:\n  theme:\n    activeBorderColor: [\"#"),
+            "{lazygit}"
+        );
+        assert!(lazygit.contains("    cherryPickedCommitBgColor: [\"#c8102e\"]\n"));
     }
 
     #[test]

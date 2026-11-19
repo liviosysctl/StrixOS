@@ -176,6 +176,38 @@ let
   };
 
   # Settings at a page and a row, for Search and people: <id>-settings [PAGE [ROW]]
+  # mpv with the colors of the session's theme (mpv.conf of the theme engine), for the app and
+  # the command alike
+  mpvThemed = pkgs.writeShellScriptBin "mpv" ''
+    for dir in ''${XDG_RUNTIME_DIR:+"$XDG_RUNTIME_DIR/${id}/theme"} /run/${id}/theme; do
+      if [ -r "$dir/mpv.conf" ]; then
+        exec ${lib.getExe pkgs.mpv} --include="$dir/mpv.conf" "$@"
+      fi
+    done
+    exec ${lib.getExe pkgs.mpv} "$@"
+  '';
+
+  # The night light: warmer colors in the evening (hyprsunset, from 20:00 to 7:00), and by hand
+  # until the next of those hours: <id>-nightlight on|off|toggle|state
+  nightTemperature = 4500;
+  nightlightCommand = pkgs.writeShellApplication {
+    name = "${id}-nightlight";
+    runtimeInputs = [ config.programs.hyprland.package pkgs.coreutils ];
+    text = ''
+      state() {
+        now=$(hyprctl hyprsunset temperature 2>/dev/null | tr -dc '0-9')
+        if [ -n "$now" ] && [ "$now" -lt 6000 ]; then echo on; else echo off; fi
+      }
+      case "''${1:-state}" in
+        state) state ;;
+        on) hyprctl hyprsunset temperature ${toString nightTemperature} >/dev/null ;;
+        off) hyprctl hyprsunset identity >/dev/null ;;
+        toggle) if [ "$(state)" = on ]; then "$0" off; else "$0" on; fi ;;
+        *) echo "Usage: $(basename "$0") on|off|toggle|state" >&2; exit 64 ;;
+      esac
+    '';
+  };
+
   settingsCommand = pkgs.writeShellScriptBin "${id}-settings" ''
     exec ${lib.getExe' pkgs.quickshell "qs"} -c ${id} ipc call settings open "''${1:-themes}" "''${2:-}"
   '';
@@ -445,8 +477,8 @@ in
     # The password of the lock screen
     security.pam.services."${id}-lock" = { };
 
-    # Links, web pages and PDFs open in Zen, text in Neovim; the live session of the ISO has
-    # neither
+    # Links, web pages and PDFs open in Zen, text in Neovim, pictures in Loupe, videos in mpv and
+    # archives in File Roller; the live session of the ISO has none of them
     xdg.mime.defaultApplications = lib.mkIf (!cfg.live) (
       lib.genAttrs [
         "text/html"
@@ -463,6 +495,35 @@ in
         "application/toml"
         "application/x-shellscript"
       ] (_: "${id}-neovim.desktop")
+      // lib.genAttrs [
+        "image/png"
+        "image/jpeg"
+        "image/gif"
+        "image/webp"
+        "image/svg+xml"
+        "image/avif"
+        "image/bmp"
+        "image/tiff"
+      ] (_: "org.gnome.Loupe.desktop")
+      // lib.genAttrs [
+        "video/mp4"
+        "video/x-matroska"
+        "video/webm"
+        "video/quicktime"
+        "video/x-msvideo"
+        "audio/x-wav"
+      ] (_: "mpv.desktop")
+      // lib.genAttrs [
+        "application/zip"
+        "application/x-tar"
+        "application/x-compressed-tar"
+        "application/x-xz-compressed-tar"
+        "application/x-bzip2-compressed-tar"
+        "application/zstd"
+        "application/x-zstd-compressed-tar"
+        "application/x-7z-compressed"
+        "application/vnd.rar"
+      ] (_: "org.gnome.FileRoller.desktop")
     );
     environment.sessionVariables.BROWSER = lib.mkIf (!cfg.live) "zen-beta";
 
@@ -482,6 +543,11 @@ in
       neovimWindow
       amberol
       system-config-printer
+      loupe
+      mpv
+      (lib.hiPrio mpvThemed)
+      file-roller
+      nightlightCommand
     ]
     ++ [
       adwaita-icon-theme
@@ -514,6 +580,52 @@ in
         ExecStart = "${lib.getExe' pkgs.quickshell "qs"} -c ${id}";
         Restart = "on-failure";
         RestartSec = 1;
+      };
+    };
+
+    # A stick or a card that is plugged in is mounted by itself; the notification opens it in
+    # Files
+    systemd.user.services."${id}-automount" = lib.mkIf (!cfg.live) {
+      description = "Mount drives that are plugged in";
+      partOf = [ "graphical-session.target" ];
+      after = [ "graphical-session.target" ];
+      wantedBy = [ "graphical-session.target" ];
+      serviceConfig = {
+        ExecStart = "${lib.getExe' pkgs.udiskie "udiskie"} --no-tray --automount --notify --file-manager ${lib.getExe pkgs.nautilus}";
+        Restart = "on-failure";
+        RestartSec = 2;
+      };
+    };
+
+    # The night light: hyprsunset with the hours of /etc/xdg/hypr/hyprsunset.conf, or the user's
+    # own ~/.config/hypr/hyprsunset.conf
+    environment.etc."xdg/hypr/hyprsunset.conf" = lib.mkIf (!cfg.live) {
+      text = ''
+        profile {
+            time = 7:00
+            identity = true
+        }
+
+        profile {
+            time = 20:00
+            temperature = ${toString nightTemperature}
+        }
+      '';
+    };
+    systemd.user.services."${id}-nightlight" = lib.mkIf (!cfg.live) {
+      description = "Warmer colors in the evening";
+      partOf = [ "graphical-session.target" ];
+      after = [ "graphical-session.target" ];
+      wantedBy = [ "graphical-session.target" ];
+      script = ''
+        if [ ! -e "''${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hyprsunset.conf" ]; then
+          export XDG_CONFIG_HOME=/etc/xdg
+        fi
+        exec ${lib.getExe pkgs.hyprsunset}
+      '';
+      serviceConfig = {
+        Restart = "on-failure";
+        RestartSec = 2;
       };
     };
 
