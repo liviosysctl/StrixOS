@@ -2,6 +2,22 @@
 
 All notable changes to this project. Versions follow [Semantic Versioning](https://semver.org); entries are generated from [Conventional Commits](https://www.conventionalcommits.org) with git-cliff.
 
+## v1.1.0 — 2026-11-19
+
+Secure Boot asks once, for the stick; clicks in the bar, Search and the Store work again.
+
+### Added
+- Sign GRUB and the kernel with the distro key
+- Slide windows in, scale a laptop's Full HD to 125 %
+- Set the terminal in Geist Mono
+
+### Changed
+- Change to ruled sections with symbols
+- Make everything in the bar a button, drop the hint
+
+### Fixed
+- Start programs from the bar, Search and the Store
+
 ## v1.0.1 — 2026-11-19
 
 Fixes the graphical installer: it sets the password and the Secure Boot key again, and its window fits small screens.
