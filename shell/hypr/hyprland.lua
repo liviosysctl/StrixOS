@@ -11,6 +11,23 @@
 
 hl.monitor({ output = "", mode = "preferred", position = "auto", scale = "auto" })
 
+-- A laptop's own Full HD screen: Hyprland's "auto" takes 150 % there, which leaves 1280 x 720 and
+-- makes everything large and tight. 125 % instead (1536 x 864). Other screens keep "auto", and
+-- Settings > Display (monitors.lua, read last) still decides for each one.
+for card = 0, 3 do
+    for port = 1, 2 do
+        local name = "eDP-" .. port
+        local file = io.open("/sys/class/drm/card" .. card .. "-" .. name .. "/modes", "r")
+        if file then
+            local mode = file:read("l")
+            file:close()
+            if mode == "1920x1080" or mode == "1920x1200" then
+                hl.monitor({ output = name, mode = "preferred", position = "auto", scale = 1.25 })
+            end
+        end
+    end
+end
+
 hl.config({
     general = {
         gaps_in = 6,
@@ -43,20 +60,22 @@ hl.config({
     ecosystem = { no_update_news = true, no_donation_nag = true },
 })
 
--- Motion: the curves and speeds of motion.md. Shell layers only fade here, the shell
--- animates its own surfaces.
+-- Motion. Windows move as in the configuration Strix grew out of: they slide in fast and
+-- settle softly (wind), leave with a small swing back (win-out), and workspaces glide the same
+-- way. Shell layers only fade here, in the curves of motion.md: the shell animates its own
+-- surfaces.
+hl.curve("wind", { type = "bezier", points = { { 0.05, 0.9 }, { 0.1, 1.0 } } })
+hl.curve("win-in", { type = "bezier", points = { { 0.1, 1.0 }, { 0.1, 1.0 } } })
+hl.curve("win-out", { type = "bezier", points = { { 0.3, -0.1 }, { 0, 1 } } })
 hl.curve("ease-out", { type = "bezier", points = { { 0.2, 0.8 }, { 0.2, 1 } } })
 hl.curve("ease-in", { type = "bezier", points = { { 0.5, 0 }, { 0.9, 0.3 } } })
 hl.curve("ease-in-out", { type = "bezier", points = { { 0.65, 0 }, { 0.35, 1 } } })
 
-hl.animation({ leaf = "windowsIn", enabled = true, speed = 3.6, bezier = "ease-out", style = "popin 86%" })
-hl.animation({ leaf = "windowsOut", enabled = true, speed = 2.2, bezier = "ease-in", style = "popin 86%" })
-hl.animation({ leaf = "windowsMove", enabled = true, speed = 3.6, bezier = "ease-in-out" })
-hl.animation({ leaf = "fadeIn", enabled = true, speed = 3.6, bezier = "ease-out" })
-hl.animation({ leaf = "fadeOut", enabled = true, speed = 2.2, bezier = "ease-in" })
-hl.animation({ leaf = "fadeSwitch", enabled = true, speed = 2.2, bezier = "ease-out" })
-hl.animation({ leaf = "fadeShadow", enabled = true, speed = 2.2, bezier = "ease-out" })
-hl.animation({ leaf = "fadeDim", enabled = true, speed = 2.2, bezier = "ease-out" })
+hl.animation({ leaf = "windows", enabled = true, speed = 6, bezier = "wind", style = "slide" })
+hl.animation({ leaf = "windowsIn", enabled = true, speed = 6, bezier = "win-in", style = "slide" })
+hl.animation({ leaf = "windowsOut", enabled = true, speed = 5, bezier = "win-out", style = "slide" })
+hl.animation({ leaf = "windowsMove", enabled = true, speed = 5, bezier = "wind", style = "slide" })
+hl.animation({ leaf = "fade", enabled = true, speed = 10, bezier = "default" })
 hl.animation({ leaf = "border", enabled = true, speed = 3.6, bezier = "ease-in-out" })
 hl.animation({ leaf = "layersIn", enabled = true, speed = 1.4, bezier = "ease-out", style = "fade" })
 hl.animation({ leaf = "layersOut", enabled = true, speed = 1.4, bezier = "ease-in", style = "fade" })
@@ -64,8 +83,8 @@ hl.animation({ leaf = "fadeLayersIn", enabled = true, speed = 1.4, bezier = "eas
 hl.animation({ leaf = "fadeLayersOut", enabled = true, speed = 1.4, bezier = "ease-in" })
 hl.animation({ leaf = "fadePopupsIn", enabled = true, speed = 1.4, bezier = "ease-out" })
 hl.animation({ leaf = "fadePopupsOut", enabled = true, speed = 1.4, bezier = "ease-in" })
-hl.animation({ leaf = "workspaces", enabled = true, speed = 3.6, bezier = "ease-in-out", style = "slidefade 20%" })
-hl.animation({ leaf = "specialWorkspace", enabled = true, speed = 3.6, bezier = "ease-out", style = "slidefadevert 20%" })
+hl.animation({ leaf = "workspaces", enabled = true, speed = 5, bezier = "wind" })
+hl.animation({ leaf = "specialWorkspace", enabled = true, speed = 5, bezier = "wind", style = "slidevert" })
 
 hl.window_rule({
     -- The system monitor of the bar (strix-monitor) floats in the middle
@@ -73,7 +92,8 @@ hl.window_rule({
     match = { class = "^strix\\.monitor$" },
     float = true,
     center = true,
-    size = "1100 700",
+    -- Of the screen, so it also fits a small or scaled one
+    size = "80% 80%",
 })
 
 hl.window_rule({
