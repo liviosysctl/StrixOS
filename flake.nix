@@ -13,6 +13,13 @@
       url = "github:liviosysctl/StrixUI";
       flake = false;
     };
+    # Which package holds a command, looked up without building the index on the machine: it
+    # is built every week upstream. Behind `, command` (comma) and the hint for a command that
+    # is not installed.
+    nix-index-database = {
+      url = "github:nix-community/nix-index-database";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     # Zen, the browser of Strix (not in nixpkgs). Its Home Manager module is not used, so that
     # input points nowhere.
     zen-browser = {

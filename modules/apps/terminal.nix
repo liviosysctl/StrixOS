@@ -3,9 +3,13 @@
 # eza and bat take the 16 colors of the terminal, which the theme engine sets; folders in
 # listings and the marks of fzf take the accent (shell.sh of the theme engine). Whoever has an
 # own lazygit config gets it as is.
+# `, command` runs a program that is not installed, once (comma), and a command that is not there
+# names the package that has it. Both look it up in an index of every command in nixpkgs, which
+# is built upstream every week (flake input nix-index-database) instead of on the machine.
 {
   lib,
   pkgs,
+  distroFlake,
   ...
 }:
 
@@ -53,6 +57,13 @@ let
   '';
 in
 {
+  imports = [ distroFlake.inputs.nix-index-database.nixosModules.nix-index ];
+
+  # The small index, with only the commands, is enough for both
+  programs.nix-index-database.comma.enable = true;
+  programs.nix-index.package =
+    distroFlake.inputs.nix-index-database.packages.${pkgs.stdenv.hostPlatform.system}.nix-index-with-small-db;
+
   environment.systemPackages = with pkgs; [
     eza
     bat
