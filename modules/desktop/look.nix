@@ -54,54 +54,33 @@ in
       ]
       ++ lib.optionals (!cfg.live) [ bibata-cursors ];
 
-    # Qt apps: qt6ct and qt5ct give them the palette of the session's theme (qt6.conf and qt5.conf
-    # of the theme engine) and the symbols of GTK. Their settings are written once for a user,
-    # because they name the palette by its whole path; an app takes new colors when it starts.
+    # Qt apps take the look from qt6ct and qt5ct: the palette of the session's theme (below) and
+    # the symbols of GTK
     qt = lib.mkIf (!cfg.live) {
       enable = true;
       platformTheme = "qt5ct";
     };
 
-    systemd.user.services."${id}-qt-colors" = lib.mkIf (!cfg.live) {
-      description = "Give Qt apps the colors of the session's theme";
-      wantedBy = [ "default.target" ];
-      serviceConfig.Type = "oneshot";
-      script = ''
-        [ -w "$HOME" ] || exit 0
-        for version in 6 5; do
-          file="$HOME/.config/qt''${version}ct/qt''${version}ct.conf"
-          [ ! -e "$file" ] || continue
-          mkdir -p "''${file%/*}"
-          printf '%s\n' "[Appearance]" \
-            "color_scheme_path=$XDG_RUNTIME_DIR/${id}/theme/qt$version.conf" \
-            "custom_palette=true" "icon_theme=Papirus-Dark" "style=Fusion" >"$file"
-        done
-      '';
-    };
-
-    # GTK 3 and GTK 4 apps take the god's colors from the session's gtk3.css and gtk4.css. The link
-    # is made only where the user has no gtk.css of their own (or already has the link); apps read
-    # the file when they start, so a running app keeps its colors until it is opened again
-    systemd.user.services."${id}-gtk-colors" = {
-      description = "Give GTK apps the colors of the session's theme";
-      wantedBy = [ "default.target" ];
-      serviceConfig.Type = "oneshot";
-      script = ''
-        [ -w "$HOME" ] || exit 0
-        for version in 3 4; do
-          target="$XDG_RUNTIME_DIR/${id}/theme/gtk$version.css"
-          file="$HOME/.config/gtk-$version.0/gtk.css"
-          mkdir -p "''${file%/*}"
-          if [ -L "$file" ] && [ "$(readlink "$file")" = "$target" ]; then
-            continue
-          fi
-          if [ -e "$file" ] || [ -L "$file" ]; then
-            echo "$file is the user's own, left alone"
-            continue
-          fi
-          ln -s "$target" "$file"
-        done
-      '';
-    };
+    # Both read the colors of the session's theme from its files, through what is made here at a
+    # login and only where the user has nothing of their own: the link from GTK's gtk.css (apps
+    # read it when they start) and the settings of qt6ct and qt5ct, which name the palette by its
+    # whole path.
+    systemd.user.tmpfiles.rules = [
+      "L %h/.config/gtk-3.0/gtk.css - - - - %t/${id}/theme/gtk3.css"
+      "L %h/.config/gtk-4.0/gtk.css - - - - %t/${id}/theme/gtk4.css"
+    ]
+    ++ lib.optionals (!cfg.live) (
+      map
+        (
+          version:
+          "f %h/.config/qt${version}ct/qt${version}ct.conf 0644 - - - "
+          + "[Appearance]\\ncolor_scheme_path=%t/${id}/theme/qt${version}.conf\\n"
+          + "custom_palette=true\\nicon_theme=Papirus-Dark\\nstyle=Fusion\\n"
+        )
+        [
+          "6"
+          "5"
+        ]
+    );
   };
 }

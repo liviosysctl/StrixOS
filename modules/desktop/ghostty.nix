@@ -41,18 +41,11 @@ in
 
     environment.systemPackages = [ pkgs.ghostty ];
 
-    # A new user gets the Ghostty config that follows the theme; an existing one stays. The link to
-    # the session's colors is made every time. Users without a home of their own are left alone.
-    systemd.user.services."${id}-ghostty-config" = {
-      description = "Give Ghostty the colors of the session's theme";
-      wantedBy = [ "default.target" ];
-      serviceConfig.Type = "oneshot";
-      script = ''
-        [ -w "$HOME" ] || exit 0
-        mkdir -p "$HOME/.config/ghostty"
-        [ -e "$HOME/.config/ghostty/config" ] || install -m 0644 /etc/xdg/${id}/ghostty/user "$HOME/.config/ghostty/config"
-        ln -sfn "$XDG_RUNTIME_DIR/${id}/theme/ghostty" "$HOME/.config/ghostty/${id}-theme"
-      '';
-    };
+    # A new user gets the Ghostty config that follows the theme, copied once and then theirs to
+    # change. The link to the session's colors is made again at every login.
+    systemd.user.tmpfiles.rules = [
+      "C %h/.config/ghostty/config 0644 - - - /etc/xdg/${id}/ghostty/user"
+      "L+ %h/.config/ghostty/${id}-theme - - - - %t/${id}/theme/ghostty"
+    ];
   };
 }

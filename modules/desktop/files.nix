@@ -74,24 +74,11 @@ in
       };
     };
 
-    # "Open in Ghostty" among the scripts of Files. The link is made only where the user has no
-    # script of that name of their own (or already has the link)
-    systemd.user.services."${id}-files-scripts" = lib.mkIf (!cfg.live) {
-      description = "Give Files the script that opens Ghostty in a folder";
-      wantedBy = [ "default.target" ];
-      serviceConfig.Type = "oneshot";
-      script = ''
-        [ -w "$HOME" ] || exit 0
-        target=/etc/xdg/${id}/nautilus/open-in-ghostty
-        link="$HOME/.local/share/nautilus/scripts/Open in Ghostty"
-        if [ -e "$link" ] || [ -L "$link" ]; then
-          [ "$(readlink "$link")" = "$target" ] || echo "$link is the user's own, left alone"
-          exit 0
-        fi
-        mkdir -p "''${link%/*}"
-        ln -s "$target" "$link"
-      '';
-    };
+    # "Open in Ghostty" among the scripts of Files: a link, made at a login where the user has no
+    # script of that name of their own
+    systemd.user.tmpfiles.rules = lib.optionals (!cfg.live) [
+      "L \"%h/.local/share/nautilus/scripts/Open in Ghostty\" - - - - /etc/xdg/${id}/nautilus/open-in-ghostty"
+    ];
 
     security.polkit.extraConfig = ''
       // Files mounts other drives for the admins without a password, as on the desktop of most
