@@ -8,7 +8,7 @@
 
 let
   branding = import ../../branding.nix;
-  id = branding.id;
+  inherit (branding) id;
   cfg = config.${id}.desktop;
 
   # Tailscale from the Wi-Fi panel: <id>-tailnet on|off|state. Turning it on for the first time

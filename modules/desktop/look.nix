@@ -9,7 +9,7 @@
 
 let
   branding = import ../../branding.nix;
-  id = branding.id;
+  inherit (branding) id;
   cfg = config.${id}.desktop;
 
   # The pointer: Bibata; the ISO keeps the one GTK brings, for its size

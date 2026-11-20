@@ -1,0 +1,5 @@
+# Commits that only change the layout of the code: git blame skips them
+# (git config blame.ignoreRevsFile .git-blame-ignore-revs)
+
+# style: format the repository with nix fmt
+f42c40365d1c9a1badc6022acaaf283432c52d39

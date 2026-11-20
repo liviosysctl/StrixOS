@@ -10,7 +10,7 @@
 
 let
   branding = import ../../branding.nix;
-  id = branding.id;
+  inherit (branding) id;
   cfg = config.${id}.desktop;
 
   # The night light: warmer colors in the evening (hyprsunset, from 20:00 to 7:00), and by hand

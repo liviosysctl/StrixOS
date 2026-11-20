@@ -14,7 +14,7 @@
 }:
 
 let
-  id = (import ../../branding.nix).id;
+  inherit ((import ../../branding.nix)) id;
   init = shell: ''
     if [[ $TERM != dumb && $TERM != linux ]]; then
       if [[ ! -f "''${STARSHIP_CONFIG:-$HOME/.config/starship.toml}" ]]; then

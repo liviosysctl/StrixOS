@@ -8,7 +8,7 @@
 
 let
   branding = import ../../branding.nix;
-  id = branding.id;
+  inherit (branding) id;
   cfg = config.${id}.desktop;
 
   # Copied once into a new user's ~/.config/ghostty/config, then theirs to change

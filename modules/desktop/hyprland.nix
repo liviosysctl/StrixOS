@@ -11,7 +11,7 @@
 
 let
   branding = import ../../branding.nix;
-  id = branding.id;
+  inherit (branding) id;
   cfg = config.${id}.desktop;
 
   xkb = config.services.xserver.xkb;

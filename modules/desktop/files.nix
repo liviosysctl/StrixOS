@@ -9,7 +9,7 @@
 
 let
   branding = import ../../branding.nix;
-  id = branding.id;
+  inherit (branding) id;
   cfg = config.${id}.desktop;
 
   # Files › Scripts › Open in Ghostty: a terminal in the folder shown, or in the folder of the

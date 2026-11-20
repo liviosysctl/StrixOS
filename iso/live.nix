@@ -14,7 +14,7 @@
 
 let
   branding = import ../branding.nix;
-  id = branding.id;
+  inherit (branding) id;
   system = pkgs.stdenv.hostPlatform.system;
   installer =
     distroFlake.packages.${system}.${if config.${id}.iso.dev then "installer-dev" else "installer"};

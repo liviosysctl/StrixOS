@@ -4,7 +4,6 @@
 # listings and the marks of fzf take the accent (shell.sh of the theme engine). Whoever has an
 # own lazygit config gets it as is.
 {
-  config,
   lib,
   pkgs,
   ...
@@ -12,7 +11,7 @@
 
 let
   branding = import ../../branding.nix;
-  id = branding.id;
+  inherit (branding) id;
 
   # The settings of lazygit; the theme engine writes the colors beside them (lazygit.yml)
   lazygitBase = pkgs.writeText "lazygit.yml" (

@@ -9,7 +9,7 @@
 
 let
   branding = import ../../branding.nix;
-  id = branding.id;
+  inherit (branding) id;
   cfg = config.${id}.desktop;
 
   # The browser: Zen, the only one installed (flake input zen-browser, not in nixpkgs)

@@ -9,7 +9,7 @@
 
 let
   branding = import ../../branding.nix;
-  id = branding.id;
+  inherit (branding) id;
   cfg = config.${id}.desktop;
 
   # Neovim is the editor: text opened from Files or elsewhere goes to it in a Ghostty window

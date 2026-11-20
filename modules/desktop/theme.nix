@@ -280,7 +280,7 @@ in
         ${branding.id}.theme = {
           package = command;
           grubTheme = themes.grubTheme defaultSelection;
-          logos = themes.logos;
+          inherit (themes) logos;
           defaultLook = lib.optionalAttrs (resolved.error == null) {
             inherit (resolved) theme variant;
             inherit (themes.data.${resolved.theme}.variants.${resolved.variant}) colors;

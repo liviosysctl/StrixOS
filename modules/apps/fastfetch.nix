@@ -14,10 +14,10 @@
 
 let
   branding = import ../../branding.nix;
-  id = branding.id;
+  inherit (branding) id;
   theme = config.${id}.theme;
   look = theme.defaultLook;
-  logos = theme.logos;
+  inherit (theme) logos;
 
   real = lib.getExe pkgs.fastfetch;
   wrapper = pkgs.writeShellScriptBin "fastfetch" ''

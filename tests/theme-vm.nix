@@ -10,7 +10,7 @@
 
 let
   branding = import ../branding.nix;
-  id = branding.id;
+  inherit (branding) id;
   efiVariable = "/sys/firmware/efi/efivars/Theme-595702b9-5e56-4cc8-9b1a-d145cfd71953";
   lucifer = ./fixtures/repos/themes/lucifer;
   git = "${pkgs.gitMinimal}/bin/git";

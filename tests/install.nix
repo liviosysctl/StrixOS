@@ -20,7 +20,7 @@
 let
   inherit (pkgs) lib;
   branding = import ../branding.nix;
-  id = branding.id;
+  inherit (branding) id;
   system = pkgs.stdenv.hostPlatform.system;
 
   installer = self.packages.${system}.installer;

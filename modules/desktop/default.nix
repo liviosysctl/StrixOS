@@ -5,7 +5,7 @@
 
 let
   branding = import ../../branding.nix;
-  id = branding.id;
+  inherit (branding) id;
 in
 {
   imports = [

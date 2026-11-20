@@ -13,7 +13,7 @@
 
 let
   branding = import ../branding.nix;
-  id = branding.id;
+  inherit (branding) id;
   password = "strix-test";
 in
 pkgs.testers.runNixOSTest {
@@ -22,7 +22,7 @@ pkgs.testers.runNixOSTest {
   node.specialArgs.distroFlake = self;
 
   nodes.machine =
-    { lib, ... }:
+    { ... }:
     {
       imports = [
         ../modules/desktop/theme.nix

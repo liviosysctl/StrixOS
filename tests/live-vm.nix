@@ -9,7 +9,7 @@
 
 let
   branding = import ../branding.nix;
-  id = branding.id;
+  inherit (branding) id;
 in
 pkgs.testers.runNixOSTest {
   name = "${id}-live";
@@ -17,7 +17,7 @@ pkgs.testers.runNixOSTest {
   node.specialArgs.distroFlake = self;
 
   nodes.machine =
-    { lib, ... }:
+    { ... }:
     {
       imports = [
         ../iso/options.nix
