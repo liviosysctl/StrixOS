@@ -121,9 +121,28 @@ fi
 cp -p "$lock" "$lock.prev"
 trap 'mv -f "$lock.prev" "$lock"; exit 130' INT TERM
 
-# --refresh: Nix remembers for an hour which commit a branch stood at, and an update within that
-# hour of the last one would find nothing new
-if ! nix flake update --refresh --flake "$config_dir"; then
+# The commit the branch stands at, asked from the Git server of GitHub and handed to Nix. By itself
+# Nix asks the API of GitHub, which answers one address only 60 times an hour (a school or an
+# office shares one), and takes its last answer for the newest when it gets none.
+override=()
+key=$(jq -r --arg id "${CONFIG_ATTR:-}" '.nodes.root.inputs[$id] // empty' "$lock" 2>/dev/null || true)
+if [ -n "$key" ]; then
+  read -r kind owner repo ref < <(jq -r --arg key "$key" \
+    '.nodes[$key].original | [.type, .owner, .repo, .ref] | map(. // "-") | join(" ")' "$lock") || true
+  if [ "${kind:-}" = github ] && [ "${ref:--}" != - ]; then
+    rev=$(git ls-remote "https://github.com/$owner/$repo" "refs/heads/$ref" "refs/tags/$ref" 2>/dev/null \
+      | head -n 1 | cut -f 1 || true)
+    if [ -z "$rev" ]; then
+      mv -f "$lock.prev" "$lock"
+      echo "Could not reach GitHub. Check the network." >&2
+      exit 5
+    fi
+    override=(--override-input "$CONFIG_ATTR" "github:$owner/$repo/$rev")
+  fi
+fi
+
+# --refresh: Nix remembers for an hour what it fetched
+if ! nix flake update --refresh --flake "$config_dir" "${override[@]}"; then
   mv -f "$lock.prev" "$lock"
   echo "Could not fetch the update. Check the network." >&2
   exit 5

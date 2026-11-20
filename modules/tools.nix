@@ -28,7 +28,7 @@ let
 
   update = tool {
     name = "update";
-    runtimeInputs = [ config.nix.package pkgs.diffutils pkgs.jq pkgs.systemd ];
+    runtimeInputs = [ config.nix.package pkgs.diffutils pkgs.jq pkgs.systemd pkgs.gitMinimal ];
     extraEnv = {
       REBUILD = lib.getExe rebuild;
     }
