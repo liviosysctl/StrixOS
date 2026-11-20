@@ -121,7 +121,9 @@ fi
 cp -p "$lock" "$lock.prev"
 trap 'mv -f "$lock.prev" "$lock"; exit 130' INT TERM
 
-if ! nix flake update --flake "$config_dir"; then
+# --refresh: Nix remembers for an hour which commit a branch stood at, and an update within that
+# hour of the last one would find nothing new
+if ! nix flake update --refresh --flake "$config_dir"; then
   mv -f "$lock.prev" "$lock"
   echo "Could not fetch the update. Check the network." >&2
   exit 5
