@@ -7,8 +7,10 @@
 #
 # Beside the colors it is set up for a first day in Neovim (plugin/editor.lua):
 # Space opens a menu of every key, a file finder and a file tree, completion,
-# a start page and a cheat sheet (Space ?). That part steps aside as soon as
-# there is an init.lua in ~/.config/nvim.
+# a start page and a cheat sheet (Space ?). The Nix configuration of the
+# machine is a key away (Space n), and saving a file of root asks for the
+# password. That part steps aside as soon as there is an init.lua in
+# ~/.config/nvim.
 { config, lib, pkgs, ... }:
 
 let
@@ -38,7 +40,10 @@ in
       runtime = {
         "colors/${id}.lua".source = fill ../shell/nvim/colors/theme.lua;
         "plugin/${id}.lua".source = fill ../shell/nvim/plugin/theme.lua;
-        "plugin/${id}-editor.lua".source = pkgs.replaceVars ../shell/nvim/plugin/editor.lua names;
+        "plugin/${id}-editor.lua".source = pkgs.replaceVars ../shell/nvim/plugin/editor.lua (
+          # Where the tools keep the machine's configuration (modules/tools.nix)
+          names // { configDir = "/etc/nixos"; }
+        );
         "${id}/cheatsheet.txt".source = ../shell/nvim/cheatsheet.txt;
       };
       # Only plugins and no customRC: the wrapper then leaves the user's init alone

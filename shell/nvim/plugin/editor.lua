@@ -4,6 +4,8 @@
 -- mode, completion, and the keys other editors have taught (Ctrl S saves).
 -- Space is the leader: press it and wait a moment for the menu.
 -- Space ? or F1 shows the cheat sheet (@id@/cheatsheet.txt).
+-- Space n is the Nix configuration of the machine: its folder in the tree, the
+-- finder in it, the rebuild. Ctrl S also saves what belongs to root.
 -- Whoever brings an own configuration (init.lua or init.vim) gets Neovim as it
 -- is: nothing here runs.
 if vim.g.loaded_@id@_editor then
@@ -49,6 +51,64 @@ o.updatetime = 250
 o.timeoutlen = 300
 o.termguicolors = true
 
+-- ------------------------------------------------------------------ saving
+-- The Nix configuration of the machine (@configDir@) belongs to root. Saving such a file asks
+-- for the password once and puts the file in place with sudo, instead of refusing.
+local config_dir = "@configDir@"
+
+local function mine(path)
+  if vim.uv.fs_stat(path) then
+    return vim.fn.filewritable(path) == 1
+  end
+  return vim.fn.filewritable(vim.fs.dirname(path)) == 2
+end
+
+local function save_as_root(buf, path)
+  local sudo = { "sudo", "-S", "-p", "" }
+  local password = ""
+  -- Asked only when sudo does not remember it from a moment ago
+  if vim.system({ "sudo", "-n", "true" }):wait().code ~= 0 then
+    password = vim.fn.inputsecret("Password, to save " .. path .. ": ")
+    if password == "" then
+      return
+    end
+  end
+  vim.api.nvim_exec_autocmds("BufWritePre", { buffer = buf })
+  local copy = vim.fn.tempname()
+  vim.fn.writefile(vim.api.nvim_buf_get_lines(buf, 0, -1, false), copy)
+  -- cp leaves the owner and the rights of the file as they are
+  local done = vim.system(vim.list_extend(sudo, { "cp", "--", copy, path }), { stdin = password .. "\n" }):wait()
+  vim.fn.delete(copy)
+  if done.code ~= 0 then
+    vim.notify("Not saved: " .. vim.trim(done.stderr or ""), vim.log.levels.ERROR)
+    return
+  end
+  vim.bo[buf].modified = false
+  -- Takes the new time of the file, so Neovim does not ask about a change from outside
+  vim.cmd("silent! checktime " .. buf)
+  vim.api.nvim_exec_autocmds("BufWritePost", { buffer = buf })
+  vim.notify("Saved " .. path .. " as root")
+end
+
+local function save()
+  local buf = vim.api.nvim_get_current_buf()
+  local path = vim.api.nvim_buf_get_name(buf)
+  if path == "" or vim.bo[buf].buftype ~= "" or mine(path) then
+    vim.cmd.write()
+  else
+    save_as_root(buf, path)
+  end
+end
+
+-- No warning about a read-only file where saving asks for the password anyway
+vim.api.nvim_create_autocmd("BufReadPost", {
+  callback = function(event)
+    if vim.bo[event.buf].readonly and not mine(vim.api.nvim_buf_get_name(event.buf)) then
+      vim.bo[event.buf].readonly = false
+    end
+  end,
+})
+
 -- ------------------------------------------------------------------ keys
 local function map(mode, keys, action, desc, opts)
   opts = opts or {}
@@ -57,7 +117,10 @@ local function map(mode, keys, action, desc, opts)
 end
 
 map("i", "jk", "<Esc>", "Leave insert mode")
-map({ "i", "x", "n", "s" }, "<C-s>", "<cmd>w<cr><Esc>", "Save")
+map({ "i", "x", "n", "s" }, "<C-s>", function()
+  save()
+  vim.cmd.stopinsert()
+end, "Save")
 map("n", "<Esc>", "<cmd>nohlsearch<cr>", "Clear the search marks")
 -- In wrapped lines, up and down go by what is seen
 map({ "n", "x" }, "j", "v:count == 0 ? 'gj' : 'j'", "Down", { expr = true, silent = true })
@@ -75,7 +138,9 @@ map("n", "<C-l>", "<C-w>l", "Window to the right")
 map("n", "<leader>qq", "<cmd>qa<cr>", "Quit")
 map("n", "<leader>Q", "<cmd>qa!<cr>", "Quit without saving")
 map("n", "<leader>fn", "<cmd>enew<cr>", "New file")
-map("n", "<leader>fs", "<cmd>w<cr>", "Save")
+map("n", "<leader>fs", function()
+  save()
+end, "Save")
 
 map("n", "<S-h>", "<cmd>bprevious<cr>", "File to the left")
 map("n", "<S-l>", "<cmd>bnext<cr>", "File to the right")
@@ -147,6 +212,7 @@ with("which-key", function(keys)
     { "<leader>c", group = "Code" },
     { "<leader>b", group = "Open files" },
     { "<leader>h", group = "Help" },
+    { "<leader>n", group = "Nix configuration" },
     { "<leader>q", group = "Quit" },
   })
 end)
@@ -174,13 +240,30 @@ with("telescope", function(telescope)
   map("n", "<leader>hh", find.help_tags, "The manual")
   map("n", "<leader>gc", find.git_commits, "Commits")
   map("n", "<leader>gs", find.git_status, "Changed files")
+  map("n", "<leader>nf", function()
+    find.find_files({ cwd = config_dir, prompt_title = "Nix configuration" })
+  end, "Find a file in it")
+  map("n", "<leader>ng", function()
+    find.live_grep({ cwd = config_dir, prompt_title = "Text in the Nix configuration" })
+  end, "Find text in it")
 end)
 
+-- Building the configuration, in a terminal below: it asks for the password and shows what it does
+map("n", "<leader>nr", function()
+  vim.cmd("botright 14split | terminal sudo @id@-rebuild")
+  vim.cmd.startinsert()
+end, "Rebuild the system")
+
 -- The file tree
+-- It starts at the root of the system, not where Neovim was started, and shows where the open
+-- file is. Space n n shows the folder of the Nix configuration alone instead; Backspace goes a
+-- folder up from there.
 with("neo-tree", function(tree)
   tree.setup({
     close_if_last_window = true,
     filesystem = {
+      -- The tree at / must not move the folder the finder searches
+      bind_to_cwd = false,
       follow_current_file = { enabled = true },
       filtered_items = { visible = true, hide_dotfiles = false },
     },
@@ -190,7 +273,21 @@ with("neo-tree", function(tree)
       mappings = { ["l"] = "open", ["h"] = "close_node" },
     },
   })
-  map("n", "<leader>e", "<cmd>Neotree toggle<cr>", "File tree")
+  local command = require("neo-tree.command")
+
+  local function files()
+    local path = vim.api.nvim_buf_get_name(0)
+    local shown = vim.bo.buftype == "" and path ~= "" and vim.uv.fs_stat(path) ~= nil
+    command.execute({ toggle = true, dir = "/", reveal_file = shown and path or nil, reveal_force_cwd = true })
+  end
+  local function nix_config()
+    command.execute({ dir = config_dir })
+  end
+
+  map("n", "<leader>e", files, "File tree")
+  map("n", "<leader>nn", nix_config, "Its folder in the file tree")
+  vim.api.nvim_create_user_command("Files", files, { desc = "The file tree, from the root of the system" })
+  vim.api.nvim_create_user_command("NixConfig", nix_config, { desc = "The Nix configuration in the file tree" })
 end)
 
 -- The line at the bottom: the mode, the file, the position
@@ -264,7 +361,8 @@ with("alpha", function(alpha)
     page.button("f", "  Find a file", "<cmd>Telescope find_files<cr>"),
     page.button("n", "  New file", "<cmd>enew<cr>"),
     page.button("r", "  Recent files", "<cmd>Telescope oldfiles<cr>"),
-    page.button("e", "  File tree", "<cmd>Neotree toggle<cr>"),
+    page.button("e", "  File tree", "<cmd>Files<cr>"),
+    page.button("c", "  Nix configuration", "<cmd>NixConfig<cr>"),
     page.button("?", "  Cheat sheet", "<cmd>Cheatsheet<cr>"),
     page.button("t", "  Tutorial, 30 minutes", "<cmd>Tutor<cr>"),
     page.button("q", "  Quit", "<cmd>qa<cr>"),

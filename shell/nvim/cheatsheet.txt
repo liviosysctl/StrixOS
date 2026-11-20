@@ -8,12 +8,20 @@ The modes
 Files
   Ctrl S              save
   Space Space         find a file by its name
-  Space e             the file tree: l opens, h closes, a adds, d deletes, r renames
+  Space e             the file tree, from /: l opens, h closes, Backspace goes up
+  a, d, r             in the tree: add, delete, rename
   Space f g           find text in all files
   Space f r           recent files
   Shift H, Shift L    the open file to the left, to the right
   Space b d           close this file
   Space q q           quit Neovim
+
+Nix configuration
+  Space n n           its folder alone in the file tree
+  Space n f           find a file in it
+  Space n g           find text in it
+  Ctrl S              saves there too: it asks for the password
+  Space n r           rebuild the system from what was saved
 
 Moving
   h j k l             left, down, up, right (the arrow keys work too)
