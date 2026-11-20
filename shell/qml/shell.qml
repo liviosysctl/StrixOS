@@ -7,9 +7,6 @@
 //   qs -c strix
 // Hyprland and scripts reach it with `qs -c strix ipc call <target> <function>`; the targets are
 // the IpcHandlers in these files (qs -c strix ipc show lists them).
-//
-// The icons of apps (the dock) come from Papirus, where it is installed.
-//@ pragma IconTheme Papirus-Dark
 import QtQuick
 import Quickshell
 import Strix
@@ -26,7 +23,7 @@ ShellRoot {
     // Covered by the lock screen or the theme picker, the wallpaper changes without its reveal
     Background { quiet: lock.active || picker.present }
     Bar { id: bar }
-    Dock {}
+    Dock { bar: bar }
     Lock { id: lock; themeFile: themeFile }
     SearchPanel {}
     Cheatsheet {}
