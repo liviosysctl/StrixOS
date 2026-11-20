@@ -108,6 +108,22 @@ Scope {
         }
     }
 
+    // Staying awake (strix-idle awake): nothing dims, locks or sleeps by itself. The cup of the bar
+    // switches it and steams for as long. Read at the start and whenever the power panel opens:
+    // it is also switched from a terminal
+    property bool awake: false
+    Process {
+        id: readAwake
+        command: ["strix-idle", "awake", "state"]
+        running: true
+        stdout: StdioCollector { onStreamFinished: root.awake = text.trim() === "on" }
+    }
+    function stayAwake(on) {
+        root.awake = on
+        Quickshell.execDetached(["strix-idle", "awake", on ? "on" : "off"])
+    }
+    onDropChanged: if (drop === "power") readAwake.running = true
+
     // CPU from /proc/stat, memory from /proc/meminfo, every two seconds
     property real cpu: 0
     property real memory: 0
@@ -371,6 +387,13 @@ Scope {
                             : "REC " + Math.floor(root.recordingSeconds / 60) + ":" + ("0" + root.recordingSeconds % 60).slice(-2)
                     }
                 }
+                IconButton {
+                    small: true
+                    iconName: "coffee"
+                    checked: root.awake
+                    anchors.verticalCenter: parent.verticalCenter
+                    onClicked: root.stayAwake(!root.awake)
+                }
                 Row {
                     spacing: Theme.space1
                     anchors.verticalCenter: parent.verticalCenter
@@ -463,6 +486,8 @@ Scope {
                         y: Theme.space2
                         visible: bar.dropShowing === "power"
                         active: bar.dropHere === "power"
+                        awake: root.awake
+                        onStayAwake: on => root.stayAwake(on)
                         onSettings: page => root.settings(page)
                     }
                     SessionPanel {

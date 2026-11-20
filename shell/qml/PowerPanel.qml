@@ -49,15 +49,12 @@ QuickPanel {
         command: ["strix-nightlight", "state"]
         stdout: StdioCollector { onStreamFinished: root.night = text.trim() === "on" }
     }
-    // Stay awake (strix-idle awake): nothing dims, locks or sleeps by itself, until the logout
+    // Stay awake: nothing dims, locks or sleeps by itself, until the logout. The bar keeps the
+    // state, for its cup
     property bool awake: false
-    Process {
-        id: readAwake
-        command: ["strix-idle", "awake", "state"]
-        stdout: StdioCollector { onStreamFinished: root.awake = text.trim() === "on" }
-    }
-    onActiveChanged: if (active) { readLight.running = true; readNight.running = true; readAwake.running = true }
-    Component.onCompleted: { readLight.running = true; readNight.running = true; readAwake.running = true }
+    signal stayAwake(bool on)
+    onActiveChanged: if (active) { readLight.running = true; readNight.running = true }
+    Component.onCompleted: { readLight.running = true; readNight.running = true }
 
     title: "Power"
     corner: Label {
@@ -131,10 +128,7 @@ QuickPanel {
             anchors.verticalCenter: parent.verticalCenter
             text: "Stay awake"
             checked: root.awake
-            onToggled: {
-                root.awake = checked
-                Quickshell.execDetached(["strix-idle", "awake", checked ? "on" : "off"])
-            }
+            onToggled: root.stayAwake(checked)
         }
     }
     ListRow { width: parent.width; iconName: "settings"; text: "Power settings"; onClicked: root.settings("power") }

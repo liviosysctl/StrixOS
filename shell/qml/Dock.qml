@@ -3,7 +3,7 @@
 // back a moment after the pointer left.
 // Tools, one click instead of a key: a screenshot of a region, a recording of a region (red while
 // one runs, a click stops it), the colour picker; the clipboard history and the theme picker;
-// the night light and staying awake, in the accent while they are on.
+// the night light, in the accent while it is on.
 // Then what is playing, the only place for it: play or pause, and the title, which opens the
 // media player above it. A second click, Escape or a click elsewhere folds it back, and while
 // it is open the dock stays out.
@@ -51,24 +51,13 @@ Scope {
         function isOpen(): bool { return root.open }
     }
 
-    // ---------------------------------------------------------------- the switches
-    // The night light (strix-nightlight) and staying awake (strix-idle awake), read whenever a
-    // dock rises: both also change elsewhere
+    // ---------------------------------------------------------------- the night light
+    // strix-nightlight, read whenever a dock rises: it also changes elsewhere
     property bool night: false
-    property bool awake: false
     Process {
         id: readNight
         command: ["strix-nightlight", "state"]
         stdout: StdioCollector { onStreamFinished: root.night = text.trim() === "on" }
-    }
-    Process {
-        id: readAwake
-        command: ["strix-idle", "awake", "state"]
-        stdout: StdioCollector { onStreamFinished: root.awake = text.trim() === "on" }
-    }
-    function read() {
-        readNight.running = true
-        readAwake.running = true
     }
 
     // ---------------------------------------------------------------- what is playing
@@ -110,7 +99,7 @@ Scope {
                 if (wanted) { sink.stop(); out = true }
                 else sink.restart()
             }
-            onOutChanged: if (out) root.read()
+            onOutChanged: if (out) readNight.running = true
             Timer { id: sink; interval: 350; onTriggered: win.out = false }
 
             WlrLayershell.namespace: "strix-dock"
@@ -182,14 +171,6 @@ Scope {
                         onClicked: {
                             root.night = !root.night
                             Quickshell.execDetached(["strix-nightlight", root.night ? "on" : "off"])
-                        }
-                    }
-                    Tool {
-                        iconName: root.awake ? "eye" : "eye-off"
-                        checked: root.awake
-                        onClicked: {
-                            root.awake = !root.awake
-                            Quickshell.execDetached(["strix-idle", "awake", root.awake ? "on" : "off"])
                         }
                     }
 
