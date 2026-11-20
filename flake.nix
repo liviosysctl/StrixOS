@@ -23,7 +23,13 @@
   };
 
   outputs =
-    { self, nixpkgs, disko, strixui, ... }:
+    {
+      self,
+      nixpkgs,
+      disko,
+      strixui,
+      ...
+    }:
     let
       # The version of the distribution. A release commit changes it here and in every
       # Cargo.toml together (CONTRIBUTING.md).
@@ -43,7 +49,8 @@
       branding = import ./branding.nix;
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
-      lib = nixpkgs.lib;
+      formatter = pkgs.treefmt.withConfig ./treefmt.nix;
+      inherit (nixpkgs) lib;
 
       mkSystem = import ./lib/mk-system.nix { inherit self nixpkgs version; };
 
@@ -212,7 +219,13 @@
         # an install or an update would otherwise compile. Pushing takes the
         # closure; Cachix leaves out what cache.nixos.org already has.
         cache-roots = pkgs.linkFarm "${branding.id}-cache-roots" {
-          inherit (self.packages.${system}) installer installer-dev theme-engine search ui;
+          inherit (self.packages.${system})
+            installer
+            installer-dev
+            theme-engine
+            search
+            ui
+            ;
           reference = self.nixosConfigurations."${branding.id}-reference".config.system.build.toplevel;
         };
 
@@ -222,7 +235,12 @@
         machine-lock = machineLock upstream.ref;
       };
 
-      checks.${system} = import ./tests/eval.nix { inherit self pkgs; };
+      # `nix fmt` formats everything (treefmt.nix)
+      formatter.${system} = formatter;
+
+      checks.${system} =
+        import ./tests/eval.nix { inherit self pkgs; }
+        // import ./tests/style.nix { inherit self pkgs formatter; };
 
       # Tests that boot VMs, too slow for every push: nix build .#tests.theme -L
       legacyPackages.${system}.tests = {

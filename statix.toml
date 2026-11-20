@@ -1,0 +1,5 @@
+# statix (the check `lint`). Repeated keys stay allowed: a module reads better with one line per
+# setting than with everything of environment.etc nested in one set.
+disabled = ["repeated_keys"]
+# Templates hold @placeholders@ until the installer fills them
+ignore = ["templates/machine", "tests/fixtures/machine.nix"]

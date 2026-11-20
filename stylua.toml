@@ -1,0 +1,4 @@
+# The Lua of Hyprland's configuration (shell/hypr)
+indent_type = "Spaces"
+indent_width = 4
+column_width = 110
