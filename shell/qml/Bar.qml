@@ -231,8 +231,16 @@ Scope {
 
             }
 
+            // The calendar under the clock. A click anywhere else or Escape folds it back, like a
+            // quick panel
+            HyprlandFocusGrab {
+                windows: [bar, calendarWindow]
+                active: root.calendarOn === bar.modelData.name
+                onCleared: if (root.calendarOn === bar.modelData.name) root.calendarOn = ""
+            }
             PopupWindow {
-                visible: root.shown && root.calendarOn === bar.modelData.name
+                id: calendarWindow
+                visible: root.shown && calendarPresence.present
                 anchor.window: bar
                 anchor.rect.x: clockButton.mapToItem(null, 0, 0).x
                 anchor.rect.y: bar.height
@@ -240,9 +248,15 @@ Scope {
                 implicitHeight: month.height + 2 * Theme.space4
                 color: "transparent"
 
+                Presence { id: calendarPresence; open: root.calendarOn === bar.modelData.name }
+
                 Surface {
                     anchors.fill: parent
                     elevation: "panel"
+                    opacity: calendarPresence.shown
+                    transform: Translate { y: -6 * (1 - calendarPresence.shown) }
+                    focus: true
+                    Keys.onEscapePressed: root.calendarOn = ""
                     Calendar {
                         id: month
                         x: Theme.space4
@@ -258,6 +272,14 @@ Scope {
                 current: (Hyprland.focusedWorkspace ? Hyprland.focusedWorkspace.id : 1) - 1
                 used: Hyprland.workspaces.values.filter(w => w.id > 0).map(w => w.id - 1)
                 onActivated: index => Hyprland.dispatch("hl.dsp.focus({ workspace = " + (index + 1) + " })")
+                // The wheel goes to the workspace before or after
+                WheelHandler {
+                    acceptedDevices: PointerDevice.Mouse
+                    onWheel: event => {
+                        const to = parent.current + (event.angleDelta.y > 0 ? -1 : 1)
+                        if (event.angleDelta.y !== 0 && to >= 0 && to < parent.count) parent.activated(to)
+                    }
+                }
             }
 
             Row {
@@ -337,7 +359,11 @@ Scope {
                         value: root.muted ? 0 : root.volume
                         valueText: root.muted ? "off" : Math.round(root.volume * 100) + "%"
                     }
-                    // Scrolling turns the volume in steps of 5 %
+                    // The middle button mutes, scrolling turns the volume in steps of 5 %
+                    TapHandler {
+                        acceptedButtons: Qt.MiddleButton
+                        onTapped: if (root.sink && root.sink.audio) root.sink.audio.muted = !root.sink.audio.muted
+                    }
                     WheelHandler {
                         acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
                         onWheel: event => {
@@ -357,6 +383,14 @@ Scope {
                         label: root.charging ? "AC" : "BAT"
                         value: root.charge
                         valueText: Math.round(root.charge * 100) + "%"
+                    }
+                    // Scrolling turns the brightness of the screen, with its mark on the screen
+                    WheelHandler {
+                        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                        onWheel: event => {
+                            if (event.angleDelta.y !== 0)
+                                Quickshell.execDetached(["qs", "-c", "strix", "ipc", "call", "osd", "brightness", event.angleDelta.y > 0 ? "5%+" : "5%-"])
+                        }
                     }
                 }
                 // While a recording runs: a pulsing dot and the time; a click stops it

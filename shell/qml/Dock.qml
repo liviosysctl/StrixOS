@@ -187,6 +187,19 @@ Scope {
                         anchors.verticalCenter: parent.verticalCenter
                         gap: Theme.space2
                         onClicked: root.toggle(win.modelData.name)
+                        // The middle button plays or pauses, the wheel goes to the next or the last title
+                        TapHandler {
+                            acceptedButtons: Qt.MiddleButton
+                            onTapped: if (root.player && root.player.canTogglePlaying) root.player.togglePlaying()
+                        }
+                        WheelHandler {
+                            acceptedDevices: PointerDevice.Mouse
+                            onWheel: event => {
+                                if (!root.player) return
+                                if (event.angleDelta.y < 0 && root.player.canGoNext) root.player.next()
+                                else if (event.angleDelta.y > 0 && root.player.canGoPrevious) root.player.previous()
+                            }
+                        }
                         Icon {
                             name: "music"
                             size: 12
