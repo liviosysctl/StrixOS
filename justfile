@@ -40,4 +40,4 @@ same-system ref="main":
 
 # What changed between two systems, package by package
 diff old new:
-    dix {{old}} {{new}}
+    dix diff {{old}} {{new}}

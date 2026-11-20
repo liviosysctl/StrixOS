@@ -36,7 +36,13 @@ let
 
   rebuild = tool {
     name = "rebuild";
-    runtimeInputs = [ config.system.build.nixos-rebuild ];
+    runtimeInputs = [
+      config.system.build.nixos-rebuild
+      config.nix.package
+      # The build as a tree, and what changes package by package
+      pkgs.nix-output-monitor
+      pkgs.dix
+    ];
   };
 
   update = tool {
@@ -71,6 +77,7 @@ let
     runtimeInputs = [
       config.nix.package
       config.system.build.nixos-rebuild
+      pkgs.dix
     ];
     # It has nothing to do with /etc/nixos: config_dir of the shared start stays unused
     excludeShellChecks = [ "SC2034" ];
