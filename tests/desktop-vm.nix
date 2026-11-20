@@ -25,10 +25,11 @@ pkgs.testers.runNixOSTest {
     { lib, ... }:
     {
       imports = [
-        ../modules/theme.nix
-        ../modules/ui.nix
-        ../modules/search.nix
-        ../modules/desktop.nix
+        ../modules/desktop/theme.nix
+        ../modules/desktop/ui.nix
+        ../modules/desktop/search.nix
+        ../modules/desktop
+        ../modules/apps/prompt.nix
       ];
 
       users.users.alice = {

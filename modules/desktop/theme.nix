@@ -17,7 +17,7 @@
 { config, lib, pkgs, distroFlake, ... }:
 
 let
-  branding = import ../branding.nix;
+  branding = import ../../branding.nix;
   cfg = config.${branding.id}.theme;
 
   # Only the themes of StrixUI, copied on their own: a path into the source itself would pull the
@@ -63,7 +63,7 @@ let
     lib.concatMap (repo: lib.concatMap (repoTheme repo) (repo.themes or [ ])) repos
   );
 
-  themes = import ../lib/themes.nix {
+  themes = import ../../lib/themes.nix {
     inherit pkgs builtin;
     inherit (distroFlake.inputs) strixui;
     inherit (cfg) default;
@@ -107,7 +107,7 @@ let
   command =
     let
       name = "${branding.id}-theme";
-      completions = ../packages/theme-engine/completions;
+      completions = ../../packages/theme-engine/completions;
       fill = ''--subst-var-by command ${name} --subst-var-by function ${lib.replaceStrings [ "-" ] [ "_" ] name}'';
     in
     pkgs.runCommand name
@@ -183,7 +183,7 @@ in
 
     default = lib.mkOption {
       type = lib.types.str;
-      default = import ../themes/default.nix;
+      default = import ../../themes/default.nix;
       defaultText = lib.literalExpression "import ./themes/default.nix";
       example = "janus";
       description = ''

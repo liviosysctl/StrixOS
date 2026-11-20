@@ -9,7 +9,7 @@
 { lib, ... }:
 
 let
-  branding = import ../branding.nix;
+  branding = import ../../branding.nix;
 
   # The public key from the cache's page on app.cachix.org ("Public key"),
   # e.g. "strix.cachix.org-1:AbC...=". null: the cache is not used yet.

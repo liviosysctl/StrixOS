@@ -17,11 +17,11 @@
 { config, lib, pkgs, distroFlake, ... }:
 
 let
-  branding = import ../branding.nix;
+  branding = import ../../branding.nix;
   cfg = config.${branding.id}.secureBoot;
   system = pkgs.stdenv.hostPlatform.system;
 
-  tool = pkgs.callPackage ../packages/secure-boot {
+  tool = pkgs.callPackage ../../packages/secure-boot {
     inherit (distroFlake.packages.${system}) shim grub-sb;
     esp = config.boot.loader.efi.efiSysMountPoint;
     testKeyDir = cfg.testKey;

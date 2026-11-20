@@ -3,7 +3,7 @@
 { config, lib, pkgs, ... }:
 
 let
-  branding = import ../branding.nix;
+  branding = import ../../branding.nix;
   cfg = config.${branding.id}.apps;
 
   data =

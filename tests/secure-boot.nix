@@ -168,9 +168,9 @@ in
       { lib, ... }:
       {
         imports = [
-          ../modules/boot-loader.nix
-          ../modules/theme.nix
-          ../modules/secure-boot.nix
+          ../modules/boot/loader.nix
+          ../modules/desktop/theme.nix
+          ../modules/boot/secure-boot.nix
         ];
 
         ${id}.secureBoot.testKey = testKey;

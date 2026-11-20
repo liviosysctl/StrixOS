@@ -11,14 +11,14 @@ in
   imports = [
     ./options.nix
     "${modulesPath}/installer/cd-dvd/installation-cd-minimal.nix"
-    ../modules/os-release.nix
+    ../modules/core/os-release.nix
     # Downloads the distro's own packages during the install instead of compiling them
-    ../modules/cache.nix
+    ../modules/core/cache.nix
     # No emoji from systemd tools, same as on installed machines
-    ../modules/systemd-tools.nix
+    ../modules/core/systemd-tools.nix
     # The console in the colors of the default theme. No splash on the ISO,
     # so nothing is written to the EFI variables of the machine.
-    ../modules/theme.nix
+    ../modules/desktop/theme.nix
     # The slim desktop with the graphical installer in front
     ./live.nix
   ];

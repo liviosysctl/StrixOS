@@ -17,9 +17,10 @@ let
 in
 {
   imports = [
-    ../modules/ui.nix
-    ../modules/search.nix
-    ../modules/desktop.nix
+    ../modules/desktop/ui.nix
+    ../modules/desktop/search.nix
+    ../modules/desktop
+    ../modules/apps/prompt.nix
   ];
 
   ${id}.desktop = {

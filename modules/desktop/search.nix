@@ -4,9 +4,9 @@
 { config, lib, pkgs, ... }:
 
 let
-  branding = import ../branding.nix;
+  branding = import ../../branding.nix;
   cfg = config.${branding.id}.search;
-  search = pkgs.callPackage ../packages/search { };
+  search = pkgs.callPackage ../../packages/search { };
 in
 {
   options.${branding.id}.search = {

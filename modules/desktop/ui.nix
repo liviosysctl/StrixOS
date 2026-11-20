@@ -5,7 +5,7 @@
 { config, lib, pkgs, distroFlake, ... }:
 
 let
-  branding = import ../branding.nix;
+  branding = import ../../branding.nix;
   cfg = config.${branding.id}.ui;
   share = "/share/${branding.id}-ui";
 in
@@ -20,7 +20,7 @@ in
     package = lib.mkOption {
       type = lib.types.package;
       readOnly = true;
-      default = pkgs.callPackage ../packages/ui { src = distroFlake.inputs.strixui; };
+      default = pkgs.callPackage ../../packages/ui { src = distroFlake.inputs.strixui; };
       defaultText = lib.literalExpression "the design system of StrixUI";
       description = "The design system package.";
     };

@@ -24,8 +24,8 @@ pkgs.testers.runNixOSTest {
     { lib, ... }:
     {
       imports = [
-        ../modules/boot-splash.nix
-        ../modules/theme.nix
+        ../modules/boot/splash.nix
+        ../modules/desktop/theme.nix
       ];
 
       virtualisation.useBootLoader = true;

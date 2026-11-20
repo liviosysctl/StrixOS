@@ -22,7 +22,7 @@ pkgs.testers.runNixOSTest {
       imports = [
         ../iso/options.nix
         ../iso/live.nix
-        ../modules/theme.nix
+        ../modules/desktop/theme.nix
       ];
 
       # As on the ISO (installation-device.nix): the live user, sudo without a password

@@ -14,7 +14,7 @@
 { config, lib, pkgs, ... }:
 
 let
-  branding = import ../branding.nix;
+  branding = import ../../branding.nix;
   id = branding.id;
   cfg = config.${id}.neovim;
 
@@ -38,13 +38,13 @@ in
       viAlias = true;
       vimAlias = true;
       runtime = {
-        "colors/${id}.lua".source = fill ../shell/nvim/colors/theme.lua;
-        "plugin/${id}.lua".source = fill ../shell/nvim/plugin/theme.lua;
-        "plugin/${id}-editor.lua".source = pkgs.replaceVars ../shell/nvim/plugin/editor.lua (
+        "colors/${id}.lua".source = fill ../../shell/nvim/colors/theme.lua;
+        "plugin/${id}.lua".source = fill ../../shell/nvim/plugin/theme.lua;
+        "plugin/${id}-editor.lua".source = pkgs.replaceVars ../../shell/nvim/plugin/editor.lua (
           # Where the tools keep the machine's configuration (modules/tools.nix)
           names // { configDir = "/etc/nixos"; }
         );
-        "${id}/cheatsheet.txt".source = ../shell/nvim/cheatsheet.txt;
+        "${id}/cheatsheet.txt".source = ../../shell/nvim/cheatsheet.txt;
       };
       # Only plugins and no customRC: the wrapper then leaves the user's init alone
       configure.packages.${id}.start = with pkgs.vimPlugins; [

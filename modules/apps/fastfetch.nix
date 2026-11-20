@@ -8,7 +8,7 @@
 { config, lib, pkgs, ... }:
 
 let
-  branding = import ../branding.nix;
+  branding = import ../../branding.nix;
   id = branding.id;
   theme = config.${id}.theme;
   look = theme.defaultLook;

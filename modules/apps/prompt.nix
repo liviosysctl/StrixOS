@@ -9,14 +9,14 @@
 { config, lib, pkgs, ... }:
 
 let
-  id = (import ../branding.nix).id;
+  id = (import ../../branding.nix).id;
   init = shell: ''
     if [[ $TERM != dumb && $TERM != linux ]]; then
       if [[ ! -f "''${STARSHIP_CONFIG:-$HOME/.config/starship.toml}" ]]; then
         if [[ -n "''${XDG_RUNTIME_DIR:-}" && -f "$XDG_RUNTIME_DIR/${id}/theme/starship.toml" ]]; then
           export STARSHIP_CONFIG="$XDG_RUNTIME_DIR/${id}/theme/starship.toml"
         else
-          export STARSHIP_CONFIG=${../shell/starship.toml}
+          export STARSHIP_CONFIG=${../../shell/starship.toml}
         fi
       fi
       eval "$(${lib.getExe pkgs.starship} init ${shell} --print-full-init)"

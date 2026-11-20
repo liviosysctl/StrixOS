@@ -4,7 +4,7 @@
 { version, ... }:
 
 let
-  branding = import ../branding.nix;
+  branding = import ../../branding.nix;
 in
 {
   # NAME= and PRETTY_NAME=

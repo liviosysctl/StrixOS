@@ -3,7 +3,7 @@
 { config, lib, pkgs, ... }:
 
 let
-  branding = import ../branding.nix;
+  branding = import ../../branding.nix;
 
   env = {
     DEFAULT_CONFIG_DIR = "/etc/nixos";

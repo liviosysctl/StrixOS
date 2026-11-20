@@ -6,7 +6,7 @@
 { config, lib, pkgs, ... }:
 
 let
-  branding = import ../branding.nix;
+  branding = import ../../branding.nix;
   id = branding.id;
 
   # The settings of lazygit; the theme engine writes the colors beside them (lazygit.yml)

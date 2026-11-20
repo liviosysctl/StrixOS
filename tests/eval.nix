@@ -365,7 +365,7 @@ in
         nativeBuildInputs = with pkgs; [ bash coreutils util-linux diffutils jq ];
       }
       ''
-        bash ${./update.sh} ${../modules/tools/common.sh} ${../modules/tools/update.sh} | tee $out
+        bash ${./update.sh} ${../modules/core/tools/common.sh} ${../modules/core/tools/update.sh} | tee $out
       '';
 
   # The update tool itself passes shellcheck (writeShellApplication runs it)

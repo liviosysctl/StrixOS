@@ -12,7 +12,7 @@
 { config, lib, pkgs, ... }:
 
 let
-  branding = import ../branding.nix;
+  branding = import ../../branding.nix;
   cfg = config.${branding.id}.boot;
   # GRUB's own folder on the ESP, and ours in it
   grubDir = "${config.boot.loader.efi.efiSysMountPoint}/grub";

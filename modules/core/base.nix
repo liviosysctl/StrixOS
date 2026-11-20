@@ -2,7 +2,7 @@
 { config, lib, distroFlake, ... }:
 
 let
-  branding = import ../branding.nix;
+  branding = import ../../branding.nix;
   cfg = config.${branding.id};
 in
 {
