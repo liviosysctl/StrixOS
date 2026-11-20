@@ -1,7 +1,7 @@
 // The top bar (TopBar in StrixUI): no surface of its own, small text and symbols straight on the
 // wallpaper. Everything in it is a button that answers the pointer, and none needs a hint.
 // Left: search, the clock (a click shows the month under it), CPU and memory (the system
-// monitor), then what is playing (a click on the title opens the media player under it).
+// monitor). What is playing is in the dock.
 // Middle: the workspaces of Hyprland. Right: the network, Bluetooth, the volume (scrolling turns
 // it), the battery when there is one, the bell with its count and power. Network, Bluetooth,
 // volume, battery and power drop a quick panel under their symbol (WifiPanel, BluetoothPanel,
@@ -14,7 +14,6 @@ import Quickshell.Io
 import Quickshell.Bluetooth
 import Quickshell.Hyprland
 import Quickshell.Networking
-import Quickshell.Services.Mpris
 import Quickshell.Services.Pipewire
 import Quickshell.Services.UPower
 import Quickshell.Wayland
@@ -45,39 +44,17 @@ Scope {
     function toggleDrop(name, screen) {
         if (root.drop === name && root.dropOn === screen) { root.drop = ""; return }
         root.calendarOn = ""
-        root.mediaOn = ""
         root.dropOn = screen
         root.drop = name
     }
     onShownChanged: if (!shown) root.drop = ""
 
-    // What is playing: the player that plays, else the last one that did, else the first
-    property var lastPlayer: null
-    readonly property var player: {
-        const players = Mpris.players.values
-        return players.find(p => p.isPlaying)
-            || (players.includes(root.lastPlayer) ? root.lastPlayer : null)
-            || players[0] || null
-    }
-    // The screen whose bar shows the media player, "" when it is closed
-    property string mediaOn: ""
     // The screen whose bar shows the month, "" when it is closed
     property string calendarOn: ""
 
     function settings(page) {
         root.drop = ""
         Quickshell.execDetached(["strix-settings", page])
-    }
-    onPlayerChanged: {
-        if (!root.player) root.mediaOn = ""
-        else if (root.player.isPlaying) root.lastPlayer = root.player
-    }
-    // MPRIS sends the position only on a seek: ask for it every second while the player is open
-    Timer {
-        interval: 1000
-        repeat: true
-        running: root.mediaOn !== "" && !!root.player && root.player.isPlaying
-        onTriggered: root.player.positionChanged()
     }
 
     SystemClock { id: clock; precision: SystemClock.Minutes }
@@ -166,7 +143,7 @@ Scope {
     FileView { id: meminfo; path: "/proc/meminfo" }
     Timer {
         interval: 2000
-        // The dock shows the same figures, also while the bar is hidden
+        // Also while the bar is hidden: the recording and the update are looked after here too
         running: true
         repeat: true
         triggeredOnStart: true
@@ -236,55 +213,6 @@ Scope {
                     Meter { label: "MEM"; value: root.memory }
                 }
 
-                Row {
-                    id: playing
-                    visible: !!root.player
-                    spacing: Theme.space1
-                    anchors.verticalCenter: parent.verticalCenter
-                    IconButton {
-                        small: true
-                        iconName: root.player && root.player.isPlaying ? "pause" : "play"
-                        enabled: !!root.player && root.player.canTogglePlaying
-                        onClicked: root.player.togglePlaying()
-                    }
-                    Label {
-                        textStyle: "micro"
-                        color: Theme.textMuted
-                        anchors.verticalCenter: parent.verticalCenter
-                        elide: Text.ElideRight
-                        width: Math.min(implicitWidth, 220)
-                        text: !root.player ? "" : [root.player.trackTitle, root.player.trackArtist].filter(t => t).join("  ") || root.player.identity
-                        MouseArea {
-                            anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: { root.drop = ""; root.mediaOn = root.mediaOn === bar.modelData.name ? "" : bar.modelData.name }
-                        }
-                    }
-                }
-            }
-
-            PopupWindow {
-                visible: root.shown && !!root.player && root.mediaOn === bar.modelData.name
-                anchor.window: bar
-                anchor.rect.x: Theme.space4
-                anchor.rect.y: bar.height
-                implicitWidth: media.implicitWidth
-                implicitHeight: media.implicitHeight
-                color: "transparent"
-
-                MediaPlayer {
-                    id: media
-                    anchors.fill: parent
-                    title: root.player ? root.player.trackTitle : ""
-                    artist: root.player ? root.player.trackArtist : ""
-                    cover: root.player ? root.player.trackArtUrl : ""
-                    playing: !!root.player && root.player.isPlaying
-                    position: root.player && root.player.positionSupported ? root.player.position : 0
-                    length: root.player && root.player.lengthSupported ? root.player.length : 0
-                    onPrevious: if (root.player.canGoPrevious) root.player.previous()
-                    onToggle: if (root.player.canTogglePlaying) root.player.togglePlaying()
-                    onNext: if (root.player.canGoNext) root.player.next()
-                }
             }
 
             PopupWindow {

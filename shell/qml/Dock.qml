@@ -1,60 +1,117 @@
-// The dock (EdgeDock in StrixUI): part of the bottom edge. At rest a thin tab with a short line in
-// the accent; when the pointer reaches it, it rises and shows its symbols, and sinks back a moment
-// after the pointer left. A click on a symbol lets its panel grow upward out of that symbol; a
-// second click, Escape or a click elsewhere folds it back, and while a panel is open the dock
-// stays out.
-// Symbols: Settings, the date (Today, System and About), what is playing, Wi-Fi, Bluetooth, sound
-// and About. "Check" in About runs the update and shows its progress in place.
-// ipc: dock open <panel> (main, media, wifi, bluetooth, sound), dock close.
+// The dock (EdgeDock in StrixUI): the apps, as part of the bottom edge. At rest a thin tab with a
+// short line in the accent; when the pointer reaches it, it rises and shows the pinned apps and
+// every app with a window, and sinks back a moment after the pointer left.
+// A click starts an app or brings its window to the front (the next one, when it has several);
+// the middle button opens another window; the right button opens the small menu of the app: new
+// window, pin or unpin, close. A mark under the icon says that an app runs, a wider one in the
+// accent that it has the focus. Icons are quiet until the pointer or the focus is on them.
+// At its right end: what is playing, the only place for it. A click opens the media player.
+// The pins are in ~/.config/strix/dock.json.
+// ipc: dock open media, dock close.
 import QtQuick
+import QtQuick.Effects
 import Quickshell
 import Quickshell.Io
 import Quickshell.Hyprland
+import Quickshell.Services.Mpris
 import Quickshell.Wayland
+import Quickshell.Widgets
 import Strix
 
 Scope {
     id: root
 
-    /// The top bar: it already knows the load, the player and the volume
-    required property var bar
-
-    /// The open panel: "", "main", "media", "wifi", "bluetooth" or "sound"
+    /// The open panel: "", "media" or "app" (the menu of an app)
     property string panel: ""
     /// The screen whose dock shows it
     property string screenName: ""
-    /// The tab of the main panel: 0 Today, 1 System, 2 About
-    property int tab: 0
+    /// The app whose menu is open
+    property string menuApp: ""
 
-    function toggle(name, screen, tab) {
-        if (root.panel === name && root.screenName === screen && (tab === undefined || tab === root.tab)) {
-            root.panel = ""
-            return
-        }
-        if (tab !== undefined) root.tab = tab
+    function toggle(name, screen) {
+        if (root.panel === name && root.screenName === screen) { root.panel = ""; return }
         root.screenName = screen
         root.panel = name
-    }
-
-    function settings(page) {
-        root.panel = ""
-        Quickshell.execDetached(["strix-settings", page])
     }
 
     IpcHandler {
         target: "dock"
         function open(panel: string): void {
-            const screen = Hyprland.focusedMonitor ? Hyprland.focusedMonitor.name
+            if (panel !== "media" || !root.player) return
+            root.screenName = Hyprland.focusedMonitor ? Hyprland.focusedMonitor.name
                 : Quickshell.screens.length > 0 ? Quickshell.screens[0].name : ""
-            root.screenName = screen
-            root.panel = ["main", "media", "wifi", "bluetooth", "sound"].indexOf(panel) >= 0 ? panel : "main"
+            root.panel = "media"
         }
         function close(): void { root.panel = "" }
         function isOpen(): bool { return root.panel !== "" }
+        function apps(): int { return root.apps.length }
     }
 
-    readonly property var player: root.bar.player
-    onPlayerChanged: if (!root.player && root.panel === "media") root.panel = ""
+    // ---------------------------------------------------------------- the apps
+    /// The ids of the pinned apps, as their desktop files are named
+    property var pinned: ["zen-beta", "com.mitchellh.ghostty", "org.gnome.Nautilus", "strix-neovim", "io.bassi.Amberol"]
+    readonly property string dir: Quickshell.env("HOME") + "/.config/strix"
+    FileView {
+        id: stored
+        path: root.dir + "/dock.json"
+        printErrors: false
+        onLoaded: {
+            try {
+                const read = JSON.parse(text())
+                if (Array.isArray(read)) root.pinned = read
+            } catch (e) {}
+        }
+    }
+
+    function pin(id) {
+        root.pinned = root.pinned.indexOf(id) >= 0 ? root.pinned.filter(p => p !== id) : root.pinned.concat([id])
+        Quickshell.execDetached(["mkdir", "-p", root.dir])
+        stored.setText(JSON.stringify(root.pinned, null, 2) + "\n")
+    }
+
+    /// The pinned apps, then the others that have a window, each with its windows
+    readonly property var apps: {
+        const windows = ToplevelManager.toplevels.values
+        const of = id => windows.filter(w => w.appId === id)
+        const list = root.pinned.map(id => ({ id: id, pinned: true, windows: of(id) }))
+        for (const w of windows) {
+            if (!w.appId || list.some(a => a.id === w.appId)) continue
+            list.push({ id: w.appId, pinned: false, windows: of(w.appId) })
+        }
+        return list
+    }
+
+    /// The desktop file of an app. Reading the number of entries makes whoever asks ask again once
+    /// the entries are read, which is after the shell has started
+    readonly property int entries: DesktopEntries.applications.values.length
+    function entry(id) { return root.entries >= 0 ? DesktopEntries.byId(id) || DesktopEntries.heuristicLookup(id) : null }
+
+    function launch(id) {
+        const e = root.entry(id)
+        // In its own scope of the session, as apps started from Search are
+        if (e) Quickshell.execDetached(["uwsm", "app", "--", e.id + ".desktop"])
+    }
+
+    /// Starts the app, or brings its window to the front: the next one when one of them has the focus
+    function activate(app) {
+        if (app.windows.length === 0) { root.launch(app.id); return }
+        const at = app.windows.findIndex(w => w.activated)
+        app.windows[(at + 1) % app.windows.length].activate()
+    }
+
+    // ---------------------------------------------------------------- what is playing
+    // The player that plays, else the last one that did, else the first
+    property var lastPlayer: null
+    readonly property var player: {
+        const players = Mpris.players.values
+        return players.find(p => p.isPlaying)
+            || (players.includes(root.lastPlayer) ? root.lastPlayer : null)
+            || players[0] || null
+    }
+    onPlayerChanged: {
+        if (!root.player) { if (root.panel === "media") root.panel = "" }
+        else if (root.player.isPlaying) root.lastPlayer = root.player
+    }
     // MPRIS sends the position only on a seek: ask for it every second while the player is open
     Timer {
         interval: 1000
@@ -62,84 +119,6 @@ Scope {
         running: root.panel === "media" && !!root.player && root.player.isPlaying
         onTriggered: root.player.positionChanged()
     }
-
-    SystemClock { id: clock; precision: SystemClock.Minutes }
-    readonly property var weekdays: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
-    readonly property var months: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
-    /// How much of the day is over, 0 to 1
-    readonly property real dayPart: (clock.date.getHours() * 60 + clock.date.getMinutes()) / 1440
-
-    // ---------------------------------------------------------------- System: the disk
-    property real diskUsed: 0
-    property real diskSize: 0
-    Process {
-        id: df
-        command: ["df", "-B1", "--output=used,size", "/"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const f = text.trim().split("\n").pop().trim().split(/\s+/).map(Number)
-                if (f.length === 2 && f[1] > 0) { root.diskUsed = f[0]; root.diskSize = f[1] }
-            }
-        }
-    }
-    readonly property bool watchingSystem: root.panel === "main" && root.tab === 1
-    onWatchingSystemChanged: if (watchingSystem) df.running = true
-    function gib(bytes) { return Math.round(bytes / 1073741824) + " GiB" }
-
-    // ---------------------------------------------------------------- About: version and update
-    property string distro: ""
-    property string version: ""
-    FileView {
-        id: release
-        path: "/etc/os-release"
-        printErrors: false
-        onLoaded: {
-            const name = /^NAME="?([^"\n]*)"?/m.exec(text())
-            const v = /^IMAGE_VERSION="?([^"\n]*)"?/m.exec(text())
-            root.distro = name ? name[1] : ""
-            root.version = v ? v[1] : ""
-        }
-    }
-
-    /// "idle", "running", "current" (nothing new), "updated", "cancelled" or "failed"
-    property string updateState: "idle"
-    property string updateLine: ""
-    Process {
-        id: update
-        // polkit asks for the password; the tool itself is the one of `sudo strix-update`
-        command: ["pkexec", "/run/current-system/sw/bin/strix-update"]
-        stdout: SplitParser { onRead: line => { if (line.trim() !== "") root.updateLine = line.trim() } }
-        stderr: SplitParser { onRead: line => { if (line.trim() !== "") root.updateLine = line.trim() } }
-        onExited: code => {
-            // pkexec: 126 the dialog was dismissed, 127 the password was wrong or not allowed
-            root.updateState = code === 126 || code === 127 ? "cancelled"
-                : code !== 0 ? "failed"
-                : /already up to date/i.test(root.updateLine) ? "current" : "updated"
-            release.reload()
-        }
-    }
-    function check() {
-        if (update.running) return
-        root.updateLine = ""
-        root.updateState = "running"
-        update.running = true
-    }
-    readonly property string updateTitle: ({
-        idle: root.distro + " " + root.version,
-        running: "Updating",
-        current: "You are up to date",
-        updated: "Updated",
-        cancelled: "Not updated",
-        failed: "Update failed"
-    })[root.updateState]
-    readonly property string updateText: ({
-        idle: "Check fetches the newest release",
-        running: root.updateLine || "Asking for the newest release",
-        current: "Checked just now",
-        updated: "Restart to use the new version",
-        cancelled: "The password was not given",
-        failed: root.updateLine || "The previous version stays active"
-    })[root.updateState]
 
     // ---------------------------------------------------------------- one dock per screen
     Variants {
@@ -150,11 +129,14 @@ Scope {
             required property var modelData
             screen: modelData
 
+            readonly property int dockHeight: 40
             readonly property bool here: root.screenName === modelData.name
             readonly property string open: here ? root.panel : ""
             /// What the panel shows; stays while it folds back
-            property string showing: "main"
+            property string showing: "media"
             onOpenChanged: if (open !== "") showing = open
+            /// The icon the menu of an app grows out of
+            property Item menuSource: null
 
             // Out while the pointer is on it or a panel is open, and a moment longer
             readonly property bool wanted: edgeHover.hovered || panelHover.hovered || open !== ""
@@ -171,8 +153,8 @@ Scope {
             WlrLayershell.keyboardFocus: win.open !== "" ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
             exclusionMode: ExclusionMode.Ignore
             anchors.bottom: true
-            implicitWidth: 520
-            implicitHeight: Theme.dockHeight + Theme.space2 + 320
+            implicitWidth: Math.min(modelData.width, 960)
+            implicitHeight: win.dockHeight + Theme.space2 + 240
             color: "transparent"
             // Only the dock and its panel take the pointer; the rest of this window lets it through
             mask: Region {
@@ -199,101 +181,143 @@ Scope {
             Presence { id: presence; open: win.open !== ""; duration: Theme.durSlow }
 
             // The strip the pointer has to reach: the tab at rest, the whole dock and the gap up to
-            // its panel once it is out. The dock is its child, so its symbols keep the hover.
+            // its panel once it is out. The dock is its child, so its icons keep the hover.
             Item {
                 id: edge
                 anchors.bottom: parent.bottom
                 anchors.horizontalCenter: parent.horizontalCenter
                 width: (win.out ? dock.openWidth : dock.restWidth) + 2 * Theme.space3
-                height: win.out ? Theme.dockHeight + Theme.space2 : Theme.dockRest + 1
+                height: win.out ? win.dockHeight + Theme.space2 : Theme.dockRest + 1
                 HoverHandler { id: edgeHover }
 
                 EdgeDock {
                     id: dock
                     anchors.bottom: parent.bottom
                     anchors.horizontalCenter: parent.horizontalCenter
+                    openHeight: win.dockHeight
                     out: win.out
 
-                    IconButton {
-                        small: true
-                        iconName: "settings"
-                        anchors.verticalCenter: parent.verticalCenter
-                        onClicked: root.settings("")
+                    // By id, so an icon stays when a window of another app opens or closes
+                    Repeater {
+                        model: ScriptModel { values: root.apps.map(a => a.id) }
+                        AppIcon {}
                     }
-                    Separator {}
+
+                    Item {
+                        visible: !!root.player
+                        width: Theme.space3 + 1
+                        height: 16
+                        anchors.verticalCenter: parent ? parent.verticalCenter : undefined
+                        Rectangle { anchors.centerIn: parent; width: Theme.lineHair; height: parent.height; color: Theme.border }
+                    }
                     MeterGroup {
-                        id: today
-                        anchors.verticalCenter: parent.verticalCenter
-                        onClicked: root.toggle("main", win.modelData.name, 0)
-                        Row {
-                            spacing: Theme.space2
-                            anchors.verticalCenter: parent.verticalCenter
-                            Icon {
-                                name: "calendar"
-                                size: 12
-                                hovered: today.hovered
-                                color: win.open === "main" && root.tab !== 2 ? Theme.accentText : today.hovered ? Theme.text : Theme.textMuted
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
-                            Label {
-                                textStyle: "label"
-                                color: win.open === "main" && root.tab !== 2 ? Theme.accentText : Theme.text
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: root.weekdays[clock.date.getDay()].slice(0, 3) + " " + clock.date.getDate() + " " + root.months[clock.date.getMonth()].slice(0, 3)
-                            }
-                        }
-                    }
-                    Separator {}
-                    IconButton {
                         id: mediaButton
                         visible: !!root.player
-                        small: true
-                        iconName: "music"
-                        checked: win.open === "media"
                         anchors.verticalCenter: parent.verticalCenter
+                        gap: Theme.space2
                         onClicked: root.toggle("media", win.modelData.name)
-                    }
-                    IconButton {
-                        id: wifiButton
-                        small: true
-                        iconName: "wifi"
-                        checked: win.open === "wifi"
-                        anchors.verticalCenter: parent.verticalCenter
-                        onClicked: root.toggle("wifi", win.modelData.name)
-                    }
-                    IconButton {
-                        id: bluetoothButton
-                        small: true
-                        iconName: "bluetooth"
-                        checked: win.open === "bluetooth"
-                        anchors.verticalCenter: parent.verticalCenter
-                        onClicked: root.toggle("bluetooth", win.modelData.name)
-                    }
-                    IconButton {
-                        id: soundButton
-                        small: true
-                        iconName: root.bar.muted ? "x" : "volume-2"
-                        checked: win.open === "sound"
-                        anchors.verticalCenter: parent.verticalCenter
-                        onClicked: root.toggle("sound", win.modelData.name)
-                    }
-                    Separator {}
-                    IconButton {
-                        id: aboutButton
-                        small: true
-                        iconName: "info"
-                        checked: win.open === "main" && root.tab === 2
-                        anchors.verticalCenter: parent.verticalCenter
-                        onClicked: root.toggle("main", win.modelData.name, 2)
+                        Icon {
+                            name: "music"
+                            size: 14
+                            hovered: mediaButton.hovered
+                            color: win.open === "media" || (root.player && root.player.isPlaying) ? Theme.accentText
+                                : mediaButton.hovered ? Theme.text : Theme.textMuted
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                        Label {
+                            textStyle: "micro"
+                            color: mediaButton.hovered ? Theme.text : Theme.textMuted
+                            anchors.verticalCenter: parent.verticalCenter
+                            elide: Text.ElideRight
+                            width: Math.min(implicitWidth, 180)
+                            text: !root.player ? "" : [root.player.trackTitle, root.player.trackArtist].filter(t => t).join("  ") || root.player.identity
+                        }
                     }
                 }
             }
 
-            component Separator: Item {
-                width: Theme.space2 + 1
-                height: 12
-                anchors.verticalCenter: parent ? parent.verticalCenter : undefined
-                Rectangle { anchors.centerIn: parent; width: Theme.lineHair; height: parent.height; color: Theme.border }
+            // One app of the dock
+            component AppIcon: Item {
+                id: app
+                required property string modelData
+                readonly property var its: root.apps.find(a => a.id === modelData) || ({ id: modelData, pinned: false, windows: [] })
+                readonly property bool running: its.windows.length > 0
+                readonly property bool focused: its.windows.some(w => w.activated)
+                readonly property var entry: root.entry(modelData)
+                readonly property string picture: Quickshell.iconPath(app.entry ? app.entry.icon : modelData, true)
+                readonly property bool lit: hover.hovered || app.focused || (win.open === "app" && root.menuApp === modelData)
+
+                // A pinned app that is not installed (the live session has few) takes no place
+                visible: !!app.entry || app.running
+                width: 36
+                height: win.dockHeight
+                // Pressing is quick, letting go a little slower
+                scale: press.pressed ? 0.94 : 1
+                Behavior on scale { NumberAnimation { duration: press.pressed ? Theme.durInstant : Theme.durFast; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOut } }
+
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: 32
+                    height: 32
+                    radius: Theme.radiusSm
+                    color: hover.hovered ? Theme.surfaceRaised : "transparent"
+                    Behavior on color { ColorAnimation { duration: Theme.durFast } }
+                }
+                // The icon of the app: grey and a little dark until the pointer or the focus is on it
+                IconImage {
+                    visible: app.picture !== ""
+                    anchors.centerIn: parent
+                    anchors.verticalCenterOffset: -1
+                    implicitSize: 22
+                    source: app.picture
+                    layer.enabled: true
+                    layer.effect: MultiEffect {
+                        saturation: app.lit ? 0 : -0.85
+                        brightness: app.lit ? 0 : -0.12
+                        Behavior on saturation { NumberAnimation { duration: Theme.durBase } }
+                        Behavior on brightness { NumberAnimation { duration: Theme.durBase } }
+                    }
+                }
+                // An app without an icon of its own
+                Icon {
+                    visible: app.picture === ""
+                    anchors.centerIn: parent
+                    anchors.verticalCenterOffset: -1
+                    name: "app-window"
+                    size: 18
+                    hovered: hover.hovered
+                    color: app.lit ? Theme.text : Theme.textMuted
+                }
+                // Runs: a short mark; has the focus: a wider one in the accent
+                Rectangle {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.bottom: parent.bottom
+                    anchors.bottomMargin: 3
+                    width: app.focused ? 12 : app.running ? 4 : 0
+                    height: 2
+                    radius: 1
+                    color: app.focused ? Theme.accent : Theme.textMuted
+                    Behavior on width { NumberAnimation { duration: Theme.durBase; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOut } }
+                    Behavior on color { ColorAnimation { duration: Theme.durFast } }
+                }
+
+                HoverHandler { id: hover; cursorShape: Qt.PointingHandCursor }
+                TapHandler {
+                    id: press
+                    acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
+                    onTapped: (point, button) => {
+                        if (button === Qt.RightButton) {
+                            win.menuSource = app
+                            root.menuApp = app.modelData
+                            root.screenName = win.modelData.name
+                            root.panel = "app"
+                        } else {
+                            root.panel = ""
+                            if (button === Qt.MiddleButton) root.launch(app.modelData)
+                            else root.activate(app.its)
+                        }
+                    }
+                }
             }
 
             // ------------------------------------------------------------ the panel
@@ -301,19 +325,16 @@ Scope {
                 id: panelBox
 
                 /// The symbol the panel grows out of
-                readonly property Item source: ({ media: mediaButton, wifi: wifiButton, bluetooth: bluetoothButton, sound: soundButton })[win.showing]
-                    || (root.tab === 2 ? aboutButton : today)
+                readonly property Item source: win.showing === "app" && win.menuSource ? win.menuSource : mediaButton
                 /// The middle of that symbol in the window, where it stands once the dock is out
                 readonly property real sourceX: (win.width - dock.openWidth) / 2 + 6 + source.x + source.width / 2
-                readonly property Item body: ({ media: mediaPanel, wifi: wifiPanel, bluetooth: bluetoothPanel, sound: soundPanel })[win.showing] || mainPanel
+                readonly property Item body: win.showing === "app" ? appMenu : mediaPanel
 
                 visible: presence.present
                 width: body.width
                 height: body.height
-                // The main panel sits over the middle of the dock, a small one over its symbol
-                x: win.showing === "main" ? Math.round((win.width - width) / 2)
-                    : Math.round(Math.max(0, Math.min(win.width - width, sourceX - width / 2)))
-                y: win.height - Theme.dockHeight - Theme.space2 - height
+                x: Math.round(Math.max(0, Math.min(win.width - width, sourceX - width / 2)))
+                y: win.height - win.dockHeight - Theme.space2 - height
                 opacity: presence.shown
                 transform: Scale {
                     origin.x: panelBox.sourceX - panelBox.x
@@ -322,146 +343,6 @@ Scope {
                     yScale: 0.6 + 0.4 * presence.shown
                 }
                 HoverHandler { id: panelHover }
-
-                // -------------------------------------------------------- Today, System, About
-                Surface {
-                    id: mainPanel
-                    visible: win.showing === "main"
-                    elevation: "panel"
-                    width: 196 + Theme.space5 + 196 + 2 * Theme.space4
-                    height: tabs.implicitHeight + 2 * Theme.space4
-
-                    Column {
-                        id: tabs
-                        x: Theme.space4
-                        y: Theme.space4
-                        width: parent.width - 2 * Theme.space4
-                        spacing: Theme.space3
-
-                        Segmented {
-                            id: sections
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            model: [{ text: "Today", icon: "calendar" }, { text: "System", icon: "gauge" }, { text: "About", icon: "info" }]
-                            onActivated: index => root.tab = index
-                        }
-                        // The symbols of the dock choose the tab too
-                        Binding { target: sections; property: "currentIndex"; value: root.tab }
-
-                        Item {
-                            width: parent.width
-                            height: month.height
-
-                            component Tab: Item {
-                                property bool current: false
-                                anchors.fill: parent
-                                opacity: current ? 1 : 0
-                                visible: opacity > 0
-                                Behavior on opacity { NumberAnimation { duration: Theme.durBase; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOut } }
-                            }
-
-                            Tab {
-                                current: root.tab === 0
-                                Column {
-                                    width: 196
-                                    spacing: Theme.space2
-                                    Plate { text: root.weekdays[clock.date.getDay()] }
-                                    Label { textStyle: "title-lg"; color: Theme.text; text: clock.date.getDate() + " " + root.months[clock.date.getMonth()] }
-                                    Rule { width: parent.width }
-                                    Label { textStyle: "clock"; font.pixelSize: 40; lineHeight: 44; color: Theme.text; text: Qt.formatDateTime(clock.date, "HH:mm") }
-                                    ProgressBar {
-                                        width: parent.width
-                                        label: "Day"
-                                        valueText: Math.round(root.dayPart * 100) + "%"
-                                        value: root.dayPart
-                                    }
-                                }
-                                Calendar {
-                                    id: month
-                                    anchors.right: parent.right
-                                    today: clock.date
-                                }
-                            }
-
-                            Tab {
-                                current: root.tab === 1
-                                Column {
-                                    width: parent.width
-                                    spacing: Theme.space3
-                                    topPadding: Theme.space2
-                                    Row {
-                                        anchors.horizontalCenter: parent.horizontalCenter
-                                        spacing: Theme.space6
-                                        Ring { label: "CPU"; value: root.watchingSystem ? root.bar.cpu : 0 }
-                                        Ring { label: "MEM"; value: root.watchingSystem ? root.bar.memory : 0 }
-                                        Ring { visible: root.bar.hasBattery; label: root.bar.charging ? "AC" : "BAT"; value: root.watchingSystem ? root.bar.charge : 0 }
-                                    }
-                                    ProgressBar {
-                                        width: parent.width
-                                        label: "Disk /"
-                                        valueText: root.diskSize > 0 ? root.gib(root.diskUsed) + " of " + root.gib(root.diskSize) : ""
-                                        value: root.diskSize > 0 ? root.diskUsed / root.diskSize : 0
-                                    }
-                                    Button {
-                                        anchors.horizontalCenter: parent.horizontalCenter
-                                        small: true
-                                        variant: "quiet"
-                                        iconName: "gauge"
-                                        text: "System monitor"
-                                        onClicked: { root.panel = ""; Quickshell.execDetached(["strix-monitor"]) }
-                                    }
-                                }
-                            }
-
-                            Tab {
-                                current: root.tab === 2
-                                Column {
-                                    width: parent.width
-                                    spacing: Theme.space3
-                                    topPadding: Theme.space3
-                                    Row {
-                                        spacing: Theme.space3
-                                        Label { id: mark; textStyle: "emblem"; lineHeight: 40; color: Theme.text; text: root.distro }
-                                        Label { textStyle: "caption"; color: Theme.textMuted; text: root.version; anchors.baseline: mark.baseline }
-                                    }
-                                    Label { textStyle: "motto"; color: Theme.textMuted; text: "nocte vigilat" }
-                                    Rule { width: parent.width }
-                                    Row {
-                                        width: parent.width
-                                        spacing: Theme.space3
-                                        Icon {
-                                            name: root.updateState === "running" ? "refresh-cw" : root.updateState === "failed" ? "triangle-alert"
-                                                : root.updateState === "idle" || root.updateState === "cancelled" ? "download" : "check"
-                                            size: 16
-                                            color: root.updateState === "failed" ? Theme.error : Theme.accentText
-                                            anchors.verticalCenter: parent.verticalCenter
-                                        }
-                                        Column {
-                                            width: parent.width - 16 - checkButton.width - 2 * parent.spacing
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            spacing: 2
-                                            Label { width: parent.width; textStyle: "label"; color: Theme.text; elide: Text.ElideRight; text: root.updateTitle }
-                                            Label { width: parent.width; textStyle: "caption"; color: Theme.textMuted; elide: Text.ElideRight; text: root.updateText }
-                                            ProgressBar {
-                                                visible: root.updateState === "running"
-                                                width: parent.width
-                                                indeterminate: true
-                                            }
-                                        }
-                                        Button {
-                                            id: checkButton
-                                            small: true
-                                            text: "Check"
-                                            loading: root.updateState === "running"
-                                            enabled: root.updateState !== "running"
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            onClicked: root.check()
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
 
                 // -------------------------------------------------------- what is playing
                 MediaPlayer {
@@ -480,23 +361,38 @@ Scope {
                     onNext: if (root.player.canGoNext) root.player.next()
                 }
 
-                // -------------------------------------------------------- the small panels
-                // The same quick panels as under the symbols of the bar
-                WifiPanel {
-                    id: wifiPanel
-                    visible: win.showing === "wifi"
-                    active: win.open === "wifi"
-                    onSettings: page => root.settings(page)
-                }
-                BluetoothPanel {
-                    id: bluetoothPanel
-                    visible: win.showing === "bluetooth"
-                    onSettings: page => root.settings(page)
-                }
-                SoundPanel {
-                    id: soundPanel
-                    visible: win.showing === "sound"
-                    onSettings: page => root.settings(page)
+                // -------------------------------------------------------- the menu of an app
+                QuickPanel {
+                    id: appMenu
+                    readonly property var app: root.apps.find(a => a.id === root.menuApp) || null
+                    readonly property var entry: root.entry(root.menuApp)
+                    visible: win.showing === "app"
+                    width: 220
+                    title: appMenu.entry ? appMenu.entry.name : root.menuApp
+
+                    ListRow {
+                        width: parent.width
+                        visible: !!appMenu.entry
+                        iconName: "plus"
+                        text: "New window"
+                        onClicked: { root.panel = ""; root.launch(root.menuApp) }
+                    }
+                    ListRow {
+                        width: parent.width
+                        iconName: "pin"
+                        text: appMenu.app && appMenu.app.pinned ? "Unpin from the dock" : "Pin to the dock"
+                        onClicked: { root.panel = ""; root.pin(root.menuApp) }
+                    }
+                    ListRow {
+                        width: parent.width
+                        visible: !!appMenu.app && appMenu.app.windows.length > 0
+                        iconName: "x"
+                        text: appMenu.app && appMenu.app.windows.length > 1 ? "Close all windows" : "Close"
+                        onClicked: {
+                            root.panel = ""
+                            for (const w of appMenu.app.windows) w.close()
+                        }
+                    }
                 }
             }
         }
