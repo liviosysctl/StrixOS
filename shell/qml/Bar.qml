@@ -345,6 +345,7 @@ Scope {
                 MeterGroup {
                     id: net
                     anchors.verticalCenter: parent.verticalCenter
+                    gap: Theme.space2
                     onClicked: root.toggleDrop("wifi", bar.modelData.name)
                     Icon {
                         name: "wifi"
@@ -366,6 +367,7 @@ Scope {
                     id: bt
                     visible: root.adapter !== null
                     anchors.verticalCenter: parent.verticalCenter
+                    gap: Theme.space1
                     onClicked: root.toggleDrop("bluetooth", bar.modelData.name)
                     Icon {
                         name: "bluetooth"

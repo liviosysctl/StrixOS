@@ -134,7 +134,7 @@ Column {
             width: page.width
             spacing: Theme.space2
 
-            Label { textStyle: "heading"; color: Theme.text; text: screen.modelData.title }
+            Label { textStyle: "heading"; color: Theme.text; text: screen.modelData.title; topPadding: Theme.space2 }
 
             SettingRow {
                 // The last screen that is on stays on
@@ -220,7 +220,16 @@ Column {
         }
     }
 
-    Label { textStyle: "heading"; color: Theme.text; text: "Colours" }
+    Label {
+        visible: page.screens.length > 0
+        width: parent.width
+        wrapMode: Text.WordWrap
+        textStyle: "caption"
+        color: Theme.textFaint
+        text: "Hyprland may round a scale to one that divides the screen evenly."
+    }
+
+    Label { textStyle: "heading"; color: Theme.text; text: "Colours"; topPadding: Theme.space3 }
 
     // The night light (strix-nightlight): hyprsunset makes the colors warmer from 20:00 to 7:00
     property bool night: false
@@ -241,13 +250,5 @@ Column {
                 Quickshell.execDetached(["strix-nightlight", checked ? "on" : "off"])
             }
         }
-    }
-
-    Label {
-        width: parent.width
-        wrapMode: Text.WordWrap
-        textStyle: "caption"
-        color: Theme.textFaint
-        text: "Hyprland may round a scale to one that divides the screen evenly."
     }
 }

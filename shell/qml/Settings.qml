@@ -29,7 +29,7 @@ Scope {
         { id: "bluetooth", title: "Bluetooth", icon: "bluetooth" },
         { id: "sound", title: "Sound", icon: "volume-2" },
         { id: "display", title: "Display", icon: "monitor" },
-        { id: "input", title: "Input", icon: "keyboard" },
+        { id: "input", title: "Input", icon: "mouse" },
         { id: "power", title: "Power", icon: "zap" },
         { id: "hotkeys", title: "Hotkeys", icon: "keyboard" },
         { id: "versions", title: "Versions", icon: "history" },
@@ -134,7 +134,8 @@ Scope {
                     Item {
                         width: parent.width
                         height: nav.height
-                        Glide { target: navRows.itemAt(root.pages.findIndex(p => p.id === root.page)); caretX: 7 }
+                        // count: the rows are made after this binding is first read
+                        Glide { target: navRows.count > 0 ? navRows.itemAt(root.pages.findIndex(p => p.id === root.page)) : null; caretX: 7 }
                         Column {
                             id: nav
                             width: parent.width

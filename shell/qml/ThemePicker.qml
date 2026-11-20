@@ -294,14 +294,19 @@ Scope {
                         currentIndex: 0
                     }
 
-                    Switch {
-                        id: keepSwitch
+                    // The switch and its key belong together
+                    Row {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "Keep this theme"
-                        checked: !!(root.state && root.state.keep)
-                        onToggled: root.keep(checked)
+                        spacing: Theme.space2
+                        Switch {
+                            id: keepSwitch
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "Keep this theme"
+                            checked: !!(root.state && root.state.keep)
+                            onToggled: root.keep(checked)
+                        }
+                        KeyCaps { anchors.verticalCenter: parent.verticalCenter; keys: "K" }
                     }
-                    KeyCaps { anchors.verticalCenter: parent.verticalCenter; keys: "K" }
 
                     Label {
                         anchors.verticalCenter: parent.verticalCenter

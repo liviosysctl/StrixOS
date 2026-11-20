@@ -71,7 +71,7 @@ Column {
         }
     }
 
-    Label { textStyle: "heading"; color: Theme.text; text: "Mouse and touchpad" }
+    Label { textStyle: "heading"; color: Theme.text; text: "Mouse and touchpad"; topPadding: Theme.space3 }
     SettingRow {
         width: page.width
         title: "Pointer speed"

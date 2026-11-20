@@ -91,7 +91,7 @@ Column {
         }
     }
 
-    Label { textStyle: "heading"; color: Theme.text; text: "When nobody is there" }
+    Label { textStyle: "heading"; color: Theme.text; text: "When nobody is there"; topPadding: Theme.space3 }
     SettingRow {
         visible: page.hasBattery
         width: parent.width

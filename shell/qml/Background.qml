@@ -72,7 +72,7 @@ Variants {
         Plate {
             id: plate
             anchors { left: parent.left; bottom: parent.bottom; margins: Theme.space4 }
-            width: Math.min(parent.width / 2, 520)
+            width: Math.min(parent.width / 2, 680)
             wrapMode: Text.WordWrap
             readonly property string wanted: Theme.about.plate || ""
             text: wanted

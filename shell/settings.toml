@@ -36,7 +36,7 @@ words = ["screen", "monitor", "scale", "resolution", "hidpi"]
 [[page]]
 id = "input"
 title = "Input"
-symbol = "keyboard"
+symbol = "mouse"
 words = ["keyboard", "layout", "mouse", "touchpad", "pointer", "speed", "scroll", "tap"]
 
 [[page]]
