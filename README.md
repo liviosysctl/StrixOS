@@ -84,9 +84,11 @@ These are renderings of the design from StrixUI; the shell in this repository is
 
 | Command | Does |
 |---|---|
-| `sudo strix-rebuild [switch\|boot\|test\|build]` | Rebuilds from `/etc/nixos` |
+| `sudo strix-rebuild [switch\|boot\|test\|build]` | Rebuilds from `/etc/nixos`. In a terminal it shows the build as a tree and then what changes against the running system, package by package |
 | `sudo strix-update` | Fetches the newest release and every connected theme repository and switches to them, keeps the old version if the build fails |
 | `sudo strix-update --themes [REPO]` | Only the theme repositories, or the one named |
+| `strix-generations [list\|diff [N]]`, `sudo strix-generations switch N\|clean` | The versions of the system still installed, what one changed against the one before it, going back to one, tidying up |
+| `, <command>` | Runs a program that is not installed, once (comma); a command that is not there names the package that has it |
 | `sudo strix-apps add\|remove <package>`, `strix-apps list` | Installs or removes a package from nixpkgs (kept in `/etc/nixos/apps.json`) and rebuilds. |
 | `sudo strix-theme set <theme>`, `strix-theme list` | Switches the theme without a rebuild, see [themes/README.md](themes/README.md). |
 | `sudo strix-theme repos add <owner/repo>`, `strix-theme repos list` | Connects a theme repository; `strix-rebuild switch` builds its themes in, every `strix-update` brings new versions |
