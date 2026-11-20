@@ -93,9 +93,9 @@ in
       ];
     };
 
-    # Nix files: mistakes shown while typing (nil), formatted on saving (nixfmt)
+    # Nix files: mistakes and the options shown while typing (nixd), formatted on saving (nixfmt)
     environment.systemPackages = [
-      pkgs.nil
+      pkgs.nixd
       pkgs.nixfmt
     ];
   };
