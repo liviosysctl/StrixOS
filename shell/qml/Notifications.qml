@@ -1,5 +1,7 @@
 // Messages top right under the bar (Notification in StrixUI). A popup shows each new message for
 // its time; Super N opens all of them. Critical ones stay until dismissed, also when quiet.
+// A click on a message sends it away. A new one slides in from the edge of the screen and the
+// others make room; the ones already there stay where they are.
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
@@ -17,8 +19,9 @@ PanelWindow {
     WlrLayershell.layer: WlrLayer.Overlay
     exclusionMode: ExclusionMode.Ignore
     anchors { top: true; right: true }
-    margins { top: Theme.barHeight + Theme.space2; right: Theme.space3 }
-    implicitWidth: 360
+    // Up to the edge of the screen, so a message that slides in or out is not cut off before it
+    margins.top: Theme.barHeight + Theme.space2
+    implicitWidth: 360 + Theme.space3
     implicitHeight: Math.max(1, column.implicitHeight)
     color: "transparent"
     visible: shown.length > 0
@@ -37,26 +40,31 @@ PanelWindow {
 
     Column {
         id: column
-        width: parent.width
+        width: 360
         spacing: Theme.space2
 
-        // A new message slides in from the right edge; the others make room smoothly
-        add: Transition {
-            ParallelAnimation {
-                NumberAnimation { property: "x"; from: 32; to: 0; duration: Theme.durSlow; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOut }
-                NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Theme.durBase; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOut }
-            }
-        }
         move: Transition {
             NumberAnimation { property: "y"; duration: Theme.durBase; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOut }
         }
 
         Repeater {
-            model: win.shown
+            // Only what is new is made: a message that is already shown keeps its place
+            model: ScriptModel { values: win.shown }
             Notification {
                 id: note
                 required property var modelData
                 width: column.width
+
+                // It arrives from the edge of the screen and leaves the same way
+                property real away: 1
+                opacity: 1 - away
+                transform: Translate { x: note.away * (Theme.space3 + 24) }
+                NumberAnimation on away {
+                    to: 0
+                    duration: Theme.durSlow
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: Theme.easeOut
+                }
 
                 /// Slide out to the right, then let `done` remove the message
                 function leave(done) {
@@ -67,10 +75,7 @@ PanelWindow {
                 SequentialAnimation {
                     id: out
                     property var done
-                    ParallelAnimation {
-                        NumberAnimation { target: note; property: "x"; to: 32; duration: Theme.durBase; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeIn }
-                        NumberAnimation { target: note; property: "opacity"; to: 0; duration: Theme.durBase; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeIn }
-                    }
+                    NumberAnimation { target: note; property: "away"; to: 1; duration: Theme.durBase; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeIn }
                     ScriptAction { script: out.done() }
                 }
                 iconName: modelData.urgency === NotificationUrgency.Critical ? "triangle-alert" : "bell"

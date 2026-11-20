@@ -1,5 +1,6 @@
 // Warns once when the battery runs low while it discharges: at 15 % a notification, at 5 % an
-// urgent one that stays. Plugging in resets both, so the next discharge warns again.
+// urgent one that stays. Plugging in takes the warnings away and resets both, so the next
+// discharge warns again.
 import QtQuick
 import Quickshell
 import Quickshell.Services.UPower
@@ -16,7 +17,12 @@ Scope {
     property int said: 0
 
     function check() {
-        if (!root.discharging) { root.said = 0; return }
+        if (!root.discharging) {
+            root.said = 0
+            for (const note of Notifs.list.slice())
+                if (note.appName === "Power" && note.summary.startsWith("Battery")) note.dismiss()
+            return
+        }
         if (root.charge <= 0.05 && root.said < 2) {
             root.said = 2
             Quickshell.execDetached(["notify-send", "--app-name=Power", "--urgency=critical", "--icon=battery-caution",
