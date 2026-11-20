@@ -22,25 +22,32 @@ let
     "noatime"
   ];
 
-  mkSubvolume = mountpoint: {
+  # x-gvfs-show: Files lists the subvolume at its left, under its name. The options that start
+  # with x- are notes for programs; mount and the kernel pass over them.
+  mkSubvolume = name: mountpoint: {
     inherit mountpoint;
-    mountOptions = defaultMountOptions;
+    mountOptions = defaultMountOptions ++ [
+      "x-gvfs-show"
+      "x-gvfs-name=${name}"
+    ];
   };
 
   subvolumes =
-    {
-      "@root" = mkSubvolume "/";
-      "@home" = mkSubvolume "/home";
-      "@nix" = mkSubvolume "/nix";
-      # Own subvolumes, so logs and caches are not pulled into home snapshots
-      # or into a later reset of "/".
-      "@log" = mkSubvolume "/var/log";
-      "@cache" = mkSubvolume "/var/cache";
-    }
-    // lib.optionalAttrs cfg.homeSnapshots {
-      # Separate from @home, so restoring @home does not delete the snapshots.
-      "@home-snapshots" = mkSubvolume "/home/.snapshots";
-    }
+    lib.mapAttrs mkSubvolume (
+      {
+        "@root" = "/";
+        "@home" = "/home";
+        "@nix" = "/nix";
+        # Own subvolumes, so logs and caches are not pulled into home snapshots
+        # or into a later reset of "/".
+        "@log" = "/var/log";
+        "@cache" = "/var/cache";
+      }
+      // lib.optionalAttrs cfg.homeSnapshots {
+        # Separate from @home, so restoring @home does not delete the snapshots.
+        "@home-snapshots" = "/home/.snapshots";
+      }
+    )
     // lib.optionalAttrs (cfg.swapSize != null) {
       # No compression: swap files on btrfs must be NOCOW and uncompressed.
       "@swap" = {
