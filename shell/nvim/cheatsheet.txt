@@ -1,0 +1,66 @@
+The modes
+  Esc                 back to Normal mode, from anywhere (jk too, while writing)
+  i, a                write before the cursor, after the cursor
+  o, O                write on a new line below, above
+  v, V                mark text, mark whole lines
+  :                   a command, ended with Enter
+
+Files
+  Ctrl S              save
+  Space Space         find a file by its name
+  Space e             the file tree: l opens, h closes, a adds, d deletes, r renames
+  Space f g           find text in all files
+  Space f r           recent files
+  Shift H, Shift L    the open file to the left, to the right
+  Space b d           close this file
+  Space q q           quit Neovim
+
+Moving
+  h j k l             left, down, up, right (the arrow keys work too)
+  w, b                a word forward, back
+  0, $                start of the line, end of the line
+  gg, G               start of the file, end of the file
+  12G                 to line 12
+  Ctrl D, Ctrl U      half a page down, up
+  /word               search, then n for the next and N for the one before
+  *                   search the word under the cursor
+
+Changing
+  u, Ctrl R           undo, redo
+  x                   delete the character
+  dd, yy              delete the line, copy the line
+  p, P                paste after, before
+  dw, cw              delete a word, change a word
+  ciw, ci"            change the whole word, change what is between the quotes
+  .                   do the last change again
+  >, <                indent marked lines more, less
+  gcc                 make the line a comment, or code again
+
+Verbs and what they act on, to combine freely
+  d c y v             delete, change, copy, mark
+  w $ ip i(           a word, to the end of the line, the paragraph, inside brackets
+  d$                  deletes to the end of the line
+  yip                 copies the paragraph
+  3dd                 deletes three lines
+
+Windows
+  Space w v           split to the right
+  Space w s           split below
+  Ctrl H J K L        to the window left, below, above, right
+  Space w q           close the window
+
+Code
+  Tab, Shift Tab      choose a completion, Enter takes it
+  gd, Ctrl O          go to the definition, and back
+  K                   what is this
+  Space c d           what is wrong in this line
+  Space c a           suggested fixes
+  Space c r           rename
+  Space c f           format the file
+
+Help
+  Space               wait a moment: the menu of keys
+  Space s k           search all keys
+  Space h h           the manual
+  Space h t           the tutorial, 30 minutes
+  Space ?, F1         this page; j and k scroll, q closes

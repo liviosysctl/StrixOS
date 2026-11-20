@@ -493,5 +493,8 @@ in
     assert cfg.programs.neovim.enable && cfg.programs.neovim.defaultEditor;
     assert cfg.environment.etc ? "xdg/nvim/colors/${branding.id}.lua";
     assert cfg.environment.etc ? "xdg/nvim/plugin/${branding.id}.lua";
+    assert cfg.environment.etc ? "xdg/nvim/plugin/${branding.id}-editor.lua";
+    assert cfg.environment.etc ? "xdg/nvim/${branding.id}/cheatsheet.txt";
+    assert cfg.programs.neovim.configure.packages.${branding.id}.start != [ ];
     ok "neovim";
 }
