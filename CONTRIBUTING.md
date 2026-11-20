@@ -70,3 +70,11 @@ One sentence on what this release is about.
 
 - `git config core.hooksPath .githooks` once per clone activates the commit-message check (the Nix dev shell does this automatically)
 - `git-cliff --bumped-version` shows the next version, `git-cliff --unreleased --bump` previews the next changelog entry
+- `nix develop` (or direnv, which reads `.envrc`) gives the tools below; `just` lists the everyday commands of the `justfile`
+- `nix fmt` formats everything (`treefmt.nix`: nixfmt, rustfmt, StyLua, shfmt); the checks `format` and `lint` (deadnix, statix) refuse a push that is not formatted or has dead code
+- `just same-system main` tells whether a change that only moves code still builds the same system (`tests/system-drv.sh`)
+
+## Where code goes
+
+- `modules/<area>/<part>.nix`, one part per file, listed in the `default.nix` of its folder; nothing is imported by itself
+- A file that passes 250 lines is split; scripts, Lua and QML are files under `shell/` or next to their package, not strings in Nix

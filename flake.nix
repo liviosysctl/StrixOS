@@ -256,10 +256,20 @@
       # (nix build .#tests.secure-boot-iso -L, .#tests.secure-boot -L)
       // import ./tests/secure-boot.nix { inherit self pkgs; };
 
+      # `nix develop`, or direnv (.envrc): what working on the distribution needs
       devShells.${system}.default = pkgs.mkShell {
         packages = [
           pkgs.git-cliff
-          # The theme engine
+          pkgs.just
+          # Nix: the formatter of `nix fmt`, the linters of the check, the language server
+          formatter
+          pkgs.deadnix
+          pkgs.statix
+          pkgs.nixd
+          # Builds that show what they do, and what differs between two systems
+          pkgs.nix-output-monitor
+          pkgs.dix
+          # The theme engine, the search service, the installer
           pkgs.cargo
           pkgs.rustc
           pkgs.clippy
@@ -267,6 +277,7 @@
         ];
         shellHook = ''
           git config core.hooksPath .githooks
+          git config blame.ignoreRevsFile .git-blame-ignore-revs
         '';
       };
     };

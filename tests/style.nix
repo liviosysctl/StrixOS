@@ -18,9 +18,10 @@
         ];
       }
       ''
-        cd ${self}
-        deadnix --fail .
-        statix check .
-        touch $out
+            cd ${self}
+            # Templates hold @placeholders@ until the installer fills them: not Nix yet
+        deadnix --fail . --exclude ./templates/machine ./tests/fixtures/machine.nix
+            statix check .
+            touch $out
       '';
 }
