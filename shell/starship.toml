@@ -1,4 +1,4 @@
-# The prompt of every shell in a terminal (modules/prompt.nix): segments for time, user,
+# The prompt of every shell in a terminal (modules/apps/prompt.nix): segments for time, user,
 # git and the path, as powerline bars. It needs a Nerd Font, which Ghostty has.
 #
 # The colors are the palette "strix" below. The theme engine writes this file again with the

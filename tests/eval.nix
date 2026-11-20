@@ -475,7 +475,7 @@ in
       touch $out
     '';
 
-  # The binary cache is only used once its public key is in modules/cache.nix
+  # The binary cache is only used once its public key is in modules/core/cache.nix
   cache =
     let
       settings = reference.config.nix.settings;

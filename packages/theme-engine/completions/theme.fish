@@ -1,4 +1,4 @@
-# Tab completion for @command@ in fish. modules/theme.nix fills in the name.
+# Tab completion for @command@ in fish. modules/desktop/theme.nix fills in the name.
 
 complete -c @command@ -f
 

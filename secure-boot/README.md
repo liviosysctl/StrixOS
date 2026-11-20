@@ -10,7 +10,7 @@ from disk", the stick, `<id>.cer`, "Continue", "Yes", "Reboot". After that the
 stick boots normally.
 
 Installed machines sign their boot loader and kernels with a key of their own,
-made at install time (`modules/secure-boot.nix`).
+made at install time (`modules/boot/secure-boot.nix`).
 
 | What | Where |
 |---|---|
@@ -18,4 +18,4 @@ made at install time (`modules/secure-boot.nix`).
 | GRUB with an SBAT section | `packages/grub-sb` |
 | Signing the ISO | `packages/sign-iso`, run by CI after the build |
 | Making the key, once | `nix run .#secure-boot-key -- FOLDER` |
-| Installed machines | `modules/secure-boot.nix`, `packages/secure-boot` |
+| Installed machines | `modules/boot/secure-boot.nix`, `packages/secure-boot` |

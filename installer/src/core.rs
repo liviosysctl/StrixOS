@@ -515,7 +515,7 @@ fn in_target(command: &str) -> [String; 4] {
     ]
 }
 
-/// Only machines with modules/secure-boot.nix have this tool. It points a firmware boot entry at
+/// Only machines with modules/boot/secure-boot.nix have this tool. It points a firmware boot entry at
 /// shim and, with Secure Boot on, asks MokManager to enroll the machine's key at the next start.
 fn secure_boot(job: &mut Install) -> Result<(Option<u16>, bool), String> {
     let tool = format!("{}-secure-boot", job.env.id);

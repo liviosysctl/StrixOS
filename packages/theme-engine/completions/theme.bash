@@ -1,4 +1,4 @@
-# Tab completion for @command@ in bash. modules/theme.nix fills in the name.
+# Tab completion for @command@ in bash. modules/desktop/theme.nix fills in the name.
 # Commands first, then for set and show the themes from `@command@ list --names`,
 # and the sub-commands of repos.
 # Works with sudo too: bash-completion hands `sudo @command@ ...` over to this.

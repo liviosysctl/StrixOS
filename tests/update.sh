@@ -1,6 +1,6 @@
 # The decisions of <id>-update with the theme repositories, with stand-ins for
 # nix, the rebuild and the theme engine (eval.nix: update-tool).
-#   bash tests/update.sh modules/tools/common.sh modules/tools/update.sh
+#   bash tests/update.sh modules/core/tools/common.sh modules/core/tools/update.sh
 set -euo pipefail
 
 common=$1

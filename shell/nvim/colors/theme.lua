@@ -1,4 +1,4 @@
--- The colors of the current god for Neovim (modules/neovim.nix installs this as
+-- The colors of the current god for Neovim (modules/apps/neovim.nix installs this as
 -- colors/@id@.lua). They come from tokens.json, which the theme engine writes:
 -- the session's (another god every 10 minutes) first, else the machine's.
 -- Colors a theme from outside may lack fall back to the ten every theme has.

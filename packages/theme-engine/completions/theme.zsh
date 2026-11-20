@@ -1,5 +1,5 @@
 #compdef @command@
-# Tab completion for @command@ in zsh. modules/theme.nix fills in the name.
+# Tab completion for @command@ in zsh. modules/desktop/theme.nix fills in the name.
 
 local -a commands
 commands=(

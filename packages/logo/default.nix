@@ -2,7 +2,7 @@
 # double ring in the accent of the variant, the engraved lines in its terminal background, the
 # eyes white. Beside it <theme>-<variant>-half.png and -closed.png, the frames of a blink.
 # The theme engine draws it (render owl), rsvg-convert makes the PNGs.
-# fastfetch shows the one of the session's theme (modules/fastfetch.nix), the lock screen
+# fastfetch shows the one of the session's theme (modules/apps/fastfetch.nix), the lock screen
 # (shell/qml/Owl.qml) and the boot splash (packages/plymouth-theme) blink with them.
 { lib, runCommand, librsvg }:
 

@@ -1,7 +1,7 @@
 # Graphical boot with Plymouth: wordmark, an activity line and a styled
 # field for the LUKS passphrase instead of lines of text.
 #
-# The look comes from the theme: modules/theme.nix builds a Plymouth theme
+# The look comes from the theme: modules/desktop/theme.nix builds a Plymouth theme
 # per theme variant and picks the one of the selected theme at every boot.
 # Pressing Esc during boot shows the text messages behind it.
 { config, lib, pkgs, ... }:

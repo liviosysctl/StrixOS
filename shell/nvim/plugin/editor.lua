@@ -1,4 +1,4 @@
--- Neovim for people who are new to it (modules/neovim.nix installs this as
+-- Neovim for people who are new to it (modules/apps/neovim.nix installs this as
 -- plugin/@id@-editor.lua, with the plugins it sets up): a menu that says what
 -- the keys do, a start page, a file tree, a finder, a line that names the
 -- mode, completion, and the keys other editors have taught (Ctrl S saves).

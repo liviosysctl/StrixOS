@@ -1,4 +1,4 @@
--- Neovim follows the theme of @name@ (modules/neovim.nix installs this as
+-- Neovim follows the theme of @name@ (modules/apps/neovim.nix installs this as
 -- plugin/@id@.lua). Plugins load after the user's init.lua: a colorscheme
 -- chosen there stays.
 if vim.g.loaded_@id@_theme then

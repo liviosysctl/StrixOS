@@ -19,7 +19,7 @@ let
 
   # theme.lua: the session's colors, else the machine's (before the session service started)
   themeLua = pkgs.writeText "theme.lua" ''
-    -- The colors of the current theme (modules/desktop.nix): the session's theme, which
+    -- The colors of the current theme (modules/desktop/hyprland.nix): the session's theme, which
     -- changes every ${cyclePeriod} (${id}-theme session), else the machine's.
     local runtime = os.getenv("XDG_RUNTIME_DIR")
     local files = { "${runtimeDir}/hyprland.lua" }
@@ -38,7 +38,7 @@ let
 
   machineLua = pkgs.writeText "machine.lua" (
     ''
-      -- This machine, from machine.nix (modules/desktop.nix).
+      -- This machine, from machine.nix (modules/desktop/hyprland.nix).
       hl.config({
           input = {
               kb_layout = ${luaString xkb.layout},

@@ -8,7 +8,7 @@
 #
 # On every push to main and m245-poc: the cache job builds the distro's own
 # packages and the reference system and pushes them to the binary cache
-# (modules/cache.nix), so installed machines download them instead of
+# (modules/core/cache.nix), so installed machines download them instead of
 # compiling. It needs the secret CACHIX_AUTH_TOKEN and does nothing without it.
 name: Check
 

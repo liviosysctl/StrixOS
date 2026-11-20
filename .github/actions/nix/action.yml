@@ -1,4 +1,4 @@
-# Nix with flakes, plus the distro's binary cache on Cachix (modules/cache.nix)
+# Nix with flakes, plus the distro's binary cache on Cachix (modules/core/cache.nix)
 # when the repository has the secret CACHIX_AUTH_TOKEN. Without the secret the
 # jobs build everything themselves, as before the cache existed.
 #

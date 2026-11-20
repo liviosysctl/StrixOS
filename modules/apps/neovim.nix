@@ -41,7 +41,7 @@ in
         "colors/${id}.lua".source = fill ../../shell/nvim/colors/theme.lua;
         "plugin/${id}.lua".source = fill ../../shell/nvim/plugin/theme.lua;
         "plugin/${id}-editor.lua".source = pkgs.replaceVars ../../shell/nvim/plugin/editor.lua (
-          # Where the tools keep the machine's configuration (modules/tools.nix)
+          # Where the tools keep the machine's configuration (modules/core/tools.nix)
           names // { configDir = "/etc/nixos"; }
         );
         "${id}/cheatsheet.txt".source = ../../shell/nvim/cheatsheet.txt;

@@ -1,6 +1,6 @@
 # Themes at build time: the theme engine, the checked themes folder, every
 # variant and what is built from them (Plymouth and GRUB themes, the owl).
-# Used by modules/theme.nix and by the flake (checks).
+# Used by modules/desktop/theme.nix and by the flake (checks).
 {
   pkgs,
   # The folder with the themes of the distribution, one folder per theme

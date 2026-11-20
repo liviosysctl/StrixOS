@@ -1,4 +1,4 @@
-# Secure Boot on an installed machine (modules/secure-boot.nix).
+# Secure Boot on an installed machine (modules/boot/secure-boot.nix).
 #
 # The machine boots shim (signed by Microsoft) -> GRUB -> kernel. shim starts
 # GRUB and GRUB starts the kernel (through shim) only when they are signed by

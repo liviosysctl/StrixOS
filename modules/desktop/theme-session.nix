@@ -106,7 +106,7 @@ in
         SESSION_HOOK = "${sessionHook}";
         PKEXEC = "/run/wrappers/bin/pkexec";
         THEME_COMMAND = themeCommand;
-        # The prompt's configuration, written again in the colors of the god (modules/prompt.nix)
+        # The prompt's configuration, written again in the colors of the god (modules/apps/prompt.nix)
         PROMPT_BASE = "${../../shell/starship.toml}";
       };
       serviceConfig = {

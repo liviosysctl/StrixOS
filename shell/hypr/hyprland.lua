@@ -1,4 +1,4 @@
--- The Hyprland configuration of Strix. modules/desktop.nix puts it with the files it requires
+-- The Hyprland configuration of Strix. modules/desktop/hyprland.nix puts it with the files it requires
 -- into /etc/xdg/strix/hypr; HYPRLAND_CONFIG points here, so Hyprland never writes its own.
 --
 --   machine.lua   keyboard of machine.nix, strix.desktop.extraConfig  (from Nix)

@@ -208,7 +208,7 @@
 
         machine-template = machineTemplate upstream.ref;
 
-        # What CI pushes to the binary cache (modules/cache.nix): everything
+        # What CI pushes to the binary cache (modules/core/cache.nix): everything
         # an install or an update would otherwise compile. Pushing takes the
         # closure; Cachix leaves out what cache.nixos.org already has.
         cache-roots = pkgs.linkFarm "${branding.id}-cache-roots" {
