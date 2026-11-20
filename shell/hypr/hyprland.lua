@@ -92,8 +92,8 @@ hl.window_rule({
     match = { class = "^strix\\.monitor$" },
     float = true,
     center = true,
-    -- Of the screen, so it also fits a small or scaled one
-    size = "90% 86%",
+    -- Of the screen, so btop gets its 80 columns and it still fits a small or scaled one
+    size = "monitor_w*0.9 monitor_h*0.86",
 })
 
 hl.window_rule({
