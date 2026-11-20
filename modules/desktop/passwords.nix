@@ -1,6 +1,11 @@
 # Passwords: the keyring that opens with the login, the agent for SSH keys, and the window that
 # asks for the password when an app needs more rights.
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   branding = import ../../branding.nix;

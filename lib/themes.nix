@@ -51,7 +51,8 @@ let
       { error = "there is no theme \"${theme}\" (known: ${known})"; }
     else
       let
-        variant = if builtins.length parts == 2 then builtins.elemAt parts 1 else data.${theme}.default-variant;
+        variant =
+          if builtins.length parts == 2 then builtins.elemAt parts 1 else data.${theme}.default-variant;
         variants = lib.concatStringsSep ", " (builtins.attrNames data.${theme}.variants);
       in
       if !(data.${theme}.variants ? ${variant}) then

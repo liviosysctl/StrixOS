@@ -1,6 +1,11 @@
 # Apps added with <id>-apps. It only writes /etc/nixos/apps.json,
 # this module turns it into packages.
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   branding = import ../../branding.nix;
@@ -8,7 +13,10 @@ let
 
   data =
     if cfg.file == null then
-      { version = 1; packages = [ ]; }
+      {
+        version = 1;
+        packages = [ ];
+      }
     else
       lib.importJSON cfg.file;
 

@@ -1,7 +1,12 @@
 # Power: the battery and the power profiles of the bar, what closing the lid does, what happens
 # when nobody is at the machine (hypridle, with the times of Settings › Power), and the night
 # light.
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   branding = import ../../branding.nix;
@@ -13,7 +18,10 @@ let
   nightTemperature = 4500;
   nightlightCommand = pkgs.writeShellApplication {
     name = "${id}-nightlight";
-    runtimeInputs = [ config.programs.hyprland.package pkgs.coreutils ];
+    runtimeInputs = [
+      config.programs.hyprland.package
+      pkgs.coreutils
+    ];
     text = ''
       state() {
         now=$(hyprctl hyprsunset temperature 2>/dev/null | tr -dc '0-9' || true)
@@ -49,7 +57,12 @@ in
 {
   options.${id}.desktop = {
     lid = lib.mkOption {
-      type = lib.types.enum [ "suspend" "hibernate" "lock" "ignore" ];
+      type = lib.types.enum [
+        "suspend"
+        "hibernate"
+        "lock"
+        "ignore"
+      ];
       default = "suspend";
       description = ''
         What closing the lid does on battery and on power: suspend (the default), hibernate
@@ -72,7 +85,10 @@ in
     };
     environment.etc."xdg/${id}/lid".text = cfg.lid + "\n";
 
-    environment.systemPackages = [ pkgs.hypridle ] ++ lib.optionals (!cfg.live) [
+    environment.systemPackages = [
+      pkgs.hypridle
+    ]
+    ++ lib.optionals (!cfg.live) [
       nightlightCommand
       idleCommand
     ];
@@ -115,7 +131,11 @@ in
       partOf = [ "graphical-session.target" ];
       after = [ "graphical-session.target" ];
       wantedBy = [ "graphical-session.target" ];
-      path = [ pkgs.quickshell config.programs.hyprland.package pkgs.systemd ];
+      path = [
+        pkgs.quickshell
+        config.programs.hyprland.package
+        pkgs.systemd
+      ];
       serviceConfig = {
         ExecStart = "${lib.getExe idleCommand} run";
         Restart = "on-failure";

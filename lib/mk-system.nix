@@ -8,7 +8,11 @@
 # themes.json (the connected theme repositories) is taken from next to
 # apps.json when it is there, so machines installed before it existed need no
 # change to their flake.nix. `themes = ./themes.json;` names it directly.
-{ self, nixpkgs, version }:
+{
+  self,
+  nixpkgs,
+  version,
+}:
 
 {
   modules ? [ ],

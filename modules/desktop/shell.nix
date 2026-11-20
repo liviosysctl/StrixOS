@@ -2,7 +2,12 @@
 # user service <id>-shell (`qs -c <id>`); it imports the QML module of StrixUI. With it come the
 # commands it starts (settings, capture, monitor), the clipboard history and the cheat sheet at
 # the first login.
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   branding = import ../../branding.nix;
@@ -102,7 +107,10 @@ in
         STRIX_LOGOS = "${config.${id}.theme.logos}";
       };
       # Theme.qml finds the wallpapers next to the module, the path must not be resolved
-      restartTriggers = [ ui ../../shell/qml ];
+      restartTriggers = [
+        ui
+        ../../shell/qml
+      ];
       serviceConfig = {
         ExecStart = "${lib.getExe' pkgs.quickshell "qs"} -c ${id}";
         Restart = "on-failure";
@@ -119,7 +127,10 @@ in
       partOf = [ "graphical-session.target" ];
       after = [ "${id}-shell.service" ];
       wantedBy = [ "graphical-session.target" ];
-      path = [ pkgs.quickshell pkgs.coreutils ];
+      path = [
+        pkgs.quickshell
+        pkgs.coreutils
+      ];
       serviceConfig.Type = "oneshot";
       script = ''
         seen="''${XDG_STATE_HOME:-$HOME/.local/state}/${id}/welcomed"
@@ -143,7 +154,10 @@ in
       partOf = [ "graphical-session.target" ];
       after = [ "graphical-session.target" ];
       wantedBy = [ "graphical-session.target" ];
-      path = [ pkgs.wl-clipboard pkgs.cliphist ];
+      path = [
+        pkgs.wl-clipboard
+        pkgs.cliphist
+      ];
       script = ''
         wl-paste --type text --watch cliphist store &
         exec wl-paste --type image --watch cliphist store

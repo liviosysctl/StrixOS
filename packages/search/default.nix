@@ -1,7 +1,11 @@
 # The search service, installed as <id>-search (e.g. strix-search), with the system menu and the
 # command files of shell/ next to it. The crate has a neutral name; only the installed program
 # carries the distro's. The unit tests (golden queries, the 5 ms budget) run while building.
-{ lib, rustPlatform, makeWrapper }:
+{
+  lib,
+  rustPlatform,
+  makeWrapper,
+}:
 
 let
   branding = import ../../branding.nix;

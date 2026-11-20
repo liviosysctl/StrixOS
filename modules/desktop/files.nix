@@ -1,6 +1,11 @@
 # Files (Nautilus, Super E) and what it needs: other drives, phones and network shares, thumbnails,
 # the folders of the home, and a terminal in the folder shown.
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   branding = import ../../branding.nix;
@@ -11,7 +16,10 @@ let
   # first selected item. Nautilus gives the selection as paths, the folder only as a URI
   openInGhostty = pkgs.writeShellApplication {
     name = "open-in-ghostty";
-    runtimeInputs = [ pkgs.coreutils pkgs.gnused ];
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.gnused
+    ];
     text = ''
       dir=$(printf '%s\n' "''${NAUTILUS_SCRIPT_SELECTED_FILE_PATHS:-}" | head -n 1)
       if [ -n "$dir" ]; then

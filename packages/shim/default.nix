@@ -11,7 +11,13 @@
 #
 # The 2011 CA expired in June 2026. Firmware does not check the expiry, so
 # binaries signed before that keep booting; this build was signed in May 2026.
-{ lib, stdenvNoCC, fetchurl, binutils, xz }:
+{
+  lib,
+  stdenvNoCC,
+  fetchurl,
+  binutils,
+  xz,
+}:
 
 let
   debian = "https://deb.debian.org/debian/pool/main/s";
@@ -33,7 +39,10 @@ stdenvNoCC.mkDerivation {
     })
   ];
 
-  nativeBuildInputs = [ binutils xz ];
+  nativeBuildInputs = [
+    binutils
+    xz
+  ];
 
   unpackCmd = ''
     mkdir "$(stripHash "$curSrc" | sed 's/\.deb$//')"

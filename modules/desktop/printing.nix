@@ -1,5 +1,10 @@
 # Printers: CUPS, with printers on the network found by themselves.
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   branding = import ../../branding.nix;

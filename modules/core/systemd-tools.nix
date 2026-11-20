@@ -1,6 +1,11 @@
 # Makes the systemd command line tools show the right thing on NixOS.
 # Used by installed machines (modules/default.nix) and the live ISO.
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   # systemd 262 adds an emoji to the chassis line of hostnamectl whatever

@@ -1,7 +1,12 @@
 # The search service (10-search in the plan): <id>-search on PATH and a user service that keeps
 # the index in memory and answers on $XDG_RUNTIME_DIR/<id>/search.sock, one JSON object per line.
 # Off until the desktop comes; the Quickshell UI talks to the socket.
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   branding = import ../../branding.nix;
@@ -29,12 +34,14 @@ in
       wantedBy = [ "graphical-session.target" ];
       # The commands of the entries run from here: the session's PATH, not the handful of tools
       # NixOS gives a user service
-      environment.PATH = lib.mkForce (lib.concatStringsSep ":" [
-        "%h/.nix-profile/bin"
-        "/etc/profiles/per-user/%u/bin"
-        "/run/wrappers/bin"
-        "/run/current-system/sw/bin"
-      ]);
+      environment.PATH = lib.mkForce (
+        lib.concatStringsSep ":" [
+          "%h/.nix-profile/bin"
+          "/etc/profiles/per-user/%u/bin"
+          "/run/wrappers/bin"
+          "/run/current-system/sw/bin"
+        ]
+      );
       # where NixOS puts desktop entries: the user's profiles first, then the system
       environment.XDG_DATA_DIRS = lib.concatStringsSep ":" [
         "%h/.nix-profile/share"

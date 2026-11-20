@@ -6,7 +6,12 @@
 # into $XDG_RUNTIME_DIR/<id>/theme/starship.toml; Starship reads it at every prompt, so the
 # bars change with the theme in shells that are already open. Elsewhere (SSH, before the
 # session) shell/starship.toml as it is, in the colors of Saturnus.
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   id = (import ../../branding.nix).id;

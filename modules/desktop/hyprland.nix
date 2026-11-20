@@ -2,7 +2,12 @@
 # /etc/xdg/<id>/hypr (HYPRLAND_CONFIG): shell/hypr/hyprland.lua, machine.lua from this module,
 # bindings.lua made by <id>-search from shell/menu.toml, and theme.lua, which reads the colors of
 # the session's theme.
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   branding = import ../../branding.nix;

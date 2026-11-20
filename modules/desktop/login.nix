@@ -1,6 +1,11 @@
 # The login of the distribution: shell/greeter, Quickshell in cage under greetd, or tuigreet if
 # chosen. Both start the same UWSM session as the session file of Hyprland.
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   branding = import ../../branding.nix;
@@ -46,7 +51,10 @@ in
 {
   options.${id}.desktop = {
     greeter = lib.mkOption {
-      type = lib.types.enum [ "strix" "tuigreet" ];
+      type = lib.types.enum [
+        "strix"
+        "tuigreet"
+      ];
       default = "strix";
       description = "The login: the own one in Quickshell, or tuigreet in the console.";
     };

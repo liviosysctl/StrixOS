@@ -39,7 +39,10 @@ pkgs.testers.runNixOSTest {
       users.users.alice.isNormalUser = true;
 
       # The theme repository of the last subtest is made from these
-      virtualisation.additionalPaths = [ lucifer pkgs.gitMinimal ];
+      virtualisation.additionalPaths = [
+        lucifer
+        pkgs.gitMinimal
+      ];
     };
 
   # Pillow reads the screenshots to check the colors on screen

@@ -4,13 +4,20 @@
 # greetd logs nixos in at once; the installer window opens as soon as the
 # session is up. Closing it only hides it: a card in the middle of the desktop
 # ("Install Strix") opens it again, and so does Search (Super Space, "Install").
-{ config, lib, pkgs, distroFlake, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  distroFlake,
+  ...
+}:
 
 let
   branding = import ../branding.nix;
   id = branding.id;
   system = pkgs.stdenv.hostPlatform.system;
-  installer = distroFlake.packages.${system}.${if config.${id}.iso.dev then "installer-dev" else "installer"};
+  installer =
+    distroFlake.packages.${system}.${if config.${id}.iso.dev then "installer-dev" else "installer"};
   gui = pkgs.callPackage ../installer/gui { };
   qs = lib.getExe' pkgs.quickshell "qs";
   open = "${qs} -c ${id}-installer ipc call installer open";

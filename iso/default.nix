@@ -1,6 +1,14 @@
 # Installer medium. Built on the minimal NixOS installer:
 # console with autologin, NetworkManager (nmtui), drivers for every disk controller.
-{ config, lib, pkgs, modulesPath, distroFlake, version, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  modulesPath,
+  distroFlake,
+  version,
+  ...
+}:
 
 let
   branding = import ../branding.nix;
@@ -74,19 +82,20 @@ in
       # installer runs on needs: the SoCs of ARM laptops and phones (qcom), switches and
       # data-centre network cards. Every Wi-Fi, Bluetooth, GPU and sound firmware stays; the
       # installed system gets the whole package as before.
-      linux-firmware = final.runCommand prev.linux-firmware.name
-        {
-          inherit (prev.linux-firmware) meta;
-          passthru = prev.linux-firmware.passthru or { };
-        }
-        ''
-          cp -r ${prev.linux-firmware} $out
-          chmod -R u+w $out
-          cd $out/lib/firmware
-          rm -rf qcom mellanox mrvl/prestera netronome qed dpaa2 liquidio cxgb4 bnx2x
-          # Links into what is gone would dangle
-          find . -xtype l -delete
-        '';
+      linux-firmware =
+        final.runCommand prev.linux-firmware.name
+          {
+            inherit (prev.linux-firmware) meta;
+            passthru = prev.linux-firmware.passthru or { };
+          }
+          ''
+            cp -r ${prev.linux-firmware} $out
+            chmod -R u+w $out
+            cd $out/lib/firmware
+            rm -rf qcom mellanox mrvl/prestera netronome qed dpaa2 liquidio cxgb4 bnx2x
+            # Links into what is gone would dangle
+            find . -xtype l -delete
+          '';
     })
   ];
 
@@ -99,7 +108,10 @@ in
   documentation.nixos.enable = lib.mkForce false;
 
   # The installer works with flakes (nix eval, disko --flake, nixos-install --flake)
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+  nix.settings.experimental-features = [
+    "nix-command"
+    "flakes"
+  ];
 
   # Same as on installed machines: SSH in from any common terminal works.
   environment.enableAllTerminfo = true;
@@ -112,7 +124,9 @@ in
   system.nixos.label = version;
 
   environment.systemPackages = [
-    distroFlake.packages.${system}.${if config.${branding.id}.iso.dev then "installer-dev" else "installer"}
+    distroFlake.packages.${system}.${
+      if config.${branding.id}.iso.dev then "installer-dev" else "installer"
+    }
     distroFlake.inputs.disko.packages.${system}.disko
     # mokutil --sb-state, --list-enrolled: what shim trusts on this machine
     pkgs.mokutil

@@ -1,5 +1,10 @@
 # Ghostty, the terminal: the look of the distribution and the colors of the session's theme.
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   branding = import ../../branding.nix;

@@ -1,5 +1,11 @@
 # The browser: Zen, in the colors of the session's theme.
-{ config, lib, pkgs, distroFlake, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  distroFlake,
+  ...
+}:
 
 let
   branding = import ../../branding.nix;
@@ -41,7 +47,10 @@ in
       description = "Give Zen the colors of the session's theme";
       wantedBy = [ "default.target" ];
       serviceConfig.Type = "oneshot";
-      path = [ pkgs.coreutils pkgs.gnused ];
+      path = [
+        pkgs.coreutils
+        pkgs.gnused
+      ];
       script = ''
         [ -w "$HOME" ] || exit 0
         for ini in "$HOME/.config/zen/profiles.ini" "$HOME/.zen/profiles.ini"; do
@@ -72,7 +81,10 @@ in
     systemd.user.paths."${id}-zen-colors" = {
       description = "Link the colors into a new Zen profile";
       wantedBy = [ "default.target" ];
-      pathConfig.PathChanged = [ "%h/.config/zen/profiles.ini" "%h/.zen/profiles.ini" ];
+      pathConfig.PathChanged = [
+        "%h/.config/zen/profiles.ini"
+        "%h/.zen/profiles.ini"
+      ];
     };
   };
 }

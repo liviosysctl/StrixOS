@@ -1,6 +1,11 @@
 # The tools around /etc/nixos: rebuild, update (with the theme repositories), apps, generations.
 # The names come from branding.nix (e.g. strix-rebuild).
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   branding = import ../../branding.nix;
@@ -12,11 +17,19 @@ let
   };
 
   tool =
-    { name, runtimeInputs, extraEnv ? { }, excludeShellChecks ? [ ] }:
+    {
+      name,
+      runtimeInputs,
+      extraEnv ? { },
+      excludeShellChecks ? [ ],
+    }:
     pkgs.writeShellApplication {
       inherit excludeShellChecks;
       name = "${branding.id}-${name}";
-      runtimeInputs = runtimeInputs ++ [ pkgs.coreutils pkgs.util-linux ];
+      runtimeInputs = runtimeInputs ++ [
+        pkgs.coreutils
+        pkgs.util-linux
+      ];
       runtimeEnv = env // extraEnv;
       text = builtins.readFile ./tools/common.sh + builtins.readFile ./tools/${name}.sh;
     };
@@ -28,7 +41,13 @@ let
 
   update = tool {
     name = "update";
-    runtimeInputs = [ config.nix.package pkgs.diffutils pkgs.jq pkgs.systemd pkgs.gitMinimal ];
+    runtimeInputs = [
+      config.nix.package
+      pkgs.diffutils
+      pkgs.jq
+      pkgs.systemd
+      pkgs.gitMinimal
+    ];
     extraEnv = {
       REBUILD = lib.getExe rebuild;
     }
@@ -49,20 +68,38 @@ let
 
   generations = tool {
     name = "generations";
-    runtimeInputs = [ config.nix.package config.system.build.nixos-rebuild ];
+    runtimeInputs = [
+      config.nix.package
+      config.system.build.nixos-rebuild
+    ];
     # It has nothing to do with /etc/nixos: config_dir of the shared start stays unused
     excludeShellChecks = [ "SC2034" ];
   };
 
   apps = tool {
     name = "apps";
-    runtimeInputs = [ config.nix.package pkgs.jq ];
+    runtimeInputs = [
+      config.nix.package
+      pkgs.jq
+    ];
     extraEnv.REBUILD = lib.getExe rebuild;
   };
 in
 {
-  environment.systemPackages = [ rebuild update apps generations ];
+  environment.systemPackages = [
+    rebuild
+    update
+    apps
+    generations
+  ];
 
   # Reachable for tests: nix build .#nixosConfigurations.<name>.config.system.build.distroTools.apps
-  system.build.distroTools = { inherit rebuild update apps generations; };
+  system.build.distroTools = {
+    inherit
+      rebuild
+      update
+      apps
+      generations
+      ;
+  };
 }

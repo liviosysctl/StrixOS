@@ -1,6 +1,11 @@
 # What opens a file: text in Neovim, pictures in Loupe, videos in mpv, archives in File Roller, and
 # Amberol for music. The live session of the ISO has none of them.
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   branding = import ../../branding.nix;
@@ -14,8 +19,18 @@ let
     comment = "Edit text in Neovim";
     exec = "ghostty -e nvim %F";
     icon = "nvim";
-    categories = [ "Utility" "TextEditor" ];
-    mimeTypes = [ "text/plain" "text/markdown" "text/x-nix" "application/json" "application/toml" "application/x-shellscript" ];
+    categories = [
+      "Utility"
+      "TextEditor"
+    ];
+    mimeTypes = [
+      "text/plain"
+      "text/markdown"
+      "text/x-nix"
+      "application/json"
+      "application/toml"
+      "application/x-shellscript"
+    ];
     # Only for opening files; app lists and Search show Neovim's own entry
     noDisplay = true;
   };

@@ -22,7 +22,10 @@ let
   branding = import ../branding.nix;
   id = branding.id;
   system = pkgs.stdenv.hostPlatform.system;
-  qemu-common = import "${pkgs.path}/nixos/lib/qemu-common.nix" { inherit lib; inherit (pkgs) stdenv; };
+  qemu-common = import "${pkgs.path}/nixos/lib/qemu-common.nix" {
+    inherit lib;
+    inherit (pkgs) stdenv;
+  };
 
   # shim's owner GUID for MOK list entries
   shimLock = "605dab50-e046-4300-abb6-3dd810dd8b23";
@@ -53,13 +56,15 @@ let
   msCerts = "${pkgs.python3Packages.virt-firmware}/${pkgs.python3.sitePackages}/virt/firmware/certs/microsoft.com";
   variables =
     name: certs:
-    pkgs.runCommand "${id}-ovmf-vars-${name}" { nativeBuildInputs = [ pkgs.python3Packages.virt-firmware ]; } ''
-      virt-fw-vars --input ${ovmf.variables} --output $out \
-        --enroll-redhat --microsoft-db none --microsoft-kek 2011 --secure-boot \
-        --add-db ${microsoft} ${msCerts}/ms-uefi-2011.pem \
-        --set-sbat-level ${sbatLevel} \
-        ${lib.concatMapStringsSep " " (cert: "--add-mok ${shimLock} ${cert}") certs}
-    '';
+    pkgs.runCommand "${id}-ovmf-vars-${name}"
+      { nativeBuildInputs = [ pkgs.python3Packages.virt-firmware ]; }
+      ''
+        virt-fw-vars --input ${ovmf.variables} --output $out \
+          --enroll-redhat --microsoft-db none --microsoft-kek 2011 --secure-boot \
+          --add-db ${microsoft} ${msCerts}/ms-uefi-2011.pem \
+          --set-sbat-level ${sbatLevel} \
+          ${lib.concatMapStringsSep " " (cert: "--add-mok ${shimLock} ${cert}") certs}
+      '';
 
   # The real ISO configuration, small: nothing preloaded in its store, fast
   # compression, the test driver's backdoor
@@ -80,7 +85,11 @@ let
   signedIso =
     pkgs.runCommand "${id}-signed-test.iso"
       {
-        nativeBuildInputs = [ self.packages.${system}.sign-iso pkgs.xorriso pkgs.mtools ];
+        nativeBuildInputs = [
+          self.packages.${system}.sign-iso
+          pkgs.xorriso
+          pkgs.mtools
+        ];
       }
       ''
         export SECURE_BOOT_KEY=${testKey}/key.pem SECURE_BOOT_CERT=${testKey}/cert.pem

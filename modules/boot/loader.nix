@@ -9,7 +9,12 @@
 #
 # The menu is drawn in the look of StrixUI and follows the theme: theme.nix
 # copies the GRUB theme of the selected theme to /boot/grub/<id>/theme.
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   branding = import ../../branding.nix;
@@ -22,7 +27,14 @@ let
   menuForOthers = pkgs.writeShellScript "${branding.id}-grub-menu" ''
     set -eu
     # switch-to-configuration runs this with no PATH to speak of
-    export PATH=${lib.makeBinPath [ pkgs.coreutils pkgs.gnused pkgs.gnugrep pkgs.diffutils ]}
+    export PATH=${
+      lib.makeBinPath [
+        pkgs.coreutils
+        pkgs.gnused
+        pkgs.gnugrep
+        pkgs.diffutils
+      ]
+    }
     cfg=${grubDir}/grub.cfg
     menu=${ownDir}/menu.cfg
     mkdir -p ${ownDir}

@@ -14,7 +14,13 @@
 # Themes from outside come from theme repositories, listed in themes.json next
 # to the machine configuration: `<id>-theme repos` fetches, checks and copies
 # them into themes/ beside it, this module only reads those copies.
-{ config, lib, pkgs, distroFlake, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  distroFlake,
+  ...
+}:
 
 let
   branding = import ../../branding.nix;
@@ -43,7 +49,9 @@ let
       if (data.version or 0) == 1 then
         data.repos or [ ]
       else
-        lib.warn "themes.json has format ${toString (data.version or "?")}, only format 1 is read; no outside themes" [ ];
+        lib.warn
+          "themes.json has format ${toString (data.version or "?")}, only format 1 is read; no outside themes"
+          [ ];
   reposDir = dirOf cfg.repos.file + "/themes";
   repoTheme =
     repo: themeId:
@@ -54,9 +62,12 @@ let
     if builtins.match "[a-z][a-z0-9-]*" themeId == null then
       lib.warn "themes.json: \"${themeId}\" of ${from} is no theme id, left out" [ ]
     else if lib.elem themeId builtinIds then
-      lib.warn "themes.json: ${themeId} of ${from} has the id of a theme of ${branding.name}, left out" [ ]
+      lib.warn "themes.json: ${themeId} of ${from} has the id of a theme of ${branding.name}, left out"
+        [ ]
     else if !builtins.pathExists (path + "/theme.toml") then
-      lib.warn "themes.json: themes/${themeId} of ${from} is missing, run ${branding.id}-theme repos update and rebuild" [ ]
+      lib.warn
+        "themes.json: themes/${themeId} of ${from} is missing, run ${branding.id}-theme repos update and rebuild"
+        [ ]
     else
       [ (lib.nameValuePair themeId path) ];
   repoThemes = builtins.listToAttrs (
@@ -108,7 +119,9 @@ let
     let
       name = "${branding.id}-theme";
       completions = ../../packages/theme-engine/completions;
-      fill = ''--subst-var-by command ${name} --subst-var-by function ${lib.replaceStrings [ "-" ] [ "_" ] name}'';
+      fill = "--subst-var-by command ${name} --subst-var-by function ${
+        lib.replaceStrings [ "-" ] [ "_" ] name
+      }";
     in
     pkgs.runCommand name
       {
@@ -117,7 +130,11 @@ let
       }
       ''
         makeBinaryWrapper ${exe} $out/bin/${name} \
-          ${lib.concatStringsSep " " (lib.mapAttrsToList (n: value: "--set ${n} ${lib.escapeShellArg value}") env)} \
+          ${
+            lib.concatStringsSep " " (
+              lib.mapAttrsToList (n: value: "--set ${n} ${lib.escapeShellArg value}") env
+            )
+          } \
           --set-default REPOS_FILE /etc/nixos/themes.json
         mkdir -p $out/share/bash-completion/completions $out/share/zsh/site-functions $out/share/fish/vendor_completions.d
         substitute ${completions}/theme.bash $out/share/bash-completion/completions/${name} ${fill}
@@ -131,12 +148,21 @@ let
   # install after every switch (a new ESP, a new default).
   grub = config.boot.loader.grub;
   grubThemes = pkgs.linkFarm "${branding.id}-grub-themes" (
-    lib.mapAttrsToList (selection: path: { name = selection; inherit path; }) themes.grubThemes
+    lib.mapAttrsToList (selection: path: {
+      name = selection;
+      inherit path;
+    }) themes.grubThemes
   );
   defaultSelection = "${resolved.theme or ""}:${resolved.variant or ""}";
   grubTheme = pkgs.writeShellScript "${branding.id}-grub-theme" ''
     set -eu
-    export PATH=${lib.makeBinPath [ pkgs.coreutils pkgs.diffutils pkgs.jq ]}
+    export PATH=${
+      lib.makeBinPath [
+        pkgs.coreutils
+        pkgs.diffutils
+        pkgs.jq
+      ]
+    }
     esp=${config.boot.loader.efi.efiSysMountPoint}
     [ -d "$esp/grub" ] || exit 0
     selection=${lib.escapeShellArg defaultSelection}

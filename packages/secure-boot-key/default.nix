@@ -6,14 +6,21 @@
 # the repository, the certificate goes into secure-boot/<id>.crt. Every
 # machine that enrolled the ISO's key trusts exactly this certificate, so a
 # new key means enrolling again everywhere: the script refuses to replace one.
-{ writeShellApplication, coreutils, openssl }:
+{
+  writeShellApplication,
+  coreutils,
+  openssl,
+}:
 
 let
   branding = import ../../branding.nix;
 in
 writeShellApplication {
   name = "secure-boot-key";
-  runtimeInputs = [ coreutils openssl ];
+  runtimeInputs = [
+    coreutils
+    openssl
+  ];
   text = ''
     die() {
       printf 'secure-boot-key: %s\n' "$*" >&2

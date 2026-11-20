@@ -1,7 +1,11 @@
 # The theme engine, installed as <id>-theme (e.g. strix-theme).
 # The crate has a neutral name; only the installed program carries the distro's.
 # The unit tests run while building.
-{ lib, rustPlatform, git }:
+{
+  lib,
+  rustPlatform,
+  git,
+}:
 
 let
   branding = import ../../branding.nix;

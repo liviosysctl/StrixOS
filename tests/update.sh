@@ -73,7 +73,10 @@ THEME_REV=bbb case_ "a theme repository moved: rebuild" 0 "theme repos update ni
 THEME_PROBLEM=x THEME_EXIT=1 case_ "only a problem note: no rebuild" 0 "theme repos update nix"
 THEME_EXIT=1 NIX_CHANGES=1 case_ "a failing repository never stops the update" 0 "theme repos update nix rebuild"
 NIX_CHANGES=1 REBUILD_EXIT=1 case_ "a failed rebuild keeps the old lock" 3 "theme repos update nix rebuild"
-grep -qx old "$DISTRO_CONFIG_DIR/flake.lock" || { echo "FAIL the lock was not restored"; fails=$((fails + 1)); }
+grep -qx old "$DISTRO_CONFIG_DIR/flake.lock" || {
+  echo "FAIL the lock was not restored"
+  fails=$((fails + 1))
+}
 NIX_FAILS=1 case_ "no network" 5 "theme repos update nix"
 case_ "--themes, nothing new" 0 "theme repos update" --themes
 THEME_REV=bbb case_ "--themes, a new commit: rebuild without nix" 0 "theme repos update rebuild" --themes

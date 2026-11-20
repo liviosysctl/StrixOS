@@ -4,7 +4,12 @@
 # The look comes from the theme: modules/desktop/theme.nix builds a Plymouth theme
 # per theme variant and picks the one of the selected theme at every boot.
 # Pressing Esc during boot shows the text messages behind it.
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   branding = import ../../branding.nix;

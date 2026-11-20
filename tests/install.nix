@@ -75,10 +75,9 @@ let
   # What the installer must write as machine.nix. The test compares it with
   # the written file, so the rendering is tested too.
   machineNix = builtins.toFile "machine.nix" (
-    builtins.replaceStrings
-      [ "@distroId@" "@stateVersion@" ]
-      [ id lib.trivial.release ]
-      (builtins.readFile ./fixtures/machine.nix)
+    builtins.replaceStrings [ "@distroId@" "@stateVersion@" ] [ id lib.trivial.release ] (
+      builtins.readFile ./fixtures/machine.nix
+    )
   );
 
   # The system the installer will build, from the same files as /etc/nixos
@@ -128,7 +127,10 @@ pkgs.testers.runNixOSTest {
         # For closing the disk at the end of the test script
         pkgs.cryptsetup
       ];
-      nix.settings.experimental-features = [ "nix-command" "flakes" ];
+      nix.settings.experimental-features = [
+        "nix-command"
+        "flakes"
+      ];
 
       # Everything nixos-install needs, already in the store
       virtualisation.additionalPaths = [

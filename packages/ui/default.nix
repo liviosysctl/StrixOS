@@ -5,7 +5,12 @@
 #   share/<id>-ui/qml       the QML module, for QML_IMPORT_PATH
 #   share/<id>-ui/assets    the wallpapers; Theme.qml finds them as ../../assets
 #   share/fonts/truetype    Grenze Gotisch, IM Fell English, JetBrains Mono
-{ lib, stdenvNoCC, woff2, src }:
+{
+  lib,
+  stdenvNoCC,
+  woff2,
+  src,
+}:
 
 let
   branding = import ../../branding.nix;

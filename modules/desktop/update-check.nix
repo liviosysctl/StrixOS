@@ -1,5 +1,10 @@
 # The mark in the bar when there is a newer version of the distribution.
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   branding = import ../../branding.nix;
@@ -10,7 +15,12 @@ let
   # what changed: $XDG_RUNTIME_DIR/<id>/update.json, which the bar shows as a mark
   updateCheck = pkgs.writeShellApplication {
     name = "${id}-update-check";
-    runtimeInputs = with pkgs; [ git jq curl coreutils ];
+    runtimeInputs = with pkgs; [
+      git
+      jq
+      curl
+      coreutils
+    ];
     text = ''
       lock=/etc/nixos/flake.lock
       out="$XDG_RUNTIME_DIR/${id}/update.json"

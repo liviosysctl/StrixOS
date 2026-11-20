@@ -14,7 +14,13 @@
 # The initrd is not checked (shim checks only PE images), the same trade-off
 # as on the ISO. Lanzaboote would cover it, but needs own keys in the
 # firmware's db instead of the MOK list (setup mode), which shim does not need.
-{ config, lib, pkgs, distroFlake, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  distroFlake,
+  ...
+}:
 
 let
   branding = import ../../branding.nix;

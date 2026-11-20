@@ -1,5 +1,10 @@
 # What every installed machine gets, whatever was answered in the installer.
-{ config, lib, distroFlake, ... }:
+{
+  config,
+  lib,
+  distroFlake,
+  ...
+}:
 
 let
   branding = import ../../branding.nix;
@@ -23,7 +28,10 @@ in
 
   config = {
     # Nix. nixosSystem already sets the registry entry for nixpkgs.
-    nix.settings.experimental-features = [ "nix-command" "flakes" ];
+    nix.settings.experimental-features = [
+      "nix-command"
+      "flakes"
+    ];
     nix.settings.auto-optimise-store = true;
     nix.gc = {
       automatic = true;
@@ -33,8 +41,10 @@ in
 
     # Keep the sources of the distro and its inputs in the store, so /etc/nixos
     # can be rebuilt without a network.
-    system.extraDependencies = [ distroFlake.outPath ]
-      ++ map (input: input.outPath) (lib.attrValues distroFlake.inputs);
+    system.extraDependencies = [
+      distroFlake.outPath
+    ]
+    ++ map (input: input.outPath) (lib.attrValues distroFlake.inputs);
 
     networking.networkmanager.enable = true;
 
@@ -62,7 +72,10 @@ in
     users.users.${cfg.user.name} = {
       isNormalUser = true;
       inherit (cfg.user) description;
-      extraGroups = [ "wheel" "networkmanager" ];
+      extraGroups = [
+        "wheel"
+        "networkmanager"
+      ];
     };
     security.sudo.wheelNeedsPassword = true;
   };

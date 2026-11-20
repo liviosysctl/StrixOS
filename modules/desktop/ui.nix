@@ -2,7 +2,13 @@
 # fonts (packages/ui, from StrixUI). The shell and every Linux app import the
 # module from /run/current-system/sw, so a switch brings the new version
 # without a new login of the environment variable.
-{ config, lib, pkgs, distroFlake, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  distroFlake,
+  ...
+}:
 
 let
   branding = import ../../branding.nix;

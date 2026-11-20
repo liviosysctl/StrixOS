@@ -3,26 +3,33 @@
 # eza and bat take the 16 colors of the terminal, which the theme engine sets; folders in
 # listings and the marks of fzf take the accent (shell.sh of the theme engine). Whoever has an
 # own lazygit config gets it as is.
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   branding = import ../../branding.nix;
   id = branding.id;
 
   # The settings of lazygit; the theme engine writes the colors beside them (lazygit.yml)
-  lazygitBase = pkgs.writeText "lazygit.yml" (builtins.toJSON {
-    disableStartupPopups = true;
-    notARepository = "skip";
-    promptToReturnFromSubprocess = false;
-    update.method = "never";
-    gui = {
-      showListFooter = false;
-      showRandomTip = false;
-      showCommandLog = false;
-      showBottomLine = false;
-      nerdFontsVersion = "3";
-    };
-  });
+  lazygitBase = pkgs.writeText "lazygit.yml" (
+    builtins.toJSON {
+      disableStartupPopups = true;
+      notARepository = "skip";
+      promptToReturnFromSubprocess = false;
+      update.method = "never";
+      gui = {
+        showListFooter = false;
+        showRandomTip = false;
+        showCommandLog = false;
+        showBottomLine = false;
+        nerdFontsVersion = "3";
+      };
+    }
+  );
 
   # Reads shell.sh of the session's theme, else of the machine's
   colors = ''

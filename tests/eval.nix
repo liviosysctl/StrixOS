@@ -2,14 +2,22 @@
 # Run with: nix flake check
 { self, pkgs }:
 
-
 let
   inherit (pkgs) lib;
   branding = import ../branding.nix;
   configs = self.nixosConfigurations;
   iso = configs."${branding.id}-iso".config;
   reference = configs."${branding.id}-reference";
-  gods = [ "apollo" "bacchus" "janus" "mars" "neptunus" "pluto" "saturnus" "vulcanus" ];
+  gods = [
+    "apollo"
+    "bacchus"
+    "janus"
+    "mars"
+    "neptunus"
+    "pluto"
+    "saturnus"
+    "vulcanus"
+  ];
 
   # A check passes if this derivation can be evaluated at all.
   ok = name: pkgs.runCommand "check-${name}" { } "touch $out";
@@ -57,7 +65,8 @@ in
     assert lib.elem "graphical-session.target" user."${branding.id}-installer-ui".wantedBy;
     assert lib.hasSuffix "-install --serve" user."${branding.id}-installer".serviceConfig.ExecStart;
     assert user."${branding.id}-installer-ui".serviceConfig.Restart == "always";
-    assert lib.hasInfix "-c ${branding.id}-installer" user."${branding.id}-installer-ui".serviceConfig.ExecStart;
+    assert lib.hasInfix "-c ${branding.id}-installer"
+      user."${branding.id}-installer-ui".serviceConfig.ExecStart;
     assert lib.hasInfix "^Installer$" iso.${branding.id}.desktop.extraConfig;
     assert !iso.programs.firefox.enable;
     assert !(lib.any (p: lib.hasPrefix "zen-beta" (p.name or "")) iso.environment.systemPackages);
@@ -148,7 +157,10 @@ in
     assert lib.hasSuffix "/qml" cfg.environment.sessionVariables.QML_IMPORT_PATH;
     pkgs.runCommand "check-ui"
       {
-        nativeBuildInputs = [ pkgs.quickshell pkgs.gnugrep ];
+        nativeBuildInputs = [
+          pkgs.quickshell
+          pkgs.gnugrep
+        ];
       }
       ''
         export HOME=$TMPDIR XDG_RUNTIME_DIR=$TMPDIR/run QT_QPA_PLATFORM=offscreen
@@ -197,14 +209,18 @@ in
     # The theme picker (and the Store) call /run/wrappers/bin/pkexec
     assert reference'.security.wrappers.pkexec.enable;
     # The shell and Search start programs by name: they need the session's PATH
-    assert lib.hasInfix "/run/current-system/sw/bin" reference'.systemd.user.services."${branding.id}-shell".environment.PATH;
-    assert lib.hasInfix "/run/current-system/sw/bin" reference'.systemd.user.services."${branding.id}-search".environment.PATH;
+    assert lib.hasInfix "/run/current-system/sw/bin"
+      reference'.systemd.user.services."${branding.id}-shell".environment.PATH;
+    assert lib.hasInfix "/run/current-system/sw/bin"
+      reference'.systemd.user.services."${branding.id}-search".environment.PATH;
     # Zen is the browser, the only one
     assert !reference'.programs.firefox.enable;
     assert reference'.xdg.mime.defaultApplications."x-scheme-handler/https" == "zen-beta.desktop";
     assert lib.any (p: lib.hasPrefix "zen-beta" (p.name or "")) reference'.environment.systemPackages;
     assert reference'.${branding.id}.desktop.greeter == "strix";
-    assert reference'.environment.sessionVariables.HYPRLAND_CONFIG == "/etc/xdg/${branding.id}/hypr/hyprland.lua";
+    assert
+      reference'.environment.sessionVariables.HYPRLAND_CONFIG
+      == "/etc/xdg/${branding.id}/hypr/hyprland.lua";
     assert reference'.systemd.user.services ? "${branding.id}-theme-session";
     assert lib.hasInfix "org.freedesktop.policykit.exec" reference'.security.polkit.extraConfig;
     # The laptop: power profiles, Bluetooth off until asked, the lid suspends unless docked
@@ -223,7 +239,10 @@ in
     assert lib.any (p: lib.getName p == "adw-gtk3") reference'.environment.systemPackages;
     pkgs.runCommand "check-desktop"
       {
-        nativeBuildInputs = [ reference'.programs.hyprland.package pkgs.gnugrep ];
+        nativeBuildInputs = [
+          reference'.programs.hyprland.package
+          pkgs.gnugrep
+        ];
       }
       ''
         export HOME=$TMPDIR XDG_RUNTIME_DIR=$TMPDIR/run
@@ -251,14 +270,21 @@ in
     assert cfg.services.upower.enable;
     pkgs.runCommand "check-shell"
       {
-        nativeBuildInputs = [ pkgs.quickshell pkgs.weston pkgs.gnugrep pkgs.coreutils ];
+        nativeBuildInputs = [
+          pkgs.quickshell
+          pkgs.weston
+          pkgs.gnugrep
+          pkgs.coreutils
+        ];
       }
       ''
         export HOME=$TMPDIR XDG_RUNTIME_DIR=$TMPDIR/run
         mkdir -p -m 0700 $XDG_RUNTIME_DIR $TMPDIR/xdg/quickshell
         cp -r ${../shell/qml} $TMPDIR/xdg/quickshell/${branding.id}
         # The greeter's folder as the system has it: shell/greeter with Owl.qml beside it
-        cp -rL ${cfg.environment.etc."xdg/quickshell/${branding.id}-greeter".source} $TMPDIR/xdg/quickshell/${branding.id}-greeter
+        cp -rL ${
+          cfg.environment.etc."xdg/quickshell/${branding.id}-greeter".source
+        } $TMPDIR/xdg/quickshell/${branding.id}-greeter
         weston --backend=headless --socket=wl-check --width=1280 --height=800 > weston.log 2>&1 &
         for _ in $(seq 50); do [ -S $XDG_RUNTIME_DIR/wl-check ] && break; sleep 0.2; done
         WAYLAND_DISPLAY=wl-check XDG_CONFIG_DIRS=$TMPDIR/xdg QT_QPA_PLATFORM=wayland \
@@ -309,12 +335,11 @@ in
       unit = "${branding.id}-theme-boot";
     in
     assert cfg.boot.plymouth.theme == "${branding.id}-saturnus-dark";
-    assert lib.all (name: lib.elem name names) (
-      map (god: "${branding.id}-${god}-dark") gods
-    );
+    assert lib.all (name: lib.elem name names) (map (god: "${branding.id}-${god}-dark") gods);
     assert cfg.boot.initrd.systemd.services ? ${unit};
     assert lib.elem "plymouth-start.service" cfg.boot.initrd.systemd.services.${unit}.before;
-    assert cfg.environment.etc."plymouth/plymouthd.conf".source == "/run/${branding.id}/theme/plymouthd.conf";
+    assert
+      cfg.environment.etc."plymouth/plymouthd.conf".source == "/run/${branding.id}/theme/plymouthd.conf";
     assert cfg.systemd.services."${branding.id}-theme".environment ? EFI_VARIABLE;
     ok "theme-splash";
 
@@ -323,17 +348,26 @@ in
     assert lib.elem "/share/bash-completion" reference.config.environment.pathsToLink;
     pkgs.runCommand "check-theme-completion"
       {
-        nativeBuildInputs = with pkgs; [ bash coreutils zsh fish ];
+        nativeBuildInputs = with pkgs; [
+          bash
+          coreutils
+          zsh
+          fish
+        ];
       }
       ''
         export HOME=$TMPDIR
-        bash ${./completion.sh} ${reference.config.${branding.id}.theme.package} ${branding.id}-theme | tee $out
+        bash ${./completion.sh} ${
+          reference.config.${branding.id}.theme.package
+        } ${branding.id}-theme | tee $out
       '';
 
   # Another default theme changes the splash, its default variant is used
   theme-default =
     let
-      with' = default: (reference.extendModules { modules = [ { ${branding.id}.theme.default = default; } ]; }).config;
+      with' =
+        default:
+        (reference.extendModules { modules = [ { ${branding.id}.theme.default = default; } ]; }).config;
     in
     assert (with' "janus").boot.plymouth.theme == "${branding.id}-janus-dark";
     assert (with' "pluto:dark").boot.plymouth.theme == "${branding.id}-pluto-dark";
@@ -362,7 +396,13 @@ in
   update-tool =
     pkgs.runCommand "check-update-tool"
       {
-        nativeBuildInputs = with pkgs; [ bash coreutils util-linux diffutils jq ];
+        nativeBuildInputs = with pkgs; [
+          bash
+          coreutils
+          util-linux
+          diffutils
+          jq
+        ];
       }
       ''
         bash ${./update.sh} ${../modules/core/tools/common.sh} ${../modules/core/tools/update.sh} | tee $out
@@ -372,10 +412,12 @@ in
   update-tool-build = reference.config.system.build.distroTools.update;
 
   # A default theme that does not exist stops the build
-  theme-default-unknown = mustFail "theme-default-unknown" (toplevelWith { ${branding.id}.theme.default = "nope"; });
-  theme-default-unknown-variant = mustFail "theme-default-unknown-variant" (
-    toplevelWith { ${branding.id}.theme.default = "janus:light"; }
-  );
+  theme-default-unknown = mustFail "theme-default-unknown" (toplevelWith {
+    ${branding.id}.theme.default = "nope";
+  });
+  theme-default-unknown-variant = mustFail "theme-default-unknown-variant" (toplevelWith {
+    ${branding.id}.theme.default = "janus:light";
+  });
 
   # The ISO: console colors and the command, but no splash and so no EFI variable
   theme-iso =
@@ -432,7 +474,8 @@ in
   # Turned off, nothing of it is left in the boot loader install
   secure-boot-off =
     let
-      cfg = (reference.extendModules { modules = [ { ${branding.id}.secureBoot.enable = false; } ]; }).config;
+      cfg =
+        (reference.extendModules { modules = [ { ${branding.id}.secureBoot.enable = false; } ]; }).config;
     in
     assert !lib.hasInfix "secure-boot" cfg.boot.loader.grub.extraInstallCommands;
     ok "secure-boot-off";
@@ -457,7 +500,9 @@ in
     # No picture of NixOS before a video mode is set, no search that probes every disk
     assert grub.splashImage == null && grub.fsIdentifier == "provided";
     assert lib.hasInfix "theme/theme.txt" grub.extraConfig;
-    assert cfg.systemd.paths."${branding.id}-grub-theme".pathConfig.PathChanged == "/run/${branding.id}/theme/tokens.json";
+    assert
+      cfg.systemd.paths."${branding.id}-grub-theme".pathConfig.PathChanged
+      == "/run/${branding.id}/theme/tokens.json";
     assert lib.hasSuffix "${branding.id}-saturnus-dark" iso.isoImage.grubTheme.name;
     # What runs after GRUB is installed finds its tools with no PATH at all, as under
     # switch-to-configuration. There is no ESP here, so the scripts may fail, but never for a

@@ -1,5 +1,10 @@
 # Sound: PipeWire, also for apps that speak ALSA or PulseAudio.
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   branding = import ../../branding.nix;

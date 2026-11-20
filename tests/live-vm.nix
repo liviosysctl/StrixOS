@@ -28,7 +28,11 @@ pkgs.testers.runNixOSTest {
       # As on the ISO (installation-device.nix): the live user, sudo without a password
       users.users.nixos = {
         isNormalUser = true;
-        extraGroups = [ "wheel" "networkmanager" "video" ];
+        extraGroups = [
+          "wheel"
+          "networkmanager"
+          "video"
+        ];
         initialHashedPassword = "";
       };
       security.sudo.wheelNeedsPassword = false;

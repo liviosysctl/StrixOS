@@ -1,6 +1,11 @@
 # What every app looks like before the theme colors it: the pointer, the symbols, the fonts, dark
 # GTK and Qt. GTK and Qt apps then take the colors of the session's theme from its files.
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   branding = import ../../branding.nix;
@@ -36,7 +41,10 @@ in
 
     # Noto for text in every script; Geist Mono with the Nerd Font icons for the terminal and its
     # prompt
-    fonts.packages = [ pkgs.noto-fonts pkgs.nerd-fonts.geist-mono ];
+    fonts.packages = [
+      pkgs.noto-fonts
+      pkgs.nerd-fonts.geist-mono
+    ];
 
     environment.systemPackages =
       with pkgs;

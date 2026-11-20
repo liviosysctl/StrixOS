@@ -1,5 +1,10 @@
 # Bluetooth of Settings and the bar, and Tailscale from the Wi-Fi panel.
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   branding = import ../../branding.nix;
@@ -10,7 +15,12 @@ let
   # opens the page where the machine joins the tailnet.
   tailnetCommand = pkgs.writeShellApplication {
     name = "${id}-tailnet";
-    runtimeInputs = [ config.services.tailscale.package pkgs.jq pkgs.xdg-utils pkgs.libnotify ];
+    runtimeInputs = [
+      config.services.tailscale.package
+      pkgs.jq
+      pkgs.xdg-utils
+      pkgs.libnotify
+    ];
     text = ''
       state() { tailscale status --json 2>/dev/null | jq -r '.BackendState // "Stopped"' || echo Stopped; }
       case "''${1:-state}" in

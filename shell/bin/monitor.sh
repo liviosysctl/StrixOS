@@ -4,7 +4,7 @@
 
 class="$ID.monitor"
 if hyprctl -j clients | jq -e --arg class "$class" 'any(.[]; .class == $class)' >/dev/null; then
-    exec hyprctl dispatch "hl.dsp.focus({ window = \"class:^$class\$\" })"
+  exec hyprctl dispatch "hl.dsp.focus({ window = \"class:^$class\$\" })"
 fi
 
 # The theme engine writes btop.theme next to Ghostty's colors: the session's, else the machine's.
@@ -15,13 +15,13 @@ config="${XDG_CONFIG_HOME:-$HOME/.config}/btop"
 mkdir -p "$config/themes"
 ln -sfn "$theme" "$config/themes/$ID.theme"
 if [ ! -f "$config/btop.conf" ]; then
-    printf '%s\n' \
-        "color_theme = \"$ID\"" \
-        'theme_background = False' \
-        'rounded_corners = False' \
-        'graph_symbol = "braille"' >"$config/btop.conf"
+  printf '%s\n' \
+    "color_theme = \"$ID\"" \
+    'theme_background = False' \
+    'rounded_corners = False' \
+    'graph_symbol = "braille"' >"$config/btop.conf"
 else
-    sed -i "s|^color_theme = .*|color_theme = \"$ID\"|" "$config/btop.conf"
+  sed -i "s|^color_theme = .*|color_theme = \"$ID\"|" "$config/btop.conf"
 fi
 
 exec uwsm app -- ghostty --class="$class" --title="System monitor" -e btop

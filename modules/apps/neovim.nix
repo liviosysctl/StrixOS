@@ -11,7 +11,12 @@
 # machine is a key away (Space n), and saving a file of root asks for the
 # password. That part steps aside as soon as there is an init.lua in
 # ~/.config/nvim.
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   branding = import ../../branding.nix;

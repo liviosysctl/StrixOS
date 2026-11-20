@@ -5,7 +5,12 @@
 # `fastfetch` is a wrapper that reads the current theme from tokens.json (the session's, else the
 # machine's) and passes its owl; without one it shows the default theme. Ghostty shows
 # the image through the kitty image protocol. Whoever has an own fastfetch config gets it as is.
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   branding = import ../../branding.nix;
@@ -49,7 +54,9 @@ let
     keyColor = "cyan";
     format = " ";
   };
-  entry = type: key: keyColor: extra: { inherit type key keyColor; } // extra;
+  entry =
+    type: key: keyColor: extra:
+    { inherit type key keyColor; } // extra;
 in
 # The owls come from the theme engine
 lib.mkIf theme.enable {

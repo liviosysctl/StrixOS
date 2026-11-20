@@ -4,7 +4,13 @@
 # Zen into $XDG_RUNTIME_DIR/<id>/theme and reloads Hyprland, Ghostty and btop. Choosing a theme
 # by hand in the picker sets the machine's theme through pkexec; polkit lets the active local
 # session do that, and only that, without a password.
-{ config, lib, pkgs, distroFlake, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  distroFlake,
+  ...
+}:
 
 let
   branding = import ../../branding.nix;

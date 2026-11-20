@@ -4,7 +4,11 @@
 # The theme engine draws it (render owl), rsvg-convert makes the PNGs.
 # fastfetch shows the one of the session's theme (modules/apps/fastfetch.nix), the lock screen
 # (shell/qml/Owl.qml) and the boot splash (packages/plymouth-theme) blink with them.
-{ lib, runCommand, librsvg }:
+{
+  lib,
+  runCommand,
+  librsvg,
+}:
 
 {
   # The theme engine, the checked themes folder and its variants (lib/themes.nix)
