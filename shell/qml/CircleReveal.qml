@@ -1,6 +1,6 @@
 // A new wallpaper that grows as a circle from `origin` over what lies below it (Theme apply in
 // motion.md). play() waits until the picture is loaded, so the circle never shows an empty frame;
-// it stays covering everything once grown, until clear().
+// it stays covering everything once grown, until clear(), which also lets go of the picture.
 import QtQuick
 import QtQuick.Effects
 import Strix
@@ -9,6 +9,8 @@ Item {
     id: root
 
     property url source
+    /// Decodes the picture smaller than the file, where it is only seen dimmed
+    property alias sourceSize: image.sourceSize
     property point origin: Qt.point(width / 2, height / 2)
     property real progress: 0
     readonly property bool busy: grow.running || waiting
@@ -34,6 +36,7 @@ Item {
         grow.stop()
         root.waiting = false
         root.progress = 0
+        root.source = ""
     }
 
     function start() {

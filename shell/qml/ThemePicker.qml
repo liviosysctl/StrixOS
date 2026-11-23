@@ -4,7 +4,10 @@
 // choice; Enter sets the machine's theme, which the boot splash follows too.
 //
 // Super G opens it (ipc: theme picker). Left and Right or the wheel browse, Space (or
-// Enter) or a click on the middle plate chooses, K keeps, Esc closes.
+// Enter) or a click on the middle plate chooses, K keeps, Super L turns dark to light and
+// back, Esc closes.
+// It holds its pictures only while it is open, and the ones that are seen small or dimmed are
+// decoded small: closed, the picker costs no memory worth naming.
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -39,9 +42,12 @@ Scope {
     }
     readonly property var shown: root.themes[root.selected] || null
 
-    function picture(t) {
+    /// The engraving of a theme, in the variant given or else the one that is on
+    function picture(t, kind) {
         if (!t) return ""
-        return Theme.gods[t.id] ? Theme.wallpaper(t.id) : "file://" + t.dir + "/wallpaper.jpg"
+        if (!Theme.gods[t.id]) return "file://" + t.dir + "/wallpaper.jpg"
+        const file = Theme.gods[t.id].wallpaper
+        return Theme.wallpapers + ((kind || Theme.variant) === "light" ? file.replace(".jpg", "-light.jpg") : file)
     }
 
     function take(s) {
@@ -58,6 +64,7 @@ Scope {
         root.error = ""
         root.applying = false
         reveal.clear()
+        turn.clear()
         root.browsed = false
         const at = root.state ? root.themes.findIndex(t => t.id === root.state.theme) : -1
         root.selected = at < 0 ? 0 : at
@@ -98,8 +105,13 @@ Scope {
         return plate ? plate.mapToItem(reveal, plate.width / 2, plate.height / 2) : null
     }
 
-    /// Dark or light: the theme stays, its other variant comes, and every god after it in the same
+    /// Dark or light: the theme stays, its other variant comes, and every god after it in the
+    /// same. With the picker open the other engraving grows as a circle from the middle plate
+    /// over the one behind the plates, as a chosen theme does over the desktop
     function variant(kind) {
+        const now = root.state ? root.state.variant : Theme.variant
+        if (root.open && !root.applying && root.shown && kind !== now && (root.shown.variants || []).indexOf(kind) >= 0)
+            turn.play(root.middle() || Qt.point(turn.width / 2, turn.height / 2), root.picture(root.shown, kind))
         service.call("variant", { variant: kind }, s => root.take(s))
     }
 
@@ -134,11 +146,12 @@ Scope {
         onConnectedChanged: if (connected) root.refresh()
     }
 
-    // The time to the next turn, between two answers of the service
+    // The time to the next turn, between two answers of the service. Only the open picker shows
+    // it; show() asks the service again
     Timer {
         interval: 1000
         repeat: true
-        running: root.state !== null
+        running: root.open && root.state !== null
         onTriggered: {
             if (root.remaining > 0) root.remaining -= 1
             else root.refresh()
@@ -179,7 +192,16 @@ Scope {
 
         // Opens with a fade while the plates rise into place; after a theme is applied it fades
         // over the desktop, which already shows the new theme
-        Presence { id: presence; open: root.open; leaveDuration: Theme.durBase }
+        Presence {
+            id: presence
+            open: root.open
+            leaveDuration: Theme.durBase
+            // Gone from the screen, it lets go of every picture
+            onPresentChanged: if (!present) {
+                reveal.clear()
+                turn.clear()
+            }
+        }
 
         Item {
             id: scene
@@ -193,7 +215,7 @@ Scope {
             Item {
                 id: backdrop
                 anchors.fill: parent
-                readonly property url wanted: root.picture(root.shown)
+                readonly property url wanted: presence.present ? root.picture(root.shown) : ""
                 /// What it shows. It follows `wanted` once browsing rests: held keys turn the
                 /// plates only, and the engraving behind comes with the plate they stop at
                 property url target: wanted
@@ -201,6 +223,11 @@ Scope {
                 property bool upper: false
                 onWantedChanged: rest.restart()
                 onTargetChanged: {
+                    if (backdrop.target.toString() === "") {
+                        lower.source = ""
+                        over.source = ""
+                        return
+                    }
                     if (backdrop.upper) lower.source = backdrop.target
                     else over.source = backdrop.target
                     backdrop.upper = !backdrop.upper
@@ -209,16 +236,58 @@ Scope {
                 Timer {
                     id: rest
                     interval: root.browsed ? Theme.durBase : 1
-                    onTriggered: backdrop.target = backdrop.wanted
+                    // Dark to light waits for its circle, which brings the picture itself
+                    onTriggered: if (!turn.busy) backdrop.target = backdrop.wanted
                 }
 
-                Wallpaper { id: lower; anchors.fill: parent; dim: true }
+                // Dimmed and a little blurred, half the size of the file is all that is seen
+                Wallpaper { id: lower; anchors.fill: parent; dim: true; sourceSize: Qt.size(0, 720) }
                 Wallpaper {
                     id: over
                     anchors.fill: parent
                     dim: true
+                    sourceSize: Qt.size(0, 720)
                     opacity: backdrop.upper ? 1 : 0
                     Behavior on opacity { NumberAnimation { duration: Theme.durSlow; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeInOut } }
+                }
+
+                // Dark to light and back: the other engraving grows from the middle plate, as dim
+                // as the one it covers. Grown, it stays until the layers below show the same
+                CircleReveal {
+                    id: turn
+                    anchors.fill: parent
+                    sourceSize: Qt.size(0, 720)
+                    onFinished: {
+                        backdrop.target = backdrop.wanted
+                        settle.tries = 0
+                        settle.restart()
+                    }
+                }
+                Rectangle {
+                    readonly property real r: turn.progress * turn.reach
+                    visible: turn.progress > 0
+                    x: turn.origin.x - r
+                    y: turn.origin.y - r
+                    width: 2 * r
+                    height: 2 * r
+                    radius: r
+                    color: "black"
+                    opacity: 1 - Theme.dimWallpaper
+                }
+                Timer {
+                    id: settle
+                    property int tries: 0
+                    // The time the layers below take to fade to the new picture
+                    interval: Theme.durSlow
+                    onTriggered: {
+                        // The service has not answered yet: the old variant is still below
+                        if (backdrop.target.toString() !== turn.source.toString() && ++tries < 8) {
+                            backdrop.target = backdrop.wanted
+                            restart()
+                        } else {
+                            turn.clear()
+                        }
+                    }
                 }
             }
 
@@ -278,7 +347,7 @@ Scope {
                                 required property var modelData
                                 required property int index
                                 anchors.verticalCenter: parent.verticalCenter
-                                source: root.picture(modelData)
+                                source: presence.present ? root.picture(modelData) : ""
                                 name: modelData.name
                                 accent: modelData.accent || Theme.accent
                                 selected: index === root.selected

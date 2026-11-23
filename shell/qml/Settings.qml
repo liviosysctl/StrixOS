@@ -40,6 +40,7 @@ Scope {
     function show(page, row) {
         root.page = root.pages.some(p => p.id === page) ? page : "home"
         root.row = row || ""
+        root.used = true
         root.open = true
         root.refresh()
     }
@@ -111,307 +112,314 @@ Scope {
         function repositories(): int { return root.repos.length }
     }
 
-    FloatingWindow {
-        visible: root.open
-        title: "Settings"
-        implicitWidth: 920
-        implicitHeight: 620
-        // Smoked glass: the compositor blurs what lies behind the window
-        color: Theme.smoke(Theme.surface)
-        onVisibleChanged: if (!visible) root.open = false
+    // The window and its pages are built the first time Settings is opened, not with the shell:
+    // most sessions never see them
+    property bool used: false
+    LazyLoader {
+        active: root.used
 
-        Row {
-            anchors.fill: parent
+        FloatingWindow {
+            visible: root.open
+            title: "Settings"
+            implicitWidth: 920
+            implicitHeight: 620
+            // Smoked glass: the compositor blurs what lies behind the window
+            color: Theme.smoke(Theme.surface)
+            onVisibleChanged: if (!visible) root.open = false
 
-            // The pages; the first page has them as cards instead
-            Rectangle {
-                visible: root.page !== "home"
-                width: 220
-                height: parent.height
-                // A well in the glass of the window, as the cards are
-                color: Theme.alpha(Theme.text, 0.04)
-                Column {
-                    anchors { fill: parent; margins: Theme.space2 }
-                    spacing: Theme.space1
-                    // The title leads back to the first page
-                    Label {
-                        x: Theme.space2
-                        textStyle: "title"
-                        color: Theme.text
-                        text: "Settings"
-                        bottomPadding: Theme.space2
-                        HoverHandler { cursorShape: Qt.PointingHandCursor }
-                        TapHandler { onTapped: root.page = "home" }
-                    }
-                    // The selection glides from page to page
-                    Item {
-                        width: parent.width
-                        height: nav.height
-                        // count: the rows are made after this binding is first read
-                        Glide { target: navRows.count > 0 ? navRows.itemAt(root.pages.findIndex(p => p.id === root.page)) : null }
-                        Column {
-                            id: nav
+            Row {
+                anchors.fill: parent
+
+                // The pages; the first page has them as cards instead
+                Rectangle {
+                    visible: root.page !== "home"
+                    width: 220
+                    height: parent.height
+                    // A well in the glass of the window, as the cards are
+                    color: Theme.alpha(Theme.text, 0.04)
+                    Column {
+                        anchors { fill: parent; margins: Theme.space2 }
+                        spacing: Theme.space1
+                        // The title leads back to the first page
+                        Label {
+                            x: Theme.space2
+                            textStyle: "title"
+                            color: Theme.text
+                            text: "Settings"
+                            bottomPadding: Theme.space2
+                            HoverHandler { cursorShape: Qt.PointingHandCursor }
+                            TapHandler { onTapped: root.page = "home" }
+                        }
+                        // The selection glides from page to page
+                        Item {
                             width: parent.width
-                            spacing: Theme.space1
-                            Repeater {
-                                id: navRows
-                                model: root.pages
-                                ListRow {
-                                    required property var modelData
-                                    width: parent.width
-                                    text: modelData.title
-                                    iconName: modelData.icon
-                                    selected: root.page === modelData.id
-                                    glide: true
-                                    onClicked: root.page = modelData.id
+                            height: nav.height
+                            // count: the rows are made after this binding is first read
+                            Glide { target: navRows.count > 0 ? navRows.itemAt(root.pages.findIndex(p => p.id === root.page)) : null }
+                            Column {
+                                id: nav
+                                width: parent.width
+                                spacing: Theme.space1
+                                Repeater {
+                                    id: navRows
+                                    model: root.pages
+                                    ListRow {
+                                        required property var modelData
+                                        width: parent.width
+                                        text: modelData.title
+                                        iconName: modelData.icon
+                                        selected: root.page === modelData.id
+                                        glide: true
+                                        onClicked: root.page = modelData.id
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
 
-            Flickable {
-                width: parent.width - (root.page !== "home" ? 220 : 0)
-                height: parent.height
-                contentHeight: content.implicitHeight + 2 * Theme.space5
-                clip: true
+                Flickable {
+                    width: parent.width - (root.page !== "home" ? 220 : 0)
+                    height: parent.height
+                    contentHeight: content.implicitHeight + 2 * Theme.space5
+                    clip: true
 
-                Column {
-                    id: content
-                    x: Theme.space5
-                    y: Theme.space5
-                    // A new page comes in from the side it lies on in the list
-                    transform: Translate { id: pageShift }
-                    property int lastIndex: 0
-                    Connections {
-                        target: root
-                        function onPageChanged() {
-                            const now = root.pages.findIndex(p => p.id === root.page)
-                            pageIn.direction = now >= content.lastIndex ? 1 : -1
-                            content.lastIndex = now
-                            pageIn.restart()
-                        }
-                    }
-                    ParallelAnimation {
-                        id: pageIn
-                        property int direction: 1
-                        NumberAnimation { target: pageShift; property: "y"; from: pageIn.direction * Theme.space3; to: 0; duration: Theme.durBase; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOut }
-                        NumberAnimation { target: content; property: "opacity"; from: 0; to: 1; duration: Theme.durBase; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOut }
-                    }
-                    width: parent.width - 2 * Theme.space5
-                    spacing: Theme.space4
-
-                    // ------------------------------------------------ the first page
                     Column {
-                        visible: root.page === "home"
-                        width: parent.width
-                        spacing: Theme.space1
-
-                        Label { textStyle: "title"; color: Theme.text; text: "Settings" }
-                        Label {
-                            width: parent.width
-                            textStyle: "caption"
-                            color: Theme.textFaint
-                            bottomPadding: Theme.space3
-                            text: root.version + ". Search finds every single setting by its name."
-                        }
-                        // A card for every page
-                        Grid {
-                            id: cards
-                            width: parent.width
-                            columns: 3
-                            spacing: Theme.space3
-                            Repeater {
-                                model: root.pages
-                                Item {
-                                    id: tile
-                                    required property var modelData
-                                    width: (cards.width - 2 * cards.spacing) / 3
-                                    height: 96
-                                    Card {
-                                        anchors.fill: parent
-                                        interactive: true
-                                        title: tile.modelData.title
-                                        text: tile.modelData.about
-                                        onClicked: root.page = tile.modelData.id
-                                    }
-                                    Icon {
-                                        anchors { right: parent.right; rightMargin: Theme.space3; top: parent.top; topMargin: Theme.space3 }
-                                        name: tile.modelData.icon
-                                        color: Theme.textMuted
-                                    }
-                                }
+                        id: content
+                        x: Theme.space5
+                        y: Theme.space5
+                        // A new page comes in from the side it lies on in the list
+                        transform: Translate { id: pageShift }
+                        property int lastIndex: 0
+                        Connections {
+                            target: root
+                            function onPageChanged() {
+                                const now = root.pages.findIndex(p => p.id === root.page)
+                                pageIn.direction = now >= content.lastIndex ? 1 : -1
+                                content.lastIndex = now
+                                pageIn.restart()
                             }
                         }
-                    }
+                        ParallelAnimation {
+                            id: pageIn
+                            property int direction: 1
+                            NumberAnimation { target: pageShift; property: "y"; from: pageIn.direction * Theme.space3; to: 0; duration: Theme.durBase; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOut }
+                            NumberAnimation { target: content; property: "opacity"; from: 0; to: 1; duration: Theme.durBase; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOut }
+                        }
+                        width: parent.width - 2 * Theme.space5
+                        spacing: Theme.space4
 
-                    // ------------------------------------------------ Themes
-                    Column {
-                        visible: root.page === "themes"
-                        width: parent.width
-                        spacing: Theme.space2
-
-                        Label { textStyle: "title"; color: Theme.text; text: "Themes" }
-
-                        SettingRow {
+                        // ------------------------------------------------ the first page
+                        Column {
+                            visible: root.page === "home"
                             width: parent.width
-                            title: "Theme"
-                            text: root.themeState
-                                ? "The machine starts with " + (root.themeState.system || "").split(":")[0]
-                                  + "; this session shows " + root.themeState.theme
-                                : "The theme service of the session is not running"
-                            Button {
-                                text: "Choose a theme"
-                                onClicked: { root.open = false; if (root.picker) root.picker.show() }
+                            spacing: Theme.space1
+
+                            Label { textStyle: "title"; color: Theme.text; text: "Settings" }
+                            Label {
+                                width: parent.width
+                                textStyle: "caption"
+                                color: Theme.textFaint
+                                bottomPadding: Theme.space3
+                                text: root.version + ". Search finds every single setting by its name."
                             }
-                        }
-
-                        SettingRow {
-                            width: parent.width
-                            title: "Keep this theme"
-                            text: "No change to another god every 10 minutes"
-                            Switch {
-                                checked: !!(root.themeState && root.themeState.keep)
-                                enabled: root.themeState !== null
-                                onToggled: themes.call("keep", { keep: checked }, s => root.themeState = s)
-                            }
-                        }
-
-                        Item { width: 1; height: Theme.space4 }
-                        Label { textStyle: "subtitle"; color: Theme.text; text: "Theme repositories" }
-                        Label {
-                            width: parent.width
-                            wrapMode: Text.WordWrap
-                            textStyle: "caption"
-                            color: Theme.textMuted
-                            text: "Themes from outside, in Git repositories with the layout of strix-theme-template. Every update fetches them; a commit that fails the check is not taken. They stay out of the change of gods until it is turned on for their repository."
-                                  + (root.admin ? "" : " Only an administrator can change them.")
-                        }
-
-                        Label {
-                            visible: root.repos.length === 0
-                            textStyle: "body"
-                            color: Theme.textFaint
-                            text: "No theme repository is connected."
-                        }
-
-                        Repeater {
-                            model: root.repos
-                            Card {
-                                required property var modelData
-                                width: content.width
-                                title: modelData.name || modelData.url
-                                text: modelData.url + "\n" + "commit " + (modelData.rev || "-").slice(0, 7)
-                                      + " · " + (modelData.themes || []).join(", ")
-                                Column {
-                                    width: parent.width
-                                    spacing: Theme.space2
-                                    Label {
-                                        visible: !!modelData.problem
-                                        width: parent.width
-                                        wrapMode: Text.WordWrap
-                                        textStyle: "caption"
-                                        color: Theme.error
-                                        text: modelData.problem || ""
-                                    }
-                                    Row {
-                                        spacing: Theme.space2
-                                        Label {
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            textStyle: "caption"
+                            // A card for every page
+                            Grid {
+                                id: cards
+                                width: parent.width
+                                columns: 3
+                                spacing: Theme.space3
+                                Repeater {
+                                    model: root.pages
+                                    Item {
+                                        id: tile
+                                        required property var modelData
+                                        width: (cards.width - 2 * cards.spacing) / 3
+                                        height: 96
+                                        Card {
+                                            anchors.fill: parent
+                                            interactive: true
+                                            title: tile.modelData.title
+                                            text: tile.modelData.about
+                                            onClicked: root.page = tile.modelData.id
+                                        }
+                                        Icon {
+                                            anchors { right: parent.right; rightMargin: Theme.space3; top: parent.top; topMargin: Theme.space3 }
+                                            name: tile.modelData.icon
                                             color: Theme.textMuted
-                                            text: "In the change of gods"
-                                        }
-                                        Switch {
-                                            checked: !!modelData.cycle
-                                            enabled: root.admin
-                                            onToggled: root.asRoot("sudo strix-theme repos cycle " + root.quoted(modelData.url)
-                                                + (checked ? " on" : " off"))
-                                        }
-                                    }
-                                    Row {
-                                        visible: root.admin
-                                        spacing: Theme.space2
-                                        Button {
-                                            text: "Update now"
-                                            onClicked: root.asRoot("sudo strix-update --themes " + root.quoted(modelData.name || modelData.url))
-                                        }
-                                        Button {
-                                            variant: "danger"
-                                            text: "Remove"
-                                            onClicked: root.asRoot("sudo strix-theme repos remove " + root.quoted(modelData.url)
-                                                + " && sudo strix-rebuild switch")
                                         }
                                     }
                                 }
                             }
                         }
 
-                        Row {
-                            visible: root.admin
+                        // ------------------------------------------------ Themes
+                        Column {
+                            visible: root.page === "themes"
                             width: parent.width
                             spacing: Theme.space2
-                            TextField {
-                                id: address
-                                width: parent.width - connect.width - Theme.space2
-                                placeholderText: "owner/strix-theme-name or an https:// address"
-                                onAccepted: connect.clicked()
+
+                            Label { textStyle: "title"; color: Theme.text; text: "Themes" }
+
+                            SettingRow {
+                                width: parent.width
+                                title: "Theme"
+                                text: root.themeState
+                                    ? "The machine starts with " + (root.themeState.system || "").split(":")[0]
+                                      + "; this session shows " + root.themeState.theme
+                                    : "The theme service of the session is not running"
+                                Button {
+                                    text: "Choose a theme"
+                                    onClicked: { root.open = false; if (root.picker) root.picker.show() }
+                                }
                             }
-                            Button {
-                                id: connect
-                                text: "Connect"
-                                variant: "primary"
-                                enabled: address.text.trim() !== ""
-                                onClicked: {
-                                    root.asRoot("sudo strix-theme repos add " + root.quoted(address.text.trim())
-                                        + " && sudo strix-rebuild switch")
-                                    address.text = ""
+
+                            SettingRow {
+                                width: parent.width
+                                title: "Keep this theme"
+                                text: "No change to another god every 10 minutes"
+                                Switch {
+                                    checked: !!(root.themeState && root.themeState.keep)
+                                    enabled: root.themeState !== null
+                                    onToggled: themes.call("keep", { keep: checked }, s => root.themeState = s)
+                                }
+                            }
+
+                            Item { width: 1; height: Theme.space4 }
+                            Label { textStyle: "subtitle"; color: Theme.text; text: "Theme repositories" }
+                            Label {
+                                width: parent.width
+                                wrapMode: Text.WordWrap
+                                textStyle: "caption"
+                                color: Theme.textMuted
+                                text: "Themes from outside, in Git repositories with the layout of strix-theme-template. Every update fetches them; a commit that fails the check is not taken. They stay out of the change of gods until it is turned on for their repository."
+                                      + (root.admin ? "" : " Only an administrator can change them.")
+                            }
+
+                            Label {
+                                visible: root.repos.length === 0
+                                textStyle: "body"
+                                color: Theme.textFaint
+                                text: "No theme repository is connected."
+                            }
+
+                            Repeater {
+                                model: root.repos
+                                Card {
+                                    required property var modelData
+                                    width: content.width
+                                    title: modelData.name || modelData.url
+                                    text: modelData.url + "\n" + "commit " + (modelData.rev || "-").slice(0, 7)
+                                          + " · " + (modelData.themes || []).join(", ")
+                                    Column {
+                                        width: parent.width
+                                        spacing: Theme.space2
+                                        Label {
+                                            visible: !!modelData.problem
+                                            width: parent.width
+                                            wrapMode: Text.WordWrap
+                                            textStyle: "caption"
+                                            color: Theme.error
+                                            text: modelData.problem || ""
+                                        }
+                                        Row {
+                                            spacing: Theme.space2
+                                            Label {
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                textStyle: "caption"
+                                                color: Theme.textMuted
+                                                text: "In the change of gods"
+                                            }
+                                            Switch {
+                                                checked: !!modelData.cycle
+                                                enabled: root.admin
+                                                onToggled: root.asRoot("sudo strix-theme repos cycle " + root.quoted(modelData.url)
+                                                    + (checked ? " on" : " off"))
+                                            }
+                                        }
+                                        Row {
+                                            visible: root.admin
+                                            spacing: Theme.space2
+                                            Button {
+                                                text: "Update now"
+                                                onClicked: root.asRoot("sudo strix-update --themes " + root.quoted(modelData.name || modelData.url))
+                                            }
+                                            Button {
+                                                variant: "danger"
+                                                text: "Remove"
+                                                onClicked: root.asRoot("sudo strix-theme repos remove " + root.quoted(modelData.url)
+                                                    + " && sudo strix-rebuild switch")
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            Row {
+                                visible: root.admin
+                                width: parent.width
+                                spacing: Theme.space2
+                                TextField {
+                                    id: address
+                                    width: parent.width - connect.width - Theme.space2
+                                    placeholderText: "owner/strix-theme-name or an https:// address"
+                                    onAccepted: connect.clicked()
+                                }
+                                Button {
+                                    id: connect
+                                    text: "Connect"
+                                    variant: "primary"
+                                    enabled: address.text.trim() !== ""
+                                    onClicked: {
+                                        root.asRoot("sudo strix-theme repos add " + root.quoted(address.text.trim())
+                                            + " && sudo strix-rebuild switch")
+                                        address.text = ""
+                                    }
                                 }
                             }
                         }
-                    }
 
-                    SettingsNetwork { visible: root.page === "network"; active: root.open && visible; width: parent.width }
-                    SettingsBluetooth { visible: root.page === "bluetooth"; active: root.open && visible; width: parent.width }
-                    SettingsSound { visible: root.page === "sound"; width: parent.width }
-                    SettingsDisplay { visible: root.page === "display"; width: parent.width }
-                    SettingsInput { visible: root.page === "input"; width: parent.width }
-                    SettingsPower { visible: root.page === "power"; active: root.open && visible; width: parent.width }
-                    SettingsHotkeys { visible: root.page === "hotkeys"; active: root.open && visible; width: parent.width }
+                        SettingsNetwork { visible: root.page === "network"; active: root.open && visible; width: parent.width }
+                        SettingsBluetooth { visible: root.page === "bluetooth"; active: root.open && visible; width: parent.width }
+                        SettingsSound { visible: root.page === "sound"; width: parent.width }
+                        SettingsDisplay { visible: root.page === "display"; width: parent.width }
+                        SettingsInput { visible: root.page === "input"; width: parent.width }
+                        SettingsPower { visible: root.page === "power"; active: root.open && visible; width: parent.width }
+                        SettingsHotkeys { visible: root.page === "hotkeys"; active: root.open && visible; width: parent.width }
 
-                    SettingsVersions {
-                        visible: root.page === "versions"
-                        active: root.open && visible
-                        width: parent.width
-                        onRun: script => root.asRoot(script)
-                    }
-
-                    // ------------------------------------------------ About
-                    Column {
-                        visible: root.page === "about"
-                        width: parent.width
-                        spacing: Theme.space2
-
-                        Label { textStyle: "title"; color: Theme.text; text: "About" }
-                        Row {
-                            spacing: Theme.space4
-                            // The owl in the colours of the god shown; a click makes it blink
-                            Owl {
-                                id: aboutOwl
-                                dir: Quickshell.env("STRIX_LOGOS") || ""
-                                width: 96
-                                height: 96
-                                MouseArea { anchors.fill: parent; onClicked: aboutOwl.blink() }
-                            }
-                            Wordmark { anchors.verticalCenter: parent.verticalCenter }
-                        }
-                        SettingRow { width: parent.width; title: "Version"; text: root.version }
-                        SettingRow {
+                        SettingsVersions {
+                            visible: root.page === "versions"
+                            active: root.open && visible
                             width: parent.width
-                            title: "Update"
-                            text: "Fetch the newest release and every theme repository"
-                            Button { text: "Update now"; onClicked: root.asRoot("sudo strix-update") }
+                            onRun: script => root.asRoot(script)
+                        }
+
+                        // ------------------------------------------------ About
+                        Column {
+                            visible: root.page === "about"
+                            width: parent.width
+                            spacing: Theme.space2
+
+                            Label { textStyle: "title"; color: Theme.text; text: "About" }
+                            Row {
+                                spacing: Theme.space4
+                                // The owl in the colours of the god shown; a click makes it blink
+                                Owl {
+                                    id: aboutOwl
+                                    dir: Quickshell.env("STRIX_LOGOS") || ""
+                                    width: 96
+                                    height: 96
+                                    MouseArea { anchors.fill: parent; onClicked: aboutOwl.blink() }
+                                }
+                                Wordmark { anchors.verticalCenter: parent.verticalCenter }
+                            }
+                            SettingRow { width: parent.width; title: "Version"; text: root.version }
+                            SettingRow {
+                                width: parent.width
+                                title: "Update"
+                                text: "Fetch the newest release and every theme repository"
+                                Button { text: "Update now"; onClicked: root.asRoot("sudo strix-update") }
+                            }
                         }
                     }
                 }
