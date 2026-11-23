@@ -30,7 +30,7 @@ strix-theme status               # whether every part shows the current theme
 
 The command carries the distro's id (`strix-theme`). Tab completes the commands and, after `set` and `show`, every theme and variant, also behind `sudo`. bash does it out of the box, zsh and fish once they are enabled (`programs.zsh.enable`, `programs.fish.enable`). `strix-theme list --names` prints the same list for scripts.
 
-The desktop session shows its own theme on top of the machine's: every 10 minutes another god, unless the theme is kept in the theme picker (Super Ctrl Space, then K). That change stays in the session (`$XDG_RUNTIME_DIR/strix/theme`) and never touches the stored choice, the EFI variable or the boot splash. A theme chosen in the picker is the machine's choice, as `set`; polkit lets the active local session do that without a password. `strix-theme session call state` shows the session's side.
+The desktop session shows its own theme on top of the machine's: every 10 minutes another god, unless the theme is kept in the theme picker (Super G, then K). Super L, or the switch in the picker, changes between the dark and the light variant; the choice stays for every god after it and for the next login. That change stays in the session (`$XDG_RUNTIME_DIR/strix/theme`) and never touches the stored choice, the EFI variable or the boot splash. A theme chosen in the picker is the machine's choice, as `set`; polkit lets the active local session do that without a password. `strix-theme session call state` shows the session's side.
 
 `set` works at once, without a rebuild:
 

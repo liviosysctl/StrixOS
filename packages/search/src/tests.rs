@@ -180,8 +180,13 @@ fn the_top_level_and_menus() {
         .map(|e| e.title.as_str())
         .collect();
     assert_eq!(
-        &inside[..3],
-        ["Theme picker", "Keep this theme", "Saturnus"]
+        &inside[..4],
+        [
+            "Theme picker",
+            "Keep this theme",
+            "Light or dark",
+            "Saturnus"
+        ]
     );
     let night = i.get("setting:display/night-light").unwrap();
     assert_eq!(

@@ -98,7 +98,8 @@ These are renderings of the design from StrixUI; the shell in this repository is
 | Super Space | Search: apps, actions, settings and commands in one field |
 | Super K | The cheat sheet with every key; change them in Settings › Hotkeys |
 | Super V | The clipboard history |
-| Super Ctrl Space | The theme picker; K keeps the theme, otherwise another god comes every 10 minutes |
+| Super G | The theme picker; K keeps the theme, otherwise another god comes every 10 minutes |
+| Super L | Light or dark: the other variant of the theme, kept for every god after it |
 
 SSH is on: `ssh <user>@<address>` with the user's password. Root cannot log in. To turn it off, add `services.openssh.enable = false;` to `machine.nix` and rebuild.
 

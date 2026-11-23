@@ -86,7 +86,7 @@ title = "Theme picker"
 group = "theme"
 symbol = "palette"
 words = ["choose", "carousel"]
-keys = "Super Ctrl Space"
+keys = "Super G"
 run = ["qs", "-c", "{id}", "ipc", "call", "theme", "picker"]
 
 [[action]]
@@ -98,6 +98,15 @@ words = ["pin", "stop", "change", "cycle", "rotate", "god"]
 keys = "K"
 scope = "picker"
 run = ["qs", "-c", "{id}", "ipc", "call", "theme", "keep"]
+
+[[action]]
+id = "theme-variant"
+title = "Light or dark"
+group = "theme"
+symbol = "sun"
+words = ["light", "dark", "variant", "mode", "plate", "bright"]
+keys = "Super L"
+run = ["qs", "-c", "{id}", "ipc", "call", "theme", "variant"]
 
 [[action]]
 id = "theme-saturnus"

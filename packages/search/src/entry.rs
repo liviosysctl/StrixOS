@@ -49,7 +49,7 @@ pub struct Entry {
     pub path: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub icon: Option<String>,
-    /// Keys of the matching hotkey, as on the cheat sheet ("Super Ctrl Space").
+    /// Keys of the matching hotkey, as on the cheat sheet ("Super G").
     #[serde(skip_serializing_if = "Option::is_none")]
     pub keys: Option<String>,
     /// The current value of a setting ("Off").
