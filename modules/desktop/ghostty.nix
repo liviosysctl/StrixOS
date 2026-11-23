@@ -1,6 +1,4 @@
 # Ghostty, the terminal: the look of the distribution and the colors of the session's theme.
-# It is built here with one patch (packages/ghostty): a setting for the opacity of the selection,
-# which Ghostty always draws opaque. The theme engine sets it.
 {
   config,
   lib,
@@ -40,14 +38,6 @@ let
 in
 {
   config = lib.mkIf cfg.enable {
-    nixpkgs.overlays = [
-      (_: prev: {
-        ghostty = prev.ghostty.overrideAttrs (old: {
-          patches = (old.patches or [ ]) ++ [ ../../packages/ghostty/selection-opacity.patch ];
-        });
-      })
-    ];
-
     environment.etc."xdg/${id}/ghostty/defaults".source = ghosttyDefaults;
     environment.etc."xdg/${id}/ghostty/user".source = ghosttyUser;
 

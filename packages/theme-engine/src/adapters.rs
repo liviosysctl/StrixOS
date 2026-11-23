@@ -76,23 +76,21 @@ pub fn hyprland(theme: &Theme, variant: &Variant) -> String {
     )
 }
 
-/// ghostty: the terminal colors as a Ghostty config file. What is selected lies under a thin
-/// wash of the accent: the text keeps its colors and the glass of the window stays glass
-/// (selection-background-opacity is the setting packages/ghostty adds to Ghostty).
+/// ghostty: the terminal colors as a Ghostty config file
 pub fn ghostty(theme: &Theme, variant: &Variant) -> String {
     let t = &variant.terminal;
     let mut out = format!(
         "# The colors of {} ({}:{}), written by the theme engine.\n\
          background = {}\nforeground = {}\ncursor-color = {}\n\
-         selection-background = {}\nselection-background-opacity = 0.3\n\
-         selection-foreground = cell-foreground\n",
+         selection-background = {}\nselection-foreground = {}\n",
         theme.name,
         theme.id,
         variant.id,
         t.background.hex(),
         t.foreground.hex(),
         t.cursor.hex(),
-        variant.color("accent").hex(),
+        t.selection.hex(),
+        t.foreground.hex(),
     );
     for (index, color) in t.palette.iter().enumerate() {
         out.push_str(&format!("palette = {index}={}\n", color.hex()));
@@ -720,10 +718,6 @@ mod tests {
         let ghostty = ghostty(&theme, variant);
         assert!(ghostty.contains("background = #000000\n"));
         assert!(ghostty.contains("cursor-color = #c8102e\n"));
-        assert!(
-            ghostty
-                .contains("selection-background = #c8102e\nselection-background-opacity = 0.3\n")
-        );
         assert!(ghostty.contains("palette = 1=#c8102e\n"));
         assert!(ghostty.contains("palette = 15=#ffffff\n"));
         assert_eq!(ghostty.matches("palette = ").count(), 16);
