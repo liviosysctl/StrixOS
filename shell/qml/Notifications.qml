@@ -1,5 +1,6 @@
 // Messages top right under the bar (Notification in StrixUI). A popup shows each new message for
-// its time; Super N opens all of them. Critical ones stay until dismissed, also when quiet.
+// its time; Super N opens all of them, with the ones sent away earlier in this session under
+// them. Critical ones stay until dismissed, also when quiet.
 // A click on a message sends it away. A new one slides in from the edge of the screen and the
 // others make room; the ones already there stay where they are.
 import QtQuick
@@ -24,7 +25,7 @@ PanelWindow {
     implicitWidth: 360 + Theme.space3
     implicitHeight: Math.max(1, column.implicitHeight)
     color: "transparent"
-    visible: shown.length > 0
+    visible: shown.length > 0 || Notifs.open
     mask: Region { item: column }
 
     Connections {
@@ -94,6 +95,52 @@ PanelWindow {
                 onDismissed: {
                     if (Notifs.open || modelData.urgency === NotificationUrgency.Critical) note.leave(() => modelData.dismiss())
                     else note.leave(() => win.fresh = win.fresh.filter(n => n !== modelData))
+                }
+            }
+        }
+
+        // The panel also lists what came earlier and is gone from the screen since
+        Surface {
+            visible: Notifs.open
+            width: column.width
+            height: earlier.implicitHeight + 2 * Theme.space2
+            elevation: "panel"
+
+            Column {
+                id: earlier
+                y: Theme.space2
+                width: parent.width
+
+                Item {
+                    width: parent.width
+                    height: Theme.controlMd
+                    Label {
+                        x: 20
+                        anchors.verticalCenter: parent.verticalCenter
+                        textStyle: "label"
+                        color: Theme.text
+                        text: Notifs.earlier.length > 0 ? "Earlier" : Notifs.count > 0 ? "Nothing earlier" : "No messages"
+                    }
+                    Button {
+                        visible: Notifs.earlier.length > 0 || Notifs.count > 0
+                        anchors { right: parent.right; rightMargin: Theme.space2; verticalCenter: parent.verticalCenter }
+                        small: true
+                        variant: "quiet"
+                        text: "Clear all"
+                        onClicked: {
+                            for (const n of Notifs.list.slice()) n.dismiss()
+                            Notifs.history = []
+                        }
+                    }
+                }
+                Repeater {
+                    model: Notifs.earlier.slice(0, 8)
+                    ListRow {
+                        required property var modelData
+                        width: earlier.width
+                        text: modelData.summary
+                        detail: modelData.app + " · " + Qt.formatTime(new Date(modelData.at), "HH:mm")
+                    }
                 }
             }
         }

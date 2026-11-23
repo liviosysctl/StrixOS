@@ -15,6 +15,10 @@ Singleton {
     property bool quiet: false
     /// The panel with every message (Super N)
     property bool open: false
+    /// The last forty messages that came, newest first, also the ones sent away since: the
+    /// panel lists those under "Earlier". Kept until the session ends.
+    property var history: []
+    readonly property var earlier: history.filter(h => !list.some(n => n.id === h.id))
 
     NotificationServer {
         id: server
@@ -22,13 +26,20 @@ Singleton {
         actionsSupported: true
         bodyMarkupSupported: false
         imageSupported: false
-        onNotification: n => n.tracked = true
+        onNotification: n => {
+            n.tracked = true
+            root.history = [{ id: n.id, app: n.appName, summary: n.summary, body: n.body, at: Date.now() }]
+                .concat(root.history).slice(0, 40)
+        }
     }
 
     IpcHandler {
         target: "notifications"
         function toggle(): void { root.open = !root.open }
         function quiet(): void { root.quiet = !root.quiet }
-        function clear(): void { for (const n of root.list.slice()) n.dismiss() }
+        function clear(): void {
+            for (const n of root.list.slice()) n.dismiss()
+            root.history = []
+        }
     }
 }
