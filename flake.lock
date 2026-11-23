@@ -72,11 +72,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1795452092,
-        "narHash": "sha256-bcfytZtJdF9AyPdmRD3eiCm+GNUpBfNPcfDbsl8Ul4M=",
+        "lastModified": 1795455366,
+        "narHash": "sha256-qy4WNCPeFKnC+FSjbpbB//ZRdaEyuNEwAVae9Va3GO8=",
         "owner": "liviosysctl",
         "repo": "strix-browser",
-        "rev": "9ee56271c4966437c88a077785c949a03c581416",
+        "rev": "4ed50d09ef5469ddc494705bff698134185a0d79",
         "type": "github"
       },
       "original": {
