@@ -39,10 +39,11 @@ hl.config({
         col = { active_border = "rgb(712829)", inactive_border = "rgb(2f2c28)" },
     },
     decoration = {
-        rounding = 4,
+        rounding = 6,
         inactive_opacity = 0.92,
         shadow = { enabled = true, range = 22, render_power = 3, color = 0x80000000 },
-        blur = { enabled = false },
+        -- Smoked glass: what lies behind a translucent window is blurred
+        blur = { enabled = true, size = 6, passes = 2 },
     },
     animations = { enabled = true },
     dwindle = { preserve_split = true },
@@ -88,6 +89,17 @@ hl.animation({ leaf = "fadePopupsIn", enabled = true, speed = 1.4, bezier = "eas
 hl.animation({ leaf = "fadePopupsOut", enabled = true, speed = 1.4, bezier = "ease-in" })
 hl.animation({ leaf = "workspaces", enabled = true, speed = 5, bezier = "wind" })
 hl.animation({ leaf = "specialWorkspace", enabled = true, speed = 5, bezier = "wind", style = "slidevert" })
+
+hl.layer_rule({
+    -- Smoked glass: what lies behind the surfaces of the shell is blurred. Their clear parts stay
+    -- clear, so the bar is still only its buttons on the picture.
+    name = "shell-glass",
+    match = {
+        namespace = "^strix-(bar|dock|search|notifications|osd|clipboard|cheatsheet|switcher|theme-picker)$",
+    },
+    blur = true,
+    ignore_alpha = 0.3,
+})
 
 hl.window_rule({
     -- The system monitor of the bar (strix-monitor) floats in the middle
