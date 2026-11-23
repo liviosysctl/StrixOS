@@ -1,5 +1,6 @@
 // Sound in a quick panel: the volume of the output with its mute, the microphone's mute, the
-// outputs to switch between (speakers, headphones, HDMI) and the way to Settings › Sound.
+// volume of every app that plays right now, the outputs to switch between (speakers, headphones,
+// HDMI) and the way to Settings › Sound.
 import QtQuick
 import Quickshell.Services.Pipewire
 import Strix
@@ -11,6 +12,10 @@ QuickPanel {
     readonly property var source: Pipewire.defaultAudioSource
     readonly property var outputs: Pipewire.nodes.values.filter(n => n.audio && !n.isStream && n.isSink)
     PwObjectTracker { objects: [root.sink, root.source].filter(n => n).concat(root.outputs) }
+    // What plays into the output right now, app by app
+    PwNodeLinkTracker { id: playing; node: root.sink }
+    readonly property var apps: playing.linkGroups.map(g => g.source).filter(n => n && n.isStream)
+    PwObjectTracker { objects: root.apps }
 
     readonly property bool muted: !!(root.sink && root.sink.audio && root.sink.audio.muted)
     readonly property bool micMuted: !!(root.source && root.source.audio && root.source.audio.muted)
@@ -54,6 +59,42 @@ QuickPanel {
         text: root.micMuted ? "Turn the microphone on" : "Turn the microphone off"
         detail: root.micMuted ? "Off" : "On"
         onClicked: root.source.audio.muted = !root.source.audio.muted
+    }
+
+    // Every app that plays, with a volume of its own
+    Repeater {
+        model: root.apps
+        Column {
+            id: app
+            required property var modelData
+            width: parent.width
+            Label {
+                x: 20
+                width: parent.width - 20 - Theme.space2
+                elide: Text.ElideRight
+                textStyle: "caption"
+                color: Theme.textMuted
+                text: (app.modelData.properties && app.modelData.properties["application.name"]) || app.modelData.description || app.modelData.name
+            }
+            Item {
+                width: parent.width
+                height: Theme.controlMd
+                Slider {
+                    x: Theme.space2
+                    width: parent.width - 2 * Theme.space2
+                    anchors.verticalCenter: parent.verticalCenter
+                    iconName: app.modelData.audio && app.modelData.audio.muted ? "x" : "music"
+                    from: 0
+                    to: 1
+                    enabled: !!app.modelData.audio
+                    value: app.modelData.audio ? app.modelData.audio.volume : 0
+                    onMoved: {
+                        app.modelData.audio.muted = false
+                        app.modelData.audio.volume = value
+                    }
+                }
+            }
+        }
     }
 
     // Where the sound goes, when there is a choice

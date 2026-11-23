@@ -108,6 +108,10 @@ Scope {
         }
     }
 
+    // The apps that record from the microphone right now (the streams linked to the default source)
+    PwNodeLinkTracker { id: microphone; node: Pipewire.defaultAudioSource }
+    readonly property bool listening: microphone.linkGroups.some(g => g.target && g.target.isStream)
+
     // Staying awake (strix-idle awake): nothing dims, locks or sleeps by itself. The cup of the bar
     // switches it and steams for as long. Read at the start and whenever the power panel opens:
     // it is also switched from a terminal
@@ -421,11 +425,20 @@ Scope {
                             : "REC " + Math.floor(root.recordingSeconds / 60) + ":" + ("0" + root.recordingSeconds % 60).slice(-2)
                     }
                 }
+                // An app listens to the microphone: the mark says so, a click shows the sound panel
+                IconButton {
+                    small: true
+                    iconName: "mic"
+                    checked: true
+                    visible: root.listening
+                    anchors.verticalCenter: parent.verticalCenter
+                    onClicked: root.toggleDrop("sound", bar.modelData.name)
+                }
                 Tray {
                     window: bar
                     anchors.verticalCenter: parent.verticalCenter
                     giveWay: root.drop !== "" || root.calendarOn !== ""
-                    onItemChanged: if (item) { root.drop = ""; root.calendarOn = "" }
+                    onOpenChanged: if (open) { root.drop = ""; root.calendarOn = "" }
                 }
                 IconButton {
                     small: true
