@@ -48,6 +48,12 @@ let
 in
 {
   config = lib.mkIf cfg.enable {
+    # An AppImage runs with a double click or by its name, like any other program
+    programs.appimage = lib.mkIf (!cfg.live) {
+      enable = true;
+      binfmt = true;
+    };
+
     xdg.mime.defaultApplications = lib.mkIf (!cfg.live) (
       lib.genAttrs [
         "text/plain"

@@ -64,6 +64,9 @@ hl.config({
 -- settle softly (wind), leave with a small swing back (win-out), and workspaces glide the same
 -- way. Shell layers only fade here, in the curves of motion.md: the shell animates its own
 -- surfaces.
+-- On a touchpad, three fingers sideways go to the workspace beside
+hl.gesture({ fingers = 3, direction = "horizontal", action = "workspace" })
+
 hl.curve("wind", { type = "bezier", points = { { 0.05, 0.9 }, { 0.1, 1.0 } } })
 hl.curve("win-in", { type = "bezier", points = { { 0.1, 1.0 }, { 0.1, 1.0 } } })
 hl.curve("win-out", { type = "bezier", points = { { 0.3, -0.1 }, { 0, 1 } } })
@@ -94,6 +97,41 @@ hl.window_rule({
     center = true,
     -- Of the screen, so btop gets its 80 columns and it still fits a small or scaled one
     size = "monitor_w*0.9 monitor_h*0.86",
+})
+
+hl.window_rule({
+    -- What an app opens to ask something floats in the middle instead of taking a tile
+    name = "dialogs",
+    match = { modal = true },
+    float = true,
+    center = true,
+})
+
+hl.window_rule({
+    -- Choosing a file (the portal of GTK), also for apps in a sandbox
+    name = "file-chooser",
+    match = { class = "^xdg-desktop-portal-gtk$" },
+    float = true,
+    center = true,
+    size = "monitor_w*0.6 monitor_h*0.7",
+})
+
+hl.window_rule({
+    -- A video taken out of the browser stays on top in the lower right corner, on every workspace
+    name = "picture-in-picture",
+    match = { title = "^Picture-in-Picture$" },
+    float = true,
+    pin = true,
+    size = "monitor_w*0.25 monitor_h*0.25",
+    move = "monitor_w*0.74 monitor_h*0.71",
+})
+
+hl.window_rule({
+    -- Drawing on a screenshot (strix-capture annotate) is a window over the others
+    name = "annotate",
+    match = { class = "^com\\.gabm\\.satty$" },
+    float = true,
+    center = true,
 })
 
 hl.window_rule({
