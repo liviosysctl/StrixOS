@@ -6,7 +6,7 @@ Strix is a NixOS-based desktop distribution: Hyprland with a shell of its own in
 Version :: 0.6.0
 Base :: NixOS unstable
 Desktop :: Hyprland, the shell in Quickshell
-Themes :: the eight Roman gods of StrixUI, Saturnus first
+Themes :: the eight Roman gods of StrixUI, each dark and light, Saturnus first
 State :: work in progress, tested on an old laptop
 ```
 
@@ -14,13 +14,13 @@ State :: work in progress, tested on an old laptop
 
 ![The desktop under Saturnus](docs/images/desktop.jpg)
 
-*Saturnus with his sickle. Engraved by Hendrick Goltzius after Polidoro da Caravaggio, 1592*
+*Saturnus devours one of his children, his scythe beside him in the niche. Jacob Binck after Rosso Fiorentino, 1530*
 
-The look comes from [StrixUI](https://github.com/liviosysctl/StrixUI), the design system of Strix: near-black surfaces, old engravings of Roman gods as the ground, one accent colour that belongs to the god on the wallpaper, type from an old printing house beside a quiet monospace. Each god is a theme. Another god comes every 10 minutes unless you keep the one you have, and the lock screen shows a new one at every lock.
+The look comes from [StrixUI](https://github.com/liviosysctl/StrixUI), the design system of Strix: near-black surfaces, old engravings of Roman gods as the ground, one accent colour that belongs to the god on the wallpaper and is used sparingly, floating surfaces of smoked glass, an old-style serif for titles beside a plain grotesque. Each god is a theme with a dark and a light variant: the dark plate is almost black with a glow around a ring on the head of the god, the light one is lit from the middle. Another god comes every 10 minutes unless you keep the one you have, and the lock screen shows a new one at every lock.
 
 | | |
 |---|---|
-| ![The lock screen under Janus](docs/images/lock-screen.jpg) | ![The theme picker](docs/images/theme-picker.jpg) |
+| ![The lock screen](docs/images/lock-screen.jpg) | ![The theme picker](docs/images/theme-picker.jpg) |
 | *The lock screen* | *The theme picker* |
 | ![Search](docs/images/search.jpg) | ![The eight gods](docs/images/gods.jpg) |
 | *Search, one field for everything* | *Saturnus, Janus, Apollo, Mars, Vulcanus, Neptunus, Pluto and Bacchus* |
@@ -33,8 +33,8 @@ The look comes from [StrixUI](https://github.com/liviosysctl/StrixUI), the desig
 | *The dock* | *The terminal, Ghostty in the theme's colours* |
 | ![The cheat sheet](docs/images/cheat-sheet.jpg) | ![Settings, hotkeys](docs/images/settings-hotkeys.jpg) |
 | *The cheat sheet, Super K* | *Settings, hotkeys* |
-| ![The boot splash](docs/images/boot-splash.jpg) | ![The QML components under Saturnus](docs/images/qml-gallery.jpg) |
-| *The boot splash* | *The QML components under Saturnus* |
+| ![The boot splash](docs/images/boot-splash.jpg) | |
+| *The boot splash* | |
 
 These are renderings of the design from StrixUI; the shell in this repository is built from the same components. Sources and licences of every picture are in [docs/images/README.md](docs/images/README.md).
 
@@ -56,7 +56,7 @@ These are renderings of the design from StrixUI; the shell in this repository is
 | `modules/boot/loader.nix` | GRUB as the boot loader: hidden menu, shown for a few seconds when Windows or another system is found; drawn in the selected theme. |
 | `modules/boot/splash.nix` | Graphical boot with Plymouth: wordmark, progress line, a styled passphrase field. |
 | `modules/desktop/theme.nix` | The theme engine on the system: the `strix-theme` command, the service that applies the theme at boot, the boot splash that follows it. |
-| `themes/` | `default.nix`, the theme a new installation starts with (`saturnus`). The themes are the eight Roman gods of [StrixUI](https://github.com/liviosysctl/StrixUI), a flake input. [themes/README.md](themes/README.md) describes the format and the theme repositories. |
+| `themes/` | `default.nix`, the theme a new installation starts with (`saturnus`). The themes are the eight Roman gods of [StrixUI](https://github.com/liviosysctl/StrixUI), a flake input, each in a dark and a light variant. [themes/README.md](themes/README.md) describes the format and the theme repositories. |
 | `packages/theme-engine/` | The theme engine in Rust: reads and checks themes, switches them at runtime, fetches and checks theme repositories, writes the colours for Hyprland, Ghostty and GTK. |
 | `packages/search/`, `modules/desktop/search.nix` | The search service behind Search and the cheat sheet: apps, the actions of `menu.toml`, every row of Settings, commands; it also makes the Hyprland keys and keeps the user's own keys. |
 | `packages/ui/`, `modules/desktop/ui.nix` | The design system of StrixUI on the machine: the QML module for Quickshell, the wallpapers, the fonts. |

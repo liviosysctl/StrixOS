@@ -6,16 +6,16 @@ The themes of Strix are the eight Roman gods of the design system [StrixUI](http
 
 | Theme | Variant | Look |
 |---|---|---|
-| `saturnus` | `dark` | Strix red. Saturn, lord of time and of the night hours; the default |
-| `janus` | `dark` | Patina, the green of old bronze doors and keys |
-| `apollo` | `dark` | Antique gold, worn brass |
-| `mars` | `dark` | Rust, iron and burnt sienna |
-| `vulcanus` | `dark` | Olive, the patina on old bronze from the forge |
-| `neptunus` | `dark` | Deep water, slate and ink blue |
-| `pluto` | `dark` | Heather, faded plum |
-| `bacchus` | `dark` | Claret, old wine |
+| `saturnus` | `dark`, `light` | Strix red. Saturn, lord of time and of the night hours; the default |
+| `janus` | `dark`, `light` | Patina, the green of old bronze doors and keys |
+| `apollo` | `dark`, `light` | Antique gold, worn brass |
+| `mars` | `dark`, `light` | Rust, iron and burnt sienna |
+| `vulcanus` | `dark`, `light` | Olive, the patina on old bronze from the forge |
+| `neptunus` | `dark`, `light` | Deep water, slate and ink blue |
+| `pluto` | `dark`, `light` | Heather, faded plum |
+| `bacchus` | `dark`, `light` | Claret, old wine |
 
-`strix-theme list` shows each with its name and description. To change a god theme, change it in StrixUI (`tools/themes.py`, then `tools/build.py`).
+`strix-theme list` shows each with its name and description. Every god has two variants: `dark`, the plate almost black with a glow around the ring on the head of the god, and `light`, the same colours on dark grey grounds with the plate lit from the middle (`strix-theme set janus:light`). To change a god theme, change it in StrixUI (`src/design/gods.json`, then `cargo strixui build`).
 
 ## Switching
 
