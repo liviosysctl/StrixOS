@@ -421,6 +421,12 @@ Scope {
                             : "REC " + Math.floor(root.recordingSeconds / 60) + ":" + ("0" + root.recordingSeconds % 60).slice(-2)
                     }
                 }
+                Tray {
+                    window: bar
+                    anchors.verticalCenter: parent.verticalCenter
+                    giveWay: root.drop !== "" || root.calendarOn !== ""
+                    onItemChanged: if (item) { root.drop = ""; root.calendarOn = "" }
+                }
                 IconButton {
                     small: true
                     iconName: "coffee"
