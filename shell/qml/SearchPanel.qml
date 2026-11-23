@@ -5,9 +5,9 @@
 //
 // When nothing is found, the one row left offers the web. Taking it grows the panel into the
 // window of the browser: the field stays where the hand is and becomes the address, the tabs come
-// in at its left and the page takes the place of the results. This is a mockup of that transition
-// only, to judge the motion: there is no browser behind it yet and the page is a placeholder.
-// Esc shrinks it back to the search.
+// in at its left and the page takes the place of the results. The browser is started at the
+// same moment, without its window, so the page loads while the panel grows; when the panel
+// stands where the window will be, the window is shown and the panel gives way to it.
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -33,7 +33,7 @@ Scope {
 
     /// Nothing found for what was typed: the web is offered
     readonly property bool web: input.text !== "" && root.results.length === 0 && root.answer === null
-    /// The panel is the browser window (mockup), and what its page stands for
+    /// The panel is on its way to being the browser window, and what was searched for
     property bool browsing: false
     property string page: ""
     /// From the search panel (0) to the browser window (1): every measure of the panel follows it
@@ -43,6 +43,29 @@ Scope {
         NumberAnimation { duration: Theme.durReveal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeInOut }
     }
     function mix(from, to) { return from + (to - from) * root.grown }
+
+    /// Starts the browser without its window, or opens a tab in the one that runs
+    function browse(text) {
+        root.page = text
+        root.browsing = true
+        Quickshell.execDetached(["env", "STRIX_BROWSER_HIDDEN=1", "strix-browser", text])
+    }
+    // Arrived: the window of the browser comes and takes the focus, and the panel leaves once
+    // the window is there, or after a moment when it was open all along
+    onGrownChanged: if (root.grown === 1 && root.browsing) {
+        Quickshell.execDetached(["strix-browser", "--show"])
+        Hyprland.dispatch("hl.dsp.focus({ window = \"class:^strix-browser$\" })")
+        handover.restart()
+    }
+    Timer { id: handover; interval: 1500; onTriggered: if (root.browsing) root.open = false }
+    Connections {
+        target: Hyprland
+        enabled: root.browsing
+        function onRawEvent(event) {
+            // openwindow: address, workspace, class, title
+            if (event.name === "openwindow" && event.data.split(",")[2] === "strix-browser") root.open = false
+        }
+    }
 
     function show(scope) {
         root.trail = scope ? [{ id: scope, title: "" }] : []
@@ -68,9 +91,10 @@ Scope {
 
     /// Enter: the answer of a calculation goes to the clipboard, a result is run
     function accept() {
-        if (root.browsing || root.web) {
-            root.page = input.text
-            root.browsing = true
+        if (root.browsing) {
+            return
+        } else if (root.web) {
+            root.browse(input.text)
         } else if (root.answer && root.selected === -1) {
             // fend marks a rounded value; the number is what is wanted in the clipboard
             Quickshell.execDetached(["wl-copy", root.answer.value.replace(/^approx\. /, "")])
@@ -298,7 +322,8 @@ Scope {
                 }
             }
 
-            // The page takes the place of the results, under the address (placeholder)
+            // The page takes the place of the results, under the address: what was searched for
+            // stands there until the window of the browser shows the page itself
             Rectangle {
                 x: column.x
                 y: Theme.space2 + Theme.control + Theme.space2
@@ -315,7 +340,6 @@ Scope {
                     anchors.centerIn: parent
                     spacing: Theme.space2
                     Label { anchors.horizontalCenter: parent.horizontalCenter; textStyle: "title"; color: Theme.text; text: root.page }
-                    Label { anchors.horizontalCenter: parent.horizontalCenter; textStyle: "caption"; color: Theme.textFaint; text: "The page comes here. Esc goes back to the search." }
                 }
             }
         }
@@ -326,8 +350,9 @@ Scope {
             sequence: "Escape"
             enabled: root.open
             onActivated: {
-                if (root.browsing) root.browsing = false
-                else if (input.text !== "") input.text = ""
+                // On the way to the browser there is no way back: it is already loading
+                if (root.browsing) return
+                if (input.text !== "") input.text = ""
                 else root.open = false
             }
         }
