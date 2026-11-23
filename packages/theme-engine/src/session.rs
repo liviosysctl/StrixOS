@@ -442,7 +442,7 @@ fn read_state(file: &Path) -> (bool, Option<String>) {
     )
 }
 
-/// tokens.json, hyprland.lua, ghostty, btop.theme, the GTK and Zen files, mpv.conf, lazygit.yml, the
+/// tokens.json, hyprland.lua, ghostty, btop.theme, the GTK files, mpv.conf, lazygit.yml, the
 /// palettes of Qt (qt6.conf, qt5.conf), shell.sh
 /// and, with the prompt's
 /// configuration `prompt`, starship.toml for one theme; tokens.json last, so whoever watches it
@@ -462,8 +462,6 @@ pub fn write_output(
         ("btop.theme", adapters::btop(theme, variant)),
         ("gtk3.css", adapters::gtk3(theme, variant)),
         ("gtk4.css", adapters::gtk4(theme, variant)),
-        ("zen-userChrome.css", adapters::zen_chrome(theme, variant)),
-        ("zen-userContent.css", adapters::zen_content(theme, variant)),
         ("mpv.conf", adapters::mpv(theme, variant)),
         ("lazygit.yml", adapters::lazygit(theme, variant)),
         ("qt6.conf", adapters::qt_colors(theme, variant, true)),
@@ -788,8 +786,6 @@ mod tests {
         assert!(base.join("session/lazygit.yml").is_file());
         assert!(base.join("session/gtk3.css").is_file());
         assert!(base.join("session/gtk4.css").is_file());
-        assert!(base.join("session/zen-userChrome.css").is_file());
-        assert!(base.join("session/zen-userContent.css").is_file());
 
         // Ten minutes later: another god, never the outside theme
         for _ in 0..20 {

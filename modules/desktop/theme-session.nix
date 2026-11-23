@@ -1,7 +1,7 @@
 # The session has its own theme on top of the machine's (Q14): the user service
 # <id>-theme-session (`<id>-theme session`) shows another god every 10 minutes unless kept,
-# writes tokens.json, hyprland.lua, ghostty, btop.theme, starship.toml and the files for GTK and
-# Zen into $XDG_RUNTIME_DIR/<id>/theme and reloads Hyprland, Ghostty and btop. Choosing a theme
+# writes tokens.json, hyprland.lua, ghostty, btop.theme, starship.toml and the files for GTK
+# into $XDG_RUNTIME_DIR/<id>/theme and reloads Hyprland, Ghostty and btop. Choosing a theme
 # by hand in the picker sets the machine's theme through pkexec; polkit lets the active local
 # session do that, and only that, without a password.
 {

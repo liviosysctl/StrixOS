@@ -233,9 +233,6 @@ in
     assert reference'.environment.etc."xdg/${branding.id}/lid".text == "suspend\n";
     # GTK apps take the god's colors
     assert lib.any (lib.hasInfix "gtk-4.0/gtk.css") reference'.systemd.user.tmpfiles.rules;
-    # and so does Zen, which is told to read the stylesheets of its profile
-    assert reference'.systemd.user.services ? "${branding.id}-zen-colors";
-    assert reference'.systemd.user.paths ? "${branding.id}-zen-colors";
     assert lib.any (p: lib.getName p == "adw-gtk3") reference'.environment.systemPackages;
     pkgs.runCommand "check-desktop"
       {
