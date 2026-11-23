@@ -69,7 +69,7 @@ The theme of a desktop session (a user service):
   session                 Serve: its own theme on top of the machine's, another
                           god every CYCLE_PERIOD unless kept, on SESSION_SOCKET
   session call METHOD [JSON]
-                          One call to it: state, preview, set, keep, next
+                          One call to it: state, preview, set, keep, next, variant
 
 Environment: THEMES_DIR, STATE_DIR, RUNTIME_DIR, DEFAULT_THEME, PLYMOUTH_PREFIX,
 PLYMOUTH_BASE_CONF, PLYMOUTH_THEMES, PLYMOUTH_CONF, EFI_VARIABLE, EFIVARS_DIR,

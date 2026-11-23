@@ -17,6 +17,7 @@
 //! {"id": 3, "method": "set", "params": {"theme": "mars"}}      the machine's choice (pkexec)
 //! {"id": 4, "method": "keep", "params": {"keep": true}}
 //! {"id": 5, "method": "next"}
+//! {"id": 6, "method": "variant", "params": {"variant": "light"}}  light or dark, for every theme
 //! {"event": "changed", "data": <state>}                after every change
 //! ```
 
@@ -138,13 +139,15 @@ pub struct Session {
     pub variant: String,
     /// The machine's choice when the session last looked
     pub system: String,
+    /// The variant the user asked for (light or dark): every theme that has it is shown in it
+    pub wish: Option<String>,
     pub cycle: Cycle,
 }
 
 impl Session {
     pub fn new(settings: Settings) -> Result<Session, String> {
         let catalog = Catalog::load(&settings.themes_dir)?;
-        let kept = read_kept(&settings.state_file);
+        let (kept, wish) = read_state(&settings.state_file);
         let cycle = Cycle::new(settings.period, kept);
         let mut session = Session {
             settings,
@@ -152,6 +155,7 @@ impl Session {
             theme: String::new(),
             variant: String::new(),
             system: String::new(),
+            wish,
             cycle,
         };
         let system = session.system_choice();
@@ -200,10 +204,40 @@ impl Session {
         Ok(())
     }
 
-    /// Takes the machine's choice
+    /// `text` in the variant the user asked for, where its theme has that variant
+    fn wished(&self, text: &str) -> String {
+        let id = text.split(':').next().unwrap_or(text);
+        match &self.wish {
+            Some(wish)
+                if self
+                    .catalog
+                    .theme(id)
+                    .is_some_and(|t| t.variant(wish).is_some()) =>
+            {
+                format!("{id}:{wish}")
+            }
+            _ => text.to_string(),
+        }
+    }
+
+    /// Takes the machine's choice. A variant chosen there by name becomes the user's wish.
     fn adopt(&mut self, system: &str) -> Result<(), String> {
+        let variant = |text: &str| text.split_once(':').map(|(_, v)| v.to_string());
+        if !self.system.is_empty() && variant(system) != variant(&self.system) {
+            self.wish = variant(system);
+            self.store()?;
+        }
         self.system = system.to_string();
-        self.show(system)
+        self.show(&self.wished(system))
+    }
+
+    /// The current theme in another variant, from now on for every theme that has it
+    pub fn variant(&mut self, variant: &str) -> Result<(), String> {
+        let text = format!("{}:{variant}", self.theme);
+        self.resolve(&text)?;
+        self.wish = Some(variant.to_string());
+        self.store()?;
+        self.show(&text)
     }
 
     /// Called when the machine's runtime folder changed: someone ran `set`
@@ -255,25 +289,39 @@ impl Session {
         let Some(id) = other(&ids, &self.theme, pick).map(String::from) else {
             return Ok(false);
         };
-        self.show(&id)?;
+        self.show(&self.wished(&id))?;
         Ok(true)
     }
 
     pub fn keep(&mut self, kept: bool) -> Result<(), String> {
         self.cycle.kept = kept;
-        let text = format!("{}\n", json!({ "keep": kept }));
+        self.store()
+    }
+
+    /// Writes what the session remembers: the keep flag and the variant the user asked for
+    fn store(&self) -> Result<(), String> {
+        let text = format!(
+            "{}\n",
+            json!({ "keep": self.cycle.kept, "variant": self.wish })
+        );
         if let Some(dir) = self.settings.state_file.parent() {
             fs::create_dir_all(dir).map_err(|e| format!("cannot create {}: {e}", dir.display()))?;
         }
         system::write_atomic(&self.settings.state_file, text.as_bytes(), 0o600)
-            .map_err(|e| format!("cannot store the keep flag: {e}"))
+            .map_err(|e| format!("cannot store the state of the session: {e}"))
     }
 
     /// The machine's choice, through pkexec and the theme command. polkit lets
     /// the active local session do this without a password.
     pub fn set(&mut self, text: &str) -> Result<(), String> {
+        // A variant named here is what the user wants from now on; without one the wish stays
+        if let Some((_, variant)) = text.split_once(':') {
+            self.resolve(text)?;
+            self.wish = Some(variant.to_string());
+            self.store()?;
+        }
         let selection = {
-            let (theme, variant) = self.resolve(text)?;
+            let (theme, variant) = self.resolve(&self.wished(text))?;
             Selection::resolved(theme, variant).to_string()
         };
         let command =
@@ -370,6 +418,10 @@ impl Session {
                 self.keep(kept)?;
                 true
             }
+            "variant" => {
+                self.variant(text("variant")?)?;
+                true
+            }
             "next" => self.next(&mut random_below)?,
             "version" => return Ok((json!(env!("CARGO_PKG_VERSION")), false)),
             _ => return Err(format!("unknown method \"{method}\"")),
@@ -378,12 +430,16 @@ impl Session {
     }
 }
 
-fn read_kept(file: &Path) -> bool {
-    fs::read_to_string(file)
+/// The keep flag and the wished variant from the state file
+fn read_state(file: &Path) -> (bool, Option<String>) {
+    let state = fs::read_to_string(file)
         .ok()
-        .and_then(|text| serde_json::from_str::<Value>(&text).ok())
-        .and_then(|v| v.get("keep").and_then(Value::as_bool))
-        .unwrap_or(false)
+        .and_then(|text| serde_json::from_str::<Value>(&text).ok());
+    let get = |key: &str| state.as_ref().and_then(|v| v.get(key));
+    (
+        get("keep").and_then(Value::as_bool).unwrap_or(false),
+        get("variant").and_then(Value::as_str).map(String::from),
+    )
 }
 
 /// tokens.json, hyprland.lua, ghostty, btop.theme, the GTK and Zen files, mpv.conf, lazygit.yml, the
@@ -772,6 +828,41 @@ mod tests {
                 & 0o777,
             0o600
         );
+    }
+
+    #[test]
+    fn the_wished_variant_stays_through_the_change() {
+        let base = scratch("variant");
+        // Every theme with a light variant beside the dark one
+        let both = |settings: &Settings| {
+            let light = GOOD[GOOD.find("[variants.dark]").unwrap()..]
+                .replace("variants.dark", "variants.light");
+            for entry in fs::read_dir(&settings.themes_dir).unwrap() {
+                fs::write(
+                    entry.unwrap().path().join("theme.toml"),
+                    format!("{GOOD}\n{light}"),
+                )
+                .unwrap();
+            }
+        };
+        let s = settings(&base);
+        both(&s);
+        let mut session = Session::new(s).unwrap();
+        assert_eq!(session.variant, "dark");
+        assert!(session.variant("sepia").is_err());
+        session.variant("light").unwrap();
+        assert_eq!(
+            (session.theme.as_str(), session.variant.as_str()),
+            ("saturnus", "light")
+        );
+        // Another god comes in the same variant
+        assert!(session.tick(Duration::from_secs(600), &mut first).unwrap());
+        assert_ne!(session.theme, "saturnus");
+        assert_eq!(session.variant, "light");
+        // A new session reads the wish
+        let s = settings(&base);
+        both(&s);
+        assert_eq!(Session::new(s).unwrap().variant, "light");
     }
 
     #[test]
