@@ -1,0 +1,319 @@
+
+/* ---------------------------------------------------------------------------------------------
+   The shape of Zen in the look of the shell (packages/theme-engine/src/zen-chrome.css). The
+   colours above change with the theme; what follows is the same for every one: one small
+   radius, hair lines instead of shadows, the type of the shell, and the accent as a stroke on
+   what is selected.
+   --------------------------------------------------------------------------------------------- */
+
+:root {
+  --zen-border-radius: 4px !important;
+  --zen-webview-border-radius: 4px !important;
+  --zen-native-inner-radius: 4px !important;
+  --zen-big-shadow: 0 0 0 1px var(--strix-border) !important;
+  --tab-border-radius: 2px !important;
+  --toolbarbutton-border-radius: 2px !important;
+  --border-radius-small: 2px !important;
+  --border-radius-medium: 2px !important;
+  --arrowpanel-border-radius: 4px !important;
+  --panel-border-radius: 4px !important;
+  --menuitem-border-radius: 1px !important;
+  --urlbarView-highlight-background: var(--strix-raised) !important;
+  --urlbarView-highlight-color: var(--strix-text) !important;
+  --focus-outline-color: var(--strix-accent) !important;
+  --toolbar-field-focus-border-color: var(--strix-accent) !important;
+  --lwt-accent-color: var(--strix-background) !important;
+  --lwt-text-color: var(--strix-text) !important;
+  --zen-squircle-value: 1 !important;
+  --arrowpanel-menuitem-border-radius: 1px !important;
+  --button-border-radius: 2px !important;
+  --button-background-color-primary: var(--strix-accent) !important;
+  --button-background-color-primary-hover: color-mix(in srgb, var(--strix-accent) 88%, white) !important;
+  --button-background-color-primary-active: color-mix(in srgb, var(--strix-accent) 88%, black) !important;
+  --button-text-color-primary: var(--strix-on-accent) !important;
+  /* The names Firefox gives its own parts, which reach into the ones userChrome cannot */
+  --color-accent-primary: var(--strix-accent) !important;
+  --color-accent-primary-hover: color-mix(in srgb, var(--strix-accent) 88%, white) !important;
+  --color-accent-primary-active: color-mix(in srgb, var(--strix-accent) 88%, black) !important;
+  --link-color: var(--strix-accent-text) !important;
+  --link-color-hover: var(--strix-text) !important;
+  --text-color-deemphasized: var(--strix-muted) !important;
+  --background-color-box: var(--strix-surface) !important;
+  --background-color-information: var(--strix-raised) !important;
+  --border-color: var(--strix-border) !important;
+  --promo-background-color-vibrant: var(--strix-raised) !important;
+  --promo-message-text-color-vibrant: var(--strix-text) !important;
+  --promo-border-radius: 2px !important;
+}
+/* Zen sets its radii again in the places that use them: the same answer there */
+#navigator-toolbox,
+.zen-library-space-body,
+.tabbrowser-tab,
+.toolbarbutton-1,
+.urlbar-page-action,
+.identity-box-button,
+#urlbar,
+#zen-media-controls-toolbar {
+  --border-radius-medium: 2px !important;
+  --tab-border-radius: 2px !important;
+  --toolbarbutton-border-radius: 2px !important;
+  --urlbar-icon-border-radius: 2px !important;
+  --urlbar-inner-border-radius: 2px !important;
+}
+
+/* The type of the shell: its mono for everything that is read, small */
+:root,
+toolbar,
+menupopup,
+panel,
+.tab-label,
+#urlbar,
+#urlbar-input,
+.urlbarView {
+  font-family: "JetBrains Mono", "GeistMono Nerd Font Mono", monospace !important;
+  font-size: 12px !important;
+  letter-spacing: 0 !important;
+}
+
+/* ---- Tabs: flat rows; the selected one is raised and carries the accent at its edge ---- */
+zen-workspace,
+.tabbrowser-tab,
+#tabs-newtab-button {
+  --tab-background-color-selected: var(--strix-raised) !important;
+  --tab-selected-bgcolor: var(--strix-raised) !important;
+  --tab-box-shadow-selected: inset 2px 0 0 var(--strix-accent) !important;
+  --tab-text-color-selected: var(--strix-text) !important;
+}
+.tabbrowser-tab .tab-background {
+  border-radius: 2px !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+.tabbrowser-tab:is([visuallyselected], [multiselected]) .tab-background {
+  background: var(--strix-raised) !important;
+  box-shadow: inset 2px 0 0 var(--strix-accent) !important;
+}
+.tabbrowser-tab:not([visuallyselected], [multiselected]):hover .tab-background {
+  background: color-mix(in srgb, var(--strix-raised) 55%, transparent) !important;
+}
+.tabbrowser-tab .tab-label {
+  color: var(--strix-muted) !important;
+}
+.tabbrowser-tab:is([visuallyselected], [multiselected], :hover) .tab-label {
+  color: var(--strix-text) !important;
+}
+.tabbrowser-tab .tab-close-button {
+  border-radius: 2px !important;
+  color: var(--strix-muted) !important;
+}
+.tabbrowser-tab .tab-close-button:hover {
+  background: var(--strix-border) !important;
+  color: var(--strix-text) !important;
+}
+/* Essentials: tiles of the surface; the selected one is raised, with the accent under it */
+.tabbrowser-tab[zen-essential] {
+  --zen-essential-tab-selected-bg: var(--strix-raised) !important;
+  --zen-essential-tab-selected-bg-hover: var(--strix-raised) !important;
+}
+.tabbrowser-tab[zen-essential] .tab-background {
+  border-radius: 2px !important;
+}
+.tabbrowser-tab[zen-essential]:not([visuallyselected], [multiselected]) .tab-background {
+  background: var(--strix-surface) !important;
+}
+.tabbrowser-tab[zen-essential]:is([visuallyselected], [multiselected]) .tab-background {
+  box-shadow: inset 0 -2px 0 var(--strix-accent) !important;
+}
+.tabbrowser-tab[zen-essential] .tab-background::before,
+.tabbrowser-tab[zen-essential] .tab-background::after {
+  border-radius: 1px !important;
+}
+/* Folders, and the list a folder shows of its tabs */
+zen-folder > .tab-group-label-container,
+.folders-tabs-list-item-content {
+  border-radius: 2px !important;
+}
+/* A tab that plays or is muted keeps its mark in the accent */
+.tab-icon-overlay,
+.tab-audio-button {
+  color: var(--strix-accent-text) !important;
+}
+
+/* The new tab row and the names of spaces and folders: quiet until the pointer is there */
+#tabs-newtab-button,
+#vertical-tabs-newtab-button,
+.zen-workspace-tabs-section .toolbarbutton-1,
+.zen-current-workspace-indicator {
+  color: var(--strix-muted) !important;
+  border-radius: 2px !important;
+}
+/* While the address bar stands in for a new tab, its row is the selected one */
+#tabs-newtab-button[in-urlbar] {
+  background: var(--strix-raised) !important;
+  box-shadow: inset 2px 0 0 var(--strix-accent) !important;
+  color: var(--strix-text) !important;
+}
+.zen-current-workspace-indicator .zen-current-workspace-indicator-name {
+  font-family: "JetBrains Mono", monospace !important;
+  font-size: 11px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.08em !important;
+  color: var(--strix-faint) !important;
+}
+
+/* ---- The address bar: a field of the shell, a hair line that turns to the accent ---- */
+#urlbar .urlbar-background,
+#urlbar-background,
+#searchbar {
+  border-radius: 2px !important;
+  border: 1px solid var(--strix-border) !important;
+  background: var(--strix-sunken) !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+#urlbar:is([focused], [open], [breakout-extend]) .urlbar-background,
+#urlbar:is([focused], [open], [breakout-extend]) #urlbar-background {
+  border-color: var(--strix-accent) !important;
+  background: var(--strix-surface) !important;
+}
+/* Where the address bar was while it floats over the page, and the marks inside it */
+#urlbar-container,
+#notification-popup-box,
+#urlbar .urlbar-page-action,
+#urlbar #tracking-protection-icon-container,
+#urlbar #identity-box,
+#urlbar #identity-icon-box,
+#urlbar .searchbar-engine-one-off-item,
+#urlbar .urlbarView-favicon {
+  border-radius: 2px !important;
+}
+#urlbar-input::selection {
+  background: var(--strix-accent) !important;
+  color: var(--strix-on-accent) !important;
+}
+.urlbarView-row {
+  border-radius: 1px !important;
+}
+.urlbarView-row:is([selected], :hover) {
+  background: var(--strix-raised) !important;
+  box-shadow: inset 2px 0 0 var(--strix-accent) !important;
+}
+.urlbarView-url,
+.urlbarView-action {
+  color: var(--strix-accent-text) !important;
+}
+
+/* ---- Buttons of the toolbars: symbols in the muted ink, raised under the pointer ---- */
+toolbarbutton,
+.toolbarbutton-1 {
+  --toolbarbutton-hover-background: var(--strix-raised) !important;
+  --toolbarbutton-active-background: var(--strix-border) !important;
+  color: var(--strix-muted) !important;
+  fill: currentColor !important;
+}
+toolbarbutton:is(:hover, [open], [checked]),
+.toolbarbutton-1:is(:hover, [open], [checked]) {
+  color: var(--strix-text) !important;
+}
+toolbarbutton > .toolbarbutton-icon,
+toolbarbutton > .toolbarbutton-badge-stack {
+  border-radius: 2px !important;
+}
+
+/* ---- The page: the radius of a window and a hair line (the big shadow above) around it;
+   the ground of the theme behind a page that has not painted yet ---- */
+#tabbrowser-tabpanels browser[type="content"]:not([transparent="true"]) {
+  background: var(--strix-background) !important;
+}
+
+/* ---- Menus, panels and hints: surfaces of the shell ---- */
+menupopup,
+panel {
+  --panel-background: var(--strix-surface) !important;
+  --panel-color: var(--strix-text) !important;
+  --panel-border-color: var(--strix-border) !important;
+  --panel-border-radius: 4px !important;
+  --panel-shadow: 0 8px 22px rgba(0, 0, 0, 0.5) !important;
+  --panel-padding: 4px !important;
+  --panel-separator-color: var(--strix-border) !important;
+}
+menu,
+menuitem,
+.subviewbutton,
+.panel-subview-body toolbarbutton {
+  border-radius: 1px !important;
+  color: var(--strix-text) !important;
+}
+:is(menu, menuitem)[_moz-menuactive],
+.subviewbutton:hover {
+  background: var(--strix-raised) !important;
+  color: var(--strix-text) !important;
+  box-shadow: inset 2px 0 0 var(--strix-accent) !important;
+}
+:is(menu, menuitem)[disabled] {
+  color: var(--strix-faint) !important;
+}
+menuseparator,
+toolbarseparator {
+  border-color: var(--strix-border) !important;
+  appearance: none !important;
+}
+tooltip {
+  appearance: none !important;
+  background: var(--strix-raised) !important;
+  color: var(--strix-text) !important;
+  border: 1px solid var(--strix-border) !important;
+  border-radius: 1px !important;
+  padding: 2px 6px !important;
+}
+
+/* ---- Dialogs and what Zen says in a corner ---- */
+.dialogBox {
+  border-radius: 4px !important;
+  border: 1px solid var(--strix-border) !important;
+  outline: none !important;
+  background: var(--strix-surface) !important;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.5) !important;
+}
+dialog::part(dialog-button),
+.zen-big-accent-button,
+.footer-button,
+button.subviewbutton-nav,
+.panel-footer > button {
+  border-radius: 2px !important;
+}
+#zen-toast-container .zen-toast {
+  border-radius: 2px !important;
+  border: 1px solid var(--strix-border) !important;
+  background: var(--strix-raised) !important;
+  color: var(--strix-text) !important;
+  box-shadow: none !important;
+}
+/* What plays, and what the sidebar reports: a card with a hair line */
+:root {
+  --zen-sidebar-notification-shadow: none !important;
+  --zen-sidebar-notification-outline: 1px solid var(--strix-border) !important;
+}
+.zen-media-card {
+  border-radius: 2px !important;
+}
+
+/* ---- Small things ---- */
+/* Find in page and the bars a page can show under the toolbar */
+findbar,
+notification-message,
+.infobar {
+  background: var(--strix-surface) !important;
+  color: var(--strix-text) !important;
+  border-color: var(--strix-border) !important;
+  border-radius: 0 !important;
+}
+/* What takes the keyboard shows the accent, never a blue ring */
+:focus-visible {
+  outline-color: var(--strix-accent) !important;
+}
+/* Thin scrollbars in the ink of the borders */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--strix-border-strong) transparent;
+}

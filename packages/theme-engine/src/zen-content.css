@@ -1,0 +1,89 @@
+
+  /* -------------------------------------------------------------------------------------------
+     The pages of the browser itself in the look of the shell
+     (packages/theme-engine/src/zen-content.css). They draw themselves from the names Firefox
+     gives its colours and shapes, so those names are answered here; the same for every theme.
+     ------------------------------------------------------------------------------------------- */
+  :root {
+    --zen-primary-color: var(--strix-accent) !important;
+    --zen-colors-primary: var(--strix-accent) !important;
+    --zen-colors-secondary: var(--strix-raised) !important;
+    --zen-colors-tertiary: var(--strix-surface) !important;
+    --zen-colors-border: var(--strix-border) !important;
+    --zen-dialog-background: var(--strix-surface) !important;
+    --zen-squircle-value: 1 !important;
+
+    --background-color-canvas: var(--strix-background) !important;
+    --background-color-box: var(--strix-surface) !important;
+    --background-color-box-info: var(--strix-surface) !important;
+    --background-color-information: var(--strix-raised) !important;
+    --table-background-color: var(--strix-surface) !important;
+    --table-row-background-color: var(--strix-background) !important;
+    --table-row-background-color-alternate: var(--strix-surface) !important;
+    --text-color: var(--strix-text) !important;
+    --text-color-deemphasized: var(--strix-muted) !important;
+    --icon-color: var(--strix-muted) !important;
+    --border-color: var(--strix-border) !important;
+    --border-color-card: var(--strix-border) !important;
+    --border-color-deemphasized: var(--strix-border) !important;
+    --border-color-interactive: var(--strix-border-strong) !important;
+    --table-border-color: var(--strix-border) !important;
+
+    --color-accent-primary-hover: color-mix(in srgb, var(--strix-accent) 88%, white) !important;
+    --color-accent-primary-active: color-mix(in srgb, var(--strix-accent) 88%, black) !important;
+    --color-accent-primary-selected: var(--strix-accent) !important;
+    --focus-outline-color: var(--strix-accent) !important;
+    --link-color: var(--strix-accent-text) !important;
+    --link-color-hover: var(--strix-text) !important;
+    --link-color-active: var(--strix-text) !important;
+    --link-color-visited: var(--strix-accent-text) !important;
+
+    --button-background-color: var(--strix-raised) !important;
+    --button-background-color-hover: var(--strix-border) !important;
+    --button-background-color-active: var(--strix-border-strong) !important;
+    --button-text-color: var(--strix-text) !important;
+    --button-background-color-primary: var(--strix-accent) !important;
+    --button-background-color-primary-hover: var(--color-accent-primary-hover) !important;
+    --button-background-color-primary-active: var(--color-accent-primary-active) !important;
+    --button-text-color-primary: var(--strix-on-accent) !important;
+    --input-background-color: var(--strix-sunken) !important;
+
+    /* One small radius, hair lines instead of shadows */
+    --border-radius-xsmall: 1px !important;
+    --border-radius-small: 2px !important;
+    --border-radius-medium: 2px !important;
+    --border-radius-large: 4px !important;
+    --button-border-radius: 2px !important;
+    --box-shadow-level-1: none !important;
+    --box-shadow-level-2: none !important;
+    --box-shadow-level-3: 0 8px 22px rgba(0, 0, 0, 0.5) !important;
+    --box-shadow-level-4: 0 8px 22px rgba(0, 0, 0, 0.5) !important;
+    --card-box-shadow: none !important;
+
+    /* The type of the shell */
+    font-family: "JetBrains Mono", "GeistMono Nerd Font Mono", monospace !important;
+    scrollbar-width: thin;
+    scrollbar-color: var(--strix-border-strong) transparent;
+  }
+  ::selection {
+    background: var(--strix-accent);
+    color: var(--strix-on-accent);
+  }
+
+  /* Settings: what Zen shapes by hand */
+  groupbox button,
+  groupbox menulist {
+    border-radius: 2px !important;
+    background-color: var(--strix-raised) !important;
+    color: var(--strix-text) !important;
+  }
+  /* The list of pages at the side: the selected one is raised and carries the accent */
+  moz-page-nav-button {
+    --page-nav-button-border-radius: 2px !important;
+    --page-nav-button-text-color: var(--strix-muted) !important;
+    --page-nav-button-text-color-hover: var(--strix-text) !important;
+    --page-nav-button-text-color-selected: var(--strix-text) !important;
+    --page-nav-button-background-color-hover: color-mix(in srgb, var(--strix-raised) 55%, transparent) !important;
+    --page-nav-button-background-color-selected: var(--strix-raised) !important;
+    --page-nav-button-indicator-background-color: var(--strix-accent) !important;
+  }

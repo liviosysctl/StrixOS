@@ -1,4 +1,4 @@
-# The browser: Zen, in the colors of the session's theme.
+# The browser: Zen, in the colors and shapes of the session's theme.
 {
   config,
   lib,

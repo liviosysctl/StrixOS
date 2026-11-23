@@ -518,6 +518,27 @@ pub fn gtk4(theme: &Theme, variant: &Variant) -> String {
     out
 }
 
+/// The colours of the theme by the names the two Zen stylesheets use (`--strix-<name>`)
+fn zen_shell_colors(variant: &Variant) -> [(&'static str, Rgb); 12] {
+    [
+        ("background", variant.color("background")),
+        ("surface", variant.color("surface")),
+        ("raised", extra_or(variant, "surface-raised", "surface")),
+        ("sunken", extra_or(variant, "surface-sunken", "background")),
+        ("border", variant.color("border")),
+        (
+            "border-strong",
+            extra_or(variant, "border-strong", "border"),
+        ),
+        ("text", variant.color("text")),
+        ("muted", variant.color("text-muted")),
+        ("faint", extra_or(variant, "text-faint", "text-muted")),
+        ("accent", variant.color("accent")),
+        ("accent-text", extra_or(variant, "accent-text", "accent")),
+        ("on-accent", variant.color("on-accent")),
+    ]
+}
+
 /// The colors Zen draws itself with, by the names of Zen and Firefox
 fn zen_colors(variant: &Variant) -> Vec<(&'static str, Rgb)> {
     let background = variant.color("background");
@@ -545,7 +566,7 @@ fn zen_colors(variant: &Variant) -> Vec<(&'static str, Rgb)> {
         ("zen-toolbar-element-bg-hover", raised),
         ("zen-urlbar-background", surface),
         ("zen-branding-dark", background),
-        ("zen-sidebar-notification-bg", accent),
+        ("zen-sidebar-notification-bg", raised),
         ("zen-sidebar-themed-icon-fill", text),
         ("toolbar-bgcolor", surface),
         ("toolbar-color", text),
@@ -558,7 +579,8 @@ fn zen_colors(variant: &Variant) -> Vec<(&'static str, Rgb)> {
     ]
 }
 
-/// zen-userChrome.css: the window of Zen (sidebar, toolbars, tabs, address bar, menus). Zen sets
+/// zen-userChrome.css: the window of Zen (sidebar, toolbars, tabs, address bar, menus): the colours
+/// of the theme, then the stylesheet zen-chrome.css, which gives Zen the shapes of the shell. Zen sets
 /// its accent and the color of its ground as inline styles on the space and on the element that
 /// paints the ground, so the names are set there as well, and with !important, which an inline
 /// style without it loses to. Zen reads the file when it starts.
@@ -571,15 +593,25 @@ pub fn zen_chrome(theme: &Theme, variant: &Variant) -> String {
     for (name, color) in zen_colors(variant) {
         out.push_str(&format!("  --{name}: {} !important;\n", color.hex()));
     }
-    // Zen blends its ground as "screen", which only ever lightens it
-    out.push_str(
-        "}\n.zen-browser-generic-background {\n  background-blend-mode: normal !important;\n}\n",
-    );
+    // The same colours by the names of the shell, for the stylesheet below
+    for (name, color) in zen_shell_colors(variant) {
+        out.push_str(&format!("  --strix-{name}: {};\n", color.hex()));
+    }
+    // Zen picks many of its own colours with light-dark(): tell it which side the theme is on.
+    // And it blends its ground as "screen", which only ever lightens it
+    out.push_str(&format!(
+        "}}\n:root {{\n  color-scheme: {} !important;\n}}\n\
+         .zen-browser-generic-background {{\n  background-blend-mode: normal !important;\n}}\n",
+        variant.appearance.as_str()
+    ));
+    // The shape of Zen, the same for every theme
+    out.push_str(include_str!("zen-chrome.css"));
     out
 }
 
 /// zen-userContent.css: the pages of the browser itself (new tab, settings, about:), by the names
-/// Firefox gives their colors. Web pages are left alone.
+/// Firefox gives their colors. Web pages are left alone, and so are the empty documents a web
+/// page can make inside itself (about:blank, about:srcdoc) and the reader view.
 pub fn zen_content(theme: &Theme, variant: &Variant) -> String {
     let surface = variant.color("surface");
     let colors = [
@@ -603,13 +635,19 @@ pub fn zen_content(theme: &Theme, variant: &Variant) -> String {
     ];
     let mut out = format!(
         "/* The colors of {} ({}:{}), written by the theme engine. */\n\
-         @-moz-document url-prefix(\"about:\") {{\n  :root {{\n",
+         @-moz-document regexp(\"about:(?!blank|srcdoc|reader).*\") {{\n  :root {{\n",
         theme.name, theme.id, variant.id
     );
     for (name, color) in colors {
         out.push_str(&format!("    --{name}: {} !important;\n", color.hex()));
     }
-    out.push_str("  }\n}\n");
+    for (name, color) in zen_shell_colors(variant) {
+        out.push_str(&format!("    --strix-{name}: {};\n", color.hex()));
+    }
+    out.push_str("  }\n");
+    // The shape of those pages, the same for every theme
+    out.push_str(include_str!("zen-content.css"));
+    out.push_str("}\n");
     out
 }
 
@@ -835,13 +873,19 @@ mod tests {
         );
         assert!(chrome.contains("  --zen-main-browser-background: #000000 !important;\n"));
         assert!(chrome.contains("background-blend-mode: normal !important;"));
-        // Every color wins over an inline style
+        // Every color Zen has a name for wins over an inline style
+        let own = chrome.split("  --strix-").next().unwrap();
         assert_eq!(
-            chrome.matches("  --").count(),
-            chrome.matches(" !important;\n").count() - 1
+            own.matches("  --").count(),
+            own.matches(" !important;\n").count()
         );
+        // The shell's names for the same colors, and the stylesheet that uses them
+        assert!(chrome.contains("  --strix-accent: #c8102e;\n"));
+        assert!(chrome.contains("box-shadow: inset 2px 0 0 var(--strix-accent) !important;"));
         let content = zen_content(&theme, variant);
-        assert!(content.contains("@-moz-document url-prefix(\"about:\") {\n"));
+        assert!(content.contains("@-moz-document regexp(\"about:(?!blank|srcdoc|reader).*\") {\n"));
+        assert!(content.contains("    --strix-accent: #c8102e;\n"));
+        assert!(content.contains("--background-color-canvas: var(--strix-background) !important;"));
         assert!(content.contains("    --in-content-page-background: #000000 !important;\n"));
         assert!(content.contains("    --color-accent-primary: #c8102e !important;\n"));
         assert_eq!(content.matches('{').count(), content.matches('}').count());
