@@ -293,6 +293,15 @@ run = ["qs", "-c", "{id}", "ipc", "call", "clipboard", "clear"]
 # ------------------------------------------------------------------ Update
 
 [[action]]
+id = "open-settings"
+title = "Open Settings"
+group = "settings"
+symbol = "settings"
+words = ["preferences", "options", "configure", "control", "panel"]
+keys = "Super I"
+run = ["{id}-settings"]
+
+[[action]]
 id = "check-updates"
 title = "Check for updates"
 group = "update"

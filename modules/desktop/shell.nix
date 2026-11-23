@@ -63,8 +63,17 @@ let
 
   # Settings at a page and a row, for Search and people: <id>-settings [PAGE [ROW]]
   settingsCommand = pkgs.writeShellScriptBin "${id}-settings" ''
-    exec ${lib.getExe' pkgs.quickshell "qs"} -c ${id} ipc call settings open "''${1:-themes}" "''${2:-}"
+    exec ${lib.getExe' pkgs.quickshell "qs"} -c ${id} ipc call settings open "''${1:-home}" "''${2:-}"
   '';
+  # Settings among the apps, like any other
+  settingsEntry = pkgs.makeDesktopItem {
+    name = "${id}-settings";
+    desktopName = "Settings";
+    comment = "Themes, network, sound, display, input, power, hotkeys, versions";
+    exec = "${id}-settings";
+    icon = "preferences-system";
+    categories = [ "Settings" ];
+  };
 
   qmlPath = "/run/current-system/sw/share/${id}-ui/qml";
 
@@ -90,6 +99,7 @@ in
       with pkgs;
       [
         settingsCommand
+        settingsEntry
         captureCommand
         monitorCommand
         btop

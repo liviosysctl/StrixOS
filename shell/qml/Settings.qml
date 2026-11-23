@@ -18,26 +18,27 @@ Scope {
     /// The theme picker of the shell
     property var picker
     property bool open: false
-    property string page: "themes"
+    /// "home" is the first page: every other page with a line about it
+    property string page: "home"
     property string row: ""
     property var themeState: null
     property var repos: []
     property string version: ""
     readonly property var pages: [
-        { id: "themes", title: "Themes", icon: "palette" },
-        { id: "network", title: "Network", icon: "wifi" },
-        { id: "bluetooth", title: "Bluetooth", icon: "bluetooth" },
-        { id: "sound", title: "Sound", icon: "volume-2" },
-        { id: "display", title: "Display", icon: "monitor" },
-        { id: "input", title: "Input", icon: "mouse" },
-        { id: "power", title: "Power", icon: "zap" },
-        { id: "hotkeys", title: "Hotkeys", icon: "keyboard" },
-        { id: "versions", title: "Versions", icon: "history" },
-        { id: "about", title: "About", icon: "info" }
+        { id: "themes", title: "Themes", icon: "palette", about: "The god of the session, the change every ten minutes, theme repositories" },
+        { id: "network", title: "Network", icon: "wifi", about: "Wi-Fi and wired networks" },
+        { id: "bluetooth", title: "Bluetooth", icon: "bluetooth", about: "Devices to pair and connect" },
+        { id: "sound", title: "Sound", icon: "volume-2", about: "Outputs, inputs and their volume" },
+        { id: "display", title: "Display", icon: "monitor", about: "Screens, their size, place and scale, the night light" },
+        { id: "input", title: "Input", icon: "mouse", about: "Keyboard layouts, mouse and touchpad" },
+        { id: "power", title: "Power", icon: "zap", about: "What happens when nobody is at the machine, and the lid" },
+        { id: "hotkeys", title: "Hotkeys", icon: "keyboard", about: "Every key, and keys of your own" },
+        { id: "versions", title: "Versions", icon: "history", about: "The versions still installed, what they changed, going back" },
+        { id: "about", title: "About", icon: "info", about: "This machine and the distribution" }
     ]
 
     function show(page, row) {
-        root.page = root.pages.some(p => p.id === page) ? page : "themes"
+        root.page = root.pages.some(p => p.id === page) ? page : "home"
         root.row = row || ""
         root.open = true
         root.refresh()
@@ -121,15 +122,24 @@ Scope {
         Row {
             anchors.fill: parent
 
-            // The pages
+            // The pages; the first page has them as cards instead
             Rectangle {
+                visible: root.page !== "home"
                 width: 220
                 height: parent.height
                 color: Theme.surface
                 Column {
                     anchors { fill: parent; margins: Theme.space4 }
                     spacing: Theme.space1
-                    Label { textStyle: "title"; color: Theme.text; text: "Settings"; bottomPadding: Theme.space3 }
+                    // The title leads back to the first page
+                    Label {
+                        textStyle: "title"
+                        color: Theme.text
+                        text: "Settings"
+                        bottomPadding: Theme.space3
+                        HoverHandler { cursorShape: Qt.PointingHandCursor }
+                        TapHandler { onTapped: root.page = "home" }
+                    }
                     // The selection glides from page to page
                     Item {
                         width: parent.width
@@ -159,7 +169,7 @@ Scope {
             }
 
             Flickable {
-                width: parent.width - 220
+                width: parent.width - (root.page !== "home" ? 220 : 0)
                 height: parent.height
                 contentHeight: content.implicitHeight + Theme.space6 * 2
                 clip: true
@@ -188,6 +198,51 @@ Scope {
                     }
                     width: parent.width - Theme.space6 * 2
                     spacing: Theme.space4
+
+                    // ------------------------------------------------ the first page
+                    Column {
+                        visible: root.page === "home"
+                        width: parent.width
+                        spacing: Theme.space1
+
+                        Label { textStyle: "title"; color: Theme.text; text: "Settings" }
+                        Label {
+                            width: parent.width
+                            textStyle: "caption"
+                            color: Theme.textFaint
+                            bottomPadding: Theme.space3
+                            text: root.version + ". Search finds every single setting by its name."
+                        }
+                        // A card for every page
+                        Grid {
+                            id: cards
+                            width: parent.width
+                            columns: 3
+                            spacing: Theme.space3
+                            Repeater {
+                                model: root.pages
+                                Item {
+                                    id: tile
+                                    required property var modelData
+                                    width: (cards.width - 2 * cards.spacing) / 3
+                                    height: 96
+                                    Card {
+                                        anchors.fill: parent
+                                        interactive: true
+                                        title: tile.modelData.title
+                                        text: tile.modelData.about
+                                        onClicked: root.page = tile.modelData.id
+                                    }
+                                    Icon {
+                                        anchors { right: parent.right; rightMargin: Theme.space4; top: parent.top; topMargin: Theme.space3 + 4 }
+                                        name: tile.modelData.icon
+                                        size: 14
+                                        color: Theme.textMuted
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                     // ------------------------------------------------ Themes
                     Column {
