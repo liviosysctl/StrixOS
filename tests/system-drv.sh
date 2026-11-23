@@ -3,7 +3,7 @@
 # tree, which changes with every commit. Two commits with the same line build the same system:
 #   tests/system-drv.sh            the working tree
 #   tests/system-drv.sh main       a branch, a tag or a commit
-# After moving code around, the line must not change (just same-system main).
+# After moving code around, the line must not change.
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"

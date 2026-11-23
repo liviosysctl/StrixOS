@@ -267,7 +267,6 @@
       devShells.${system}.default = pkgs.mkShell {
         packages = [
           pkgs.git-cliff
-          pkgs.just
           # Nix: the formatter of `nix fmt`, the linters of the check, the language server
           formatter
           pkgs.deadnix
