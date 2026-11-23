@@ -33,6 +33,19 @@ in
 
     environment.systemPackages = lib.optionals (!cfg.live) [ browser ];
 
-    programs.firefox.enable = lib.mkIf (!cfg.live) true;
+    # Firefox fetches Widevine, the module streaming services ask for, by itself once it has
+    # been started. The browser of Strix finds it in Firefox's profile and uses the same one,
+    # so nothing that is not free is part of the system.
+    programs.firefox = lib.mkIf (!cfg.live) {
+      enable = true;
+      policies.EncryptedMediaExtensions = {
+        Enabled = true;
+        Locked = false;
+      };
+    };
+
+    # Video is decoded by the graphics card where it can be. Mesa brings the drivers for that
+    # for most cards; Intel's newer ones need this one.
+    hardware.graphics.extraPackages = lib.mkIf (!cfg.live) [ pkgs.intel-media-driver ];
   };
 }
