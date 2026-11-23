@@ -95,7 +95,14 @@ grub_modules=(
 )
 
 # GRUB as one image that finds this ESP by its UUID and reads grub/grub.cfg
-# there. Signed again only when the unsigned image changed.
+# there. The search looks first at the disk GRUB was started from (--hint
+# $root), which is this ESP, and is done. Without the hint it reads every
+# partition of every disk, and for each one it cannot read (an encrypted one,
+# swap, NTFS) GRUB tries to load a file system module, which Secure Boot
+# forbids: lines of "prohibited by secure boot policy" at every start, though
+# it starts. This configuration runs before GRUB's script language is there,
+# so it cannot ask first whether grub.cfg is where it should be.
+# Signed again only when the unsigned image changed.
 sign_grub() {
   local uuid work
   uuid=$(findmnt -nvo UUID --target "$ESP") || die "$ESP is not mounted"
@@ -104,7 +111,7 @@ sign_grub() {
   # $root and $prefix are GRUB's, not the shell's
   # shellcheck disable=SC2016
   printf '%s\n' \
-    "search --no-floppy --fs-uuid --set=root $uuid" \
+    'search --no-floppy --fs-uuid --set=root --hint $root '"$uuid" \
     'set prefix=($root)/grub' \
     'configfile $prefix/grub.cfg' >"$work/early.cfg"
   "$GRUB_MKIMAGE" --directory "$GRUB_MODULES" --format x86_64-efi --prefix /grub \
