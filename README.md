@@ -88,12 +88,13 @@ These are renderings of the design from StrixUI; the shell in this repository is
 | `sudo strix-update` | Fetches the newest release and every connected theme repository and switches to them, keeps the old version if the build fails |
 | `sudo strix-update --themes [REPO]` | Only the theme repositories, or the one named |
 | `strix-generations [list\|diff [N]]`, `sudo strix-generations switch N\|clean` | The versions of the system still installed, what one changed against the one before it, going back to one, tidying up |
+| `strix-doctor [--report]` | Looks the system over (services, disk space, updates and caches, the shell, Hyprland's configuration, portal, sound) and says what is wrong; `--report` packs the checks and the logs of this start into one archive to send along with a question |
 | `, <command>` | Runs a program that is not installed, once (comma); a command that is not there names the package that has it |
 | `sudo strix-apps add\|remove <package>`, `strix-apps list` | Installs or removes a package from nixpkgs (kept in `/etc/nixos/apps.json`) and rebuilds. |
 | `sudo strix-theme set <theme>`, `strix-theme list` | Switches the theme without a rebuild, see [themes/README.md](themes/README.md). |
 | `sudo strix-theme repos add <owner/repo>`, `strix-theme repos list` | Connects a theme repository; `strix-rebuild switch` builds its themes in, every `strix-update` brings new versions |
 | `strix-settings [PAGE [ROW]]` | Opens Settings: `themes`, `network`, `bluetooth`, `sound`, `display`, `power`, `hotkeys`, `about` |
-| `strix-capture region\|window\|screen\|record\|colour` | Screenshots to `~/Pictures/Screenshots` and the clipboard, a recording to `~/Videos/Recordings`, the colour picker; Print and its modifiers call it |
+| `strix-capture region\|window\|screen\|annotate\|text\|record\|colour` | Screenshots to `~/Pictures/Screenshots` and the clipboard, one to draw on first (Satty), the text of a region into the clipboard, a recording to `~/Videos/Recordings`, the colour picker; Print and its modifiers call it |
 | Super Space | Search: apps, actions, settings and commands in one field |
 | Super K | The cheat sheet with every key; change them in Settings › Hotkeys |
 | Super V | The clipboard history |

@@ -1,12 +1,14 @@
-# <id>-capture region|window|screen|record|record-screen|stop|colour: screenshots, screen
-# recordings and the colour picker of the cheat sheet (Print, Shift Print, Ctrl Print, Alt Print,
-# Ctrl Alt Print, Super Print).
+# <id>-capture region|window|screen|annotate|text|record|record-screen|stop|colour: screenshots,
+# screen recordings and the colour picker of the cheat sheet (Print, Shift Print, Ctrl Print,
+# Alt Print, Ctrl Alt Print, Super Print). annotate opens a region in Satty to draw and write on
+# before it is saved (Ctrl Shift Print); text reads the words in a region and puts them into the
+# clipboard (Super Shift Print).
 #
 # Screenshots go to ~/Pictures/Screenshots and to the clipboard, recordings to ~/Videos/Recordings;
 # a notification says where. Either recording key a second time, or the red mark the bar shows
 # while it runs, stops the recording (stop).
 usage() {
-  echo "Usage: $(basename "$0") region|window|screen|record|record-screen|stop|colour" >&2
+  echo "Usage: $(basename "$0") region|window|screen|annotate|text|record|record-screen|stop|colour" >&2
   exit 64
 }
 
@@ -38,6 +40,22 @@ case "${1:-}" in
     ;;
   screen)
     shot
+    ;;
+  annotate)
+    area=$(slurp -d) || exit 0
+    mkdir -p "$shots"
+    grim -g "$area" - | satty --filename - --output-filename "$shots/$stamp.png" \
+      --copy-command wl-copy --early-exit --initial-tool arrow
+    ;;
+  text)
+    area=$(slurp -d) || exit 0
+    words=$(grim -g "$area" - | tesseract stdin stdout -l eng+deu+fra+ita 2>/dev/null | sed '/^[[:space:]]*$/d') || true
+    if [ -z "$words" ]; then
+      notify-send --app-name=Capture "No text found" "Nothing readable in that region"
+      exit 0
+    fi
+    printf '%s' "$words" | wl-copy
+    notify-send --app-name=Capture "Text copied" "$(printf '%s' "$words" | head -n 3)"
     ;;
   record | record-screen | stop)
     if pkill -INT -x wf-recorder; then

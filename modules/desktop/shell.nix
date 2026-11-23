@@ -29,6 +29,17 @@ let
       hyprpicker
       procps
       coreutils
+      gnused
+      # Drawing on a screenshot, and reading the words in one (the languages of the installer)
+      satty
+      (tesseract.override {
+        enableLanguages = [
+          "eng"
+          "deu"
+          "fra"
+          "ita"
+        ];
+      })
       config.programs.hyprland.package
     ];
     text = builtins.readFile ../../shell/bin/capture.sh;

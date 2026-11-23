@@ -1,8 +1,8 @@
 // The dock (EdgeDock in StrixUI): part of the bottom edge, for what the bar does not have. At rest
 // a thin tab with a short line in the accent; when the pointer reaches it, it rises, and sinks
 // back a moment after the pointer left.
-// Tools, one click instead of a key: a screenshot of a region, a recording of a region (red while
-// one runs, a click stops it), the colour picker; the clipboard history and the theme picker;
+// Tools, one click instead of a key: a screenshot of a region, one to draw on, the text of a
+// region, a recording of a region (red while one runs, a click stops it), the colour picker; the clipboard history and the theme picker;
 // the night light, in the accent while it is on.
 // Then what is playing, the only place for it: play or pause, and the title, which opens the
 // media player above it. A second click, Escape or a click elsewhere folds it back, and while
@@ -153,6 +153,8 @@ Scope {
 
                     // Capture
                     Tool { iconName: "crop"; onClicked: root.run(["strix-capture", "region"]) }
+                    Tool { iconName: "pencil"; onClicked: root.run(["strix-capture", "annotate"]) }
+                    Tool { iconName: "type"; onClicked: root.run(["strix-capture", "text"]) }
                     Tool {
                         iconName: "video"
                         checked: root.bar.recording

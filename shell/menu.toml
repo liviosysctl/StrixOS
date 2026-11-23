@@ -227,6 +227,24 @@ keys = "Ctrl Print"
 run = ["{id}-capture", "screen"]
 
 [[action]]
+id = "annotate-screenshot"
+title = "Annotated screenshot"
+group = "capture"
+symbol = "pencil"
+words = ["screenshot", "draw", "arrow", "mark", "satty"]
+keys = "Ctrl Shift Print"
+run = ["{id}-capture", "annotate"]
+
+[[action]]
+id = "text-from-screen"
+title = "Text from the screen"
+group = "capture"
+symbol = "type"
+words = ["ocr", "read", "copy", "recognise", "words"]
+keys = "Super Shift Print"
+run = ["{id}-capture", "text"]
+
+[[action]]
 id = "record-region"
 title = "Record a region"
 group = "capture"
@@ -281,6 +299,15 @@ group = "update"
 symbol = "refresh-cw"
 words = ["upgrade", "new", "version", "update"]
 run = ["{id}-update"]
+terminal = true
+
+[[action]]
+id = "doctor"
+title = "Check the system"
+group = "update"
+symbol = "circle-alert"
+words = ["doctor", "problem", "broken", "diagnose", "health", "report"]
+run = ["{id}-doctor"]
 terminal = true
 
 [[action]]
@@ -513,6 +540,22 @@ group = "Workspaces"
 target = "Workspace"
 keys = "Super Shift 1–9"
 hypr = "hl.dsp.window.move({ workspace = {key} })"
+
+[[binding]]
+id = "switch-window"
+title = "Switch window"
+group = "Windows"
+target = "Window"
+keys = "Alt Tab"
+run = ["qs", "-c", "{id}", "ipc", "call", "switcher", "next"]
+
+[[binding]]
+id = "switch-window-back"
+title = "Switch window, backwards"
+group = "Windows"
+target = "Window"
+keys = "Alt Shift Tab"
+run = ["qs", "-c", "{id}", "ipc", "call", "switcher", "previous"]
 
 [[binding]]
 id = "next-workspace"

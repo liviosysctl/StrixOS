@@ -31,6 +31,7 @@ ShellRoot {
     VolumeOsd {}
     BatteryWatch {}
     Clipboard {}
+    Switcher {}
     ThemePicker { id: picker }
     Settings { picker: picker }
 }
