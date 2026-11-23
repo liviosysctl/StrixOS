@@ -174,7 +174,9 @@ Scope {
             // The search: 640 wide, near the top. The browser: where a tiled window stands, a
             // gap of two steps from the bar and the edges of the screen
             readonly property int gap: 2 * Theme.space1
-            readonly property int side: 220
+            /// The strip of the browser and the height of its rows (BrowserWindow.qml)
+            readonly property int side: 264
+            readonly property int row: Theme.control + Theme.space2 - Theme.lineBold
             x: root.mix((parent.width - 640) / 2, gap)
             y: root.mix(parent.height * 0.14, Theme.barHeight + gap)
             width: root.mix(640, parent.width - 2 * gap)
@@ -182,51 +184,46 @@ Scope {
 
             MouseArea { anchors.fill: parent }
 
-            // The tabs, down the left side: they open like a drawer while the panel grows
-            Item {
+            // The strip of the browser comes out around the field: over it back, forward and
+            // again, under it the tabs. The field itself becomes the place where the page is
+            Row {
                 x: Theme.space2
                 y: Theme.space2
-                width: panel.side * root.grown
-                height: parent.height - 2 * Theme.space2
                 visible: root.grown > 0
                 opacity: root.grown
-                clip: true
-
-                Column {
-                    width: panel.side
-                    spacing: Theme.space1
-                    ListRow {
-                        width: parent.width
-                        iconName: "search"
-                        text: root.page
-                        selected: true
-                    }
-                    ListRow { width: parent.width; iconName: "plus"; text: "New tab" }
+                spacing: Theme.space1
+                IconButton { iconName: "chevron-left" }
+                IconButton { iconName: "chevron-right" }
+                IconButton { iconName: "rotate-cw" }
+            }
+            Column {
+                x: Theme.space2
+                y: column.y + Theme.control + Theme.space2
+                width: panel.side
+                visible: root.grown > 0
+                opacity: root.grown
+                spacing: Theme.space2
+                Rule { width: parent.width }
+                ListRow { width: parent.width; height: panel.row; iconName: "plus"; text: "New tab"; detail: "Ctrl T" }
+                ListRow {
+                    width: parent.width
+                    height: panel.row
+                    iconName: "search"
+                    text: root.page
+                    selected: true
                 }
             }
 
             Column {
                 id: column
-                x: Theme.space2 + (panel.side + Theme.space2) * root.grown
-                y: Theme.space2
-                width: parent.width - x - Theme.space2
+                x: Theme.space2
+                y: Theme.space2 + (Theme.control + Theme.space2) * root.grown
+                width: root.mix(parent.width - 2 * Theme.space2, panel.side)
                 spacing: Theme.space2
 
                 Row {
                     spacing: Theme.space2
                     width: parent.width
-                    // Back, forward and again come out in front of the field
-                    Row {
-                        id: steps
-                        visible: root.grown > 0
-                        opacity: root.grown
-                        width: implicitWidth * root.grown
-                        clip: true
-                        spacing: Theme.space1
-                        IconButton { iconName: "chevron-left" }
-                        IconButton { iconName: "chevron-right" }
-                        IconButton { iconName: "rotate-cw" }
-                    }
                     Label {
                         visible: root.trail.length > 0
                         anchors.verticalCenter: parent.verticalCenter
@@ -322,12 +319,12 @@ Scope {
                 }
             }
 
-            // The page takes the place of the results, under the address: what was searched for
-            // stands there until the window of the browser shows the page itself
+            // The page stands beside the strip: what was searched for is written there until the
+            // window of the browser shows the page itself
             Rectangle {
-                x: column.x
-                y: Theme.space2 + Theme.control + Theme.space2
-                width: column.width
+                x: Theme.space2 + panel.side + Theme.space2
+                y: Theme.space2
+                width: parent.width - x - Theme.space2
                 height: parent.height - y - Theme.space2
                 visible: root.grown > 0
                 opacity: root.grown
