@@ -22,9 +22,14 @@ ShellRoot {
 
     // Covered by the lock screen or the theme picker, the wallpaper changes without its reveal
     Background { quiet: lock.active || picker.present }
-    Bar { id: bar }
+    Bar { id: bar; messages: notifications }
     Dock { bar: bar }
     Lock { id: lock; themeFile: themeFile }
+    // Nothing stays open behind the lock screen
+    Connections {
+        target: lock
+        function onActiveChanged() { if (lock.active) Popups.close() }
+    }
     SearchPanel {}
     Cheatsheet {}
     Notifications { id: notifications }

@@ -5,8 +5,8 @@
 // Middle: the workspaces of Hyprland. Right: the network, Bluetooth, the volume (scrolling turns
 // it), the battery when there is one, the bell with its count and power. Network, Bluetooth,
 // volume, battery and power drop a quick panel under their symbol (WifiPanel, BluetoothPanel,
-// SoundPanel, PowerPanel, SessionPanel) with what is needed most and the way to Settings; a
-// click elsewhere, Escape or the same symbol again folds it back.
+// SoundPanel, PowerPanel, SessionPanel) with what is needed most and the way to Settings. Which
+// one is open, and what folds it back, is in Popups.
 // Super Shift Space hides it (ipc: bar toggle, bar open <panel>, bar close).
 import QtQuick
 import Quickshell
@@ -23,34 +23,23 @@ Scope {
     id: root
 
     property bool shown: true
+    /// The window of the messages (Notifications): the bell opens it
+    required property var messages
 
     IpcHandler {
         target: "bar"
         function toggle(): void { root.shown = !root.shown }
         function open(panel: string): void {
-            const screen = Hyprland.focusedMonitor ? Hyprland.focusedMonitor.name
-                : Quickshell.screens.length > 0 ? Quickshell.screens[0].name : ""
-            root.drop = ["wifi", "bluetooth", "sound", "power", "session"].indexOf(panel) >= 0 || (panel === "update" && root.updateReady) ? panel : "session"
-            root.dropOn = screen
+            Popups.show(["wifi", "bluetooth", "sound", "power", "session"].indexOf(panel) >= 0 || (panel === "update" && root.updateReady) ? panel : "session", Popups.here())
         }
-        function close(): void { root.drop = "" }
+        function close(): void { Popups.close() }
         function isOpen(): string { return root.drop }
     }
 
     /// The quick panel under a symbol: "", "update", "wifi", "bluetooth", "sound", "power" or "session"
-    property string drop: ""
-    /// The screen whose bar shows it
-    property string dropOn: ""
-    function toggleDrop(name, screen) {
-        if (root.drop === name && root.dropOn === screen) { root.drop = ""; return }
-        root.calendarOn = ""
-        root.dropOn = screen
-        root.drop = name
-    }
-    onShownChanged: if (!shown) root.drop = ""
-
-    // The screen whose bar shows the month, "" when it is closed
-    property string calendarOn: ""
+    readonly property string drop: ["update", "wifi", "bluetooth", "sound", "power", "session"].indexOf(Popups.current) >= 0 ? Popups.current : ""
+    // Hidden, the bar takes what hangs from it along
+    onShownChanged: if (!shown && Popups.current !== "media") Popups.close()
 
     /// A share as a figure of two places: a figure space in front of a single digit keeps the
     /// button as wide as it was
@@ -60,7 +49,7 @@ Scope {
     }
 
     function settings(page) {
-        root.drop = ""
+        Popups.close()
         Quickshell.execDetached(["strix-settings", page])
     }
 
@@ -154,7 +143,7 @@ Scope {
         }
     }
     readonly property bool updateReady: !!(root.update && root.update.available)
-    onUpdateReadyChanged: if (!updateReady && root.drop === "update") root.drop = ""
+    onUpdateReadyChanged: if (!updateReady && root.drop === "update") Popups.close()
 
     // The layout of the keyboard, once it was switched (Alt Shift with several layouts in
     // Settings › Input): the bar names it
@@ -211,39 +200,200 @@ Scope {
             exclusiveZone: Theme.barHeight
             color: "transparent"
 
-            // Every part of the bar is a button on its own plate of smoked glass, as high as every
-            // control, a step from its neighbour and two from the edge of the screen
-            Row {
-                anchors { left: parent.left; leftMargin: Theme.space2; bottom: parent.bottom }
-                spacing: Theme.space1
+            // Everything that is seen. The keys the bar gets while something hangs from it go to
+            // Popups from here, whichever button has the focus
+            Item {
+                anchors.fill: parent
+                focus: true
+                Keys.onPressed: event => Popups.key(event)
 
-                Chip {
-                    iconName: "search"
-                    onClicked: Quickshell.execDetached(["qs", "-c", "strix", "ipc", "call", "search", "toggle"])
+                // The picture between the buttons is the desktop: a click there folds back what
+                // is open
+                MouseArea {
+                    anchors.fill: parent
+                    onPressed: Popups.close()
                 }
-                Chip {
-                    id: clockButton
-                    open: root.calendarOn === bar.modelData.name
-                    text: Qt.formatDateTime(clock.date, "ddd d MMM  HH:mm")
-                    onClicked: { root.drop = ""; root.calendarOn = root.calendarOn === bar.modelData.name ? "" : bar.modelData.name }
+
+                // Every part of the bar is a button on its own plate of smoked glass, as high as every
+                // control, a step from its neighbour and two from the edge of the screen
+                Row {
+                    anchors { left: parent.left; leftMargin: Theme.space2; bottom: parent.bottom }
+                    spacing: Theme.space1
+
+                    Chip {
+                        iconName: "search"
+                        onClicked: { Popups.close(); Quickshell.execDetached(["qs", "-c", "strix", "ipc", "call", "search", "toggle"]) }
+                    }
+                    Chip {
+                        id: clockButton
+                        open: bar.calendarHere
+                        text: Qt.formatDateTime(clock.date, "ddd d MMM  HH:mm")
+                        onClicked: Popups.toggle("calendar", bar.modelData.name)
+                    }
+                    // CPU and memory are one button: the system monitor (btop, strix-monitor)
+                    Chip {
+                        id: load
+                        onClicked: { Popups.close(); Quickshell.execDetached(["strix-monitor"]) }
+                        Icon { name: "cpu"; color: load.symbolInk; hovered: load.hovered; anchors.verticalCenter: parent.verticalCenter }
+                        Label { textStyle: "value"; text: root.figure(root.cpu); anchors.verticalCenter: parent.verticalCenter }
+                        Icon { name: "memory-stick"; color: load.symbolInk; hovered: load.hovered; anchors.verticalCenter: parent.verticalCenter }
+                        Label { textStyle: "value"; text: root.figure(root.memory); anchors.verticalCenter: parent.verticalCenter }
+                    }
                 }
-                // CPU and memory are one button: the system monitor (btop, strix-monitor)
-                Chip {
-                    id: load
-                    onClicked: Quickshell.execDetached(["strix-monitor"])
-                    Icon { name: "cpu"; color: load.symbolInk; hovered: load.hovered; anchors.verticalCenter: parent.verticalCenter }
-                    Label { textStyle: "value"; text: root.figure(root.cpu); anchors.verticalCenter: parent.verticalCenter }
-                    Icon { name: "memory-stick"; color: load.symbolInk; hovered: load.hovered; anchors.verticalCenter: parent.verticalCenter }
-                    Label { textStyle: "value"; text: root.figure(root.memory); anchors.verticalCenter: parent.verticalCenter }
+
+                Workspaces {
+                    anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom }
+                    count: Math.max(5, ...Hyprland.workspaces.values.map(w => w.id > 0 ? w.id : 0))
+                    current: (Hyprland.focusedWorkspace ? Hyprland.focusedWorkspace.id : 1) - 1
+                    used: Hyprland.workspaces.values.filter(w => w.id > 0).map(w => w.id - 1)
+                    onActivated: index => Hyprland.dispatch("hl.dsp.focus({ workspace = " + (index + 1) + " })")
+                    // The wheel goes to the workspace before or after
+                    WheelHandler {
+                        acceptedDevices: PointerDevice.Mouse
+                        onWheel: event => {
+                            const to = parent.current + (event.angleDelta.y > 0 ? -1 : 1)
+                            if (event.angleDelta.y !== 0 && to >= 0 && to < parent.count) parent.activated(to)
+                        }
+                    }
+                }
+
+                Row {
+                    anchors { right: parent.right; rightMargin: Theme.space2; bottom: parent.bottom }
+                    spacing: Theme.space1
+
+                    // The keyboard layout, when there is more than one to tell apart
+                    Chip {
+                        visible: root.layout !== ""
+                        text: root.layout.slice(0, 2).toUpperCase()
+                        onClicked: root.settings("input")
+                    }
+                    // A newer version is there: the mark drops what changed and installs it
+                    Chip {
+                        id: upd
+                        visible: root.updateReady
+                        iconName: "download"
+                        on: true
+                        open: bar.dropHere === "update"
+                        onClicked: Popups.toggle("update", bar.modelData.name)
+                    }
+                    Chip {
+                        id: net
+                        iconName: "wifi"
+                        text: root.network.length > 20 ? root.network.slice(0, 19) + "…" : root.network
+                        faint: root.network === "Offline"
+                        open: bar.dropHere === "wifi"
+                        onClicked: Popups.toggle("wifi", bar.modelData.name)
+                    }
+                    Chip {
+                        id: bt
+                        visible: root.adapter !== null
+                        iconName: "bluetooth"
+                        text: root.btConnected > 0 ? String(root.btConnected) : ""
+                        faint: !(root.adapter && root.adapter.enabled)
+                        open: bar.dropHere === "bluetooth"
+                        onClicked: Popups.toggle("bluetooth", bar.modelData.name)
+                    }
+                    Chip {
+                        id: vol
+                        iconName: root.muted ? "volume-x" : "volume-2"
+                        text: root.muted ? "" : Math.round(root.volume * 100) + "%"
+                        faint: root.muted
+                        open: bar.dropHere === "sound"
+                        onClicked: Popups.toggle("sound", bar.modelData.name)
+                        // The middle button mutes, scrolling turns the volume in steps of 5 %
+                        TapHandler {
+                            acceptedButtons: Qt.MiddleButton
+                            onTapped: if (root.sink && root.sink.audio) root.sink.audio.muted = !root.sink.audio.muted
+                        }
+                        WheelHandler {
+                            acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                            onWheel: event => {
+                                if (!root.sink || !root.sink.audio) return
+                                const step = event.angleDelta.y > 0 ? 0.05 : event.angleDelta.y < 0 ? -0.05 : 0
+                                root.sink.audio.muted = false
+                                root.sink.audio.volume = Math.max(0, Math.min(1, root.sink.audio.volume + step))
+                            }
+                        }
+                    }
+                    Chip {
+                        id: bat
+                        visible: root.hasBattery
+                        iconName: root.charging ? "battery-charging" : "battery-medium"
+                        text: Math.round(root.charge * 100) + "%"
+                        open: bar.dropHere === "power"
+                        onClicked: Popups.toggle("power", bar.modelData.name)
+                        // Scrolling turns the brightness of the screen, with its mark on the screen
+                        WheelHandler {
+                            acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                            onWheel: event => {
+                                if (event.angleDelta.y !== 0)
+                                    Quickshell.execDetached(["qs", "-c", "strix", "ipc", "call", "osd", "brightness", event.angleDelta.y > 0 ? "5%+" : "5%-"])
+                            }
+                        }
+                    }
+                    // While a recording runs: a pulsing dot and the time; a click stops it
+                    Chip {
+                        id: rec
+                        visible: root.recording
+                        onClicked: { Popups.close(); Quickshell.execDetached(["strix-capture", "stop"]) }
+                        Rectangle {
+                            width: Theme.space2
+                            height: Theme.space2
+                            radius: width / 2
+                            color: Theme.error
+                            anchors.verticalCenter: parent.verticalCenter
+                            SequentialAnimation on opacity {
+                                running: root.recording
+                                loops: Animation.Infinite
+                                NumberAnimation { to: 0.35; duration: 700; easing.type: Easing.InOutSine }
+                                NumberAnimation { to: 1; duration: 700; easing.type: Easing.InOutSine }
+                            }
+                        }
+                        Label {
+                            textStyle: "value"
+                            color: rec.hovered ? Theme.text : Theme.error
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: rec.hovered ? "Stop"
+                                : Math.floor(root.recordingSeconds / 60) + ":" + ("0" + root.recordingSeconds % 60).slice(-2)
+                        }
+                    }
+                    // An app listens to the microphone: the mark says so, a click shows the sound panel
+                    Chip {
+                        visible: root.listening
+                        iconName: "mic"
+                        on: true
+                        onClicked: Popups.toggle("sound", bar.modelData.name)
+                    }
+                    Tray {
+                        window: bar
+                        screenName: bar.modelData.name
+                    }
+                    Chip {
+                        iconName: "coffee"
+                        on: root.awake
+                        onClicked: { Popups.close(); root.stayAwake(!root.awake) }
+                    }
+                    Chip {
+                        iconName: "bell"
+                        text: Notifs.count > 0 ? String(Notifs.count) : ""
+                        open: bar.messagesHere
+                        onClicked: Popups.toggle("notifications", bar.modelData.name)
+                    }
+                    Chip {
+                        id: powerButton
+                        iconName: "power"
+                        open: bar.dropHere === "session"
+                        onClicked: Popups.toggle("session", bar.modelData.name)
+                    }
                 }
             }
 
-            // The calendar under the clock. A click anywhere else or Escape folds it back, like a
-            // quick panel
+            // The calendar under the clock, folded back like a quick panel
+            readonly property bool calendarHere: Popups.shows("calendar", bar.modelData.name)
             HyprlandFocusGrab {
                 windows: [bar, calendarWindow]
-                active: root.calendarOn === bar.modelData.name
-                onCleared: if (root.calendarOn === bar.modelData.name) root.calendarOn = ""
+                active: bar.calendarHere
+                onCleared: if (bar.calendarHere) Popups.close()
             }
             PopupWindow {
                 id: calendarWindow
@@ -255,7 +405,7 @@ Scope {
                 implicitHeight: month.height + 2 * Theme.space3 + Theme.space2
                 color: "transparent"
 
-                Presence { id: calendarPresence; open: root.calendarOn === bar.modelData.name }
+                Presence { id: calendarPresence; open: bar.calendarHere }
 
                 Surface {
                     y: Theme.space2
@@ -265,7 +415,7 @@ Scope {
                     opacity: calendarPresence.shown
                     transform: Translate { y: -Theme.space2 * (1 - calendarPresence.shown) }
                     focus: true
-                    Keys.onEscapePressed: root.calendarOn = ""
+                    Keys.onPressed: event => Popups.key(event)
                     Calendar {
                         id: month
                         x: Theme.space3
@@ -275,154 +425,8 @@ Scope {
                 }
             }
 
-            Workspaces {
-                anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom }
-                count: Math.max(5, ...Hyprland.workspaces.values.map(w => w.id > 0 ? w.id : 0))
-                current: (Hyprland.focusedWorkspace ? Hyprland.focusedWorkspace.id : 1) - 1
-                used: Hyprland.workspaces.values.filter(w => w.id > 0).map(w => w.id - 1)
-                onActivated: index => Hyprland.dispatch("hl.dsp.focus({ workspace = " + (index + 1) + " })")
-                // The wheel goes to the workspace before or after
-                WheelHandler {
-                    acceptedDevices: PointerDevice.Mouse
-                    onWheel: event => {
-                        const to = parent.current + (event.angleDelta.y > 0 ? -1 : 1)
-                        if (event.angleDelta.y !== 0 && to >= 0 && to < parent.count) parent.activated(to)
-                    }
-                }
-            }
-
-            Row {
-                anchors { right: parent.right; rightMargin: Theme.space2; bottom: parent.bottom }
-                spacing: Theme.space1
-
-                // The keyboard layout, when there is more than one to tell apart
-                Chip {
-                    visible: root.layout !== ""
-                    text: root.layout.slice(0, 2).toUpperCase()
-                    onClicked: root.settings("input")
-                }
-                // A newer version is there: the mark drops what changed and installs it
-                Chip {
-                    id: upd
-                    visible: root.updateReady
-                    iconName: "download"
-                    on: true
-                    open: bar.dropHere === "update"
-                    onClicked: root.toggleDrop("update", bar.modelData.name)
-                }
-                Chip {
-                    id: net
-                    iconName: "wifi"
-                    text: root.network.length > 20 ? root.network.slice(0, 19) + "…" : root.network
-                    faint: root.network === "Offline"
-                    open: bar.dropHere === "wifi"
-                    onClicked: root.toggleDrop("wifi", bar.modelData.name)
-                }
-                Chip {
-                    id: bt
-                    visible: root.adapter !== null
-                    iconName: "bluetooth"
-                    text: root.btConnected > 0 ? String(root.btConnected) : ""
-                    faint: !(root.adapter && root.adapter.enabled)
-                    open: bar.dropHere === "bluetooth"
-                    onClicked: root.toggleDrop("bluetooth", bar.modelData.name)
-                }
-                Chip {
-                    id: vol
-                    iconName: root.muted ? "volume-x" : "volume-2"
-                    text: root.muted ? "" : Math.round(root.volume * 100) + "%"
-                    faint: root.muted
-                    open: bar.dropHere === "sound"
-                    onClicked: root.toggleDrop("sound", bar.modelData.name)
-                    // The middle button mutes, scrolling turns the volume in steps of 5 %
-                    TapHandler {
-                        acceptedButtons: Qt.MiddleButton
-                        onTapped: if (root.sink && root.sink.audio) root.sink.audio.muted = !root.sink.audio.muted
-                    }
-                    WheelHandler {
-                        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
-                        onWheel: event => {
-                            if (!root.sink || !root.sink.audio) return
-                            const step = event.angleDelta.y > 0 ? 0.05 : event.angleDelta.y < 0 ? -0.05 : 0
-                            root.sink.audio.muted = false
-                            root.sink.audio.volume = Math.max(0, Math.min(1, root.sink.audio.volume + step))
-                        }
-                    }
-                }
-                Chip {
-                    id: bat
-                    visible: root.hasBattery
-                    iconName: root.charging ? "battery-charging" : "battery-medium"
-                    text: Math.round(root.charge * 100) + "%"
-                    open: bar.dropHere === "power"
-                    onClicked: root.toggleDrop("power", bar.modelData.name)
-                    // Scrolling turns the brightness of the screen, with its mark on the screen
-                    WheelHandler {
-                        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
-                        onWheel: event => {
-                            if (event.angleDelta.y !== 0)
-                                Quickshell.execDetached(["qs", "-c", "strix", "ipc", "call", "osd", "brightness", event.angleDelta.y > 0 ? "5%+" : "5%-"])
-                        }
-                    }
-                }
-                // While a recording runs: a pulsing dot and the time; a click stops it
-                Chip {
-                    id: rec
-                    visible: root.recording
-                    onClicked: Quickshell.execDetached(["strix-capture", "stop"])
-                    Rectangle {
-                        width: Theme.space2
-                        height: Theme.space2
-                        radius: width / 2
-                        color: Theme.error
-                        anchors.verticalCenter: parent.verticalCenter
-                        SequentialAnimation on opacity {
-                            running: root.recording
-                            loops: Animation.Infinite
-                            NumberAnimation { to: 0.35; duration: 700; easing.type: Easing.InOutSine }
-                            NumberAnimation { to: 1; duration: 700; easing.type: Easing.InOutSine }
-                        }
-                    }
-                    Label {
-                        textStyle: "value"
-                        color: rec.hovered ? Theme.text : Theme.error
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: rec.hovered ? "Stop"
-                            : Math.floor(root.recordingSeconds / 60) + ":" + ("0" + root.recordingSeconds % 60).slice(-2)
-                    }
-                }
-                // An app listens to the microphone: the mark says so, a click shows the sound panel
-                Chip {
-                    visible: root.listening
-                    iconName: "mic"
-                    on: true
-                    onClicked: root.toggleDrop("sound", bar.modelData.name)
-                }
-                Tray {
-                    window: bar
-                    giveWay: root.drop !== "" || root.calendarOn !== ""
-                    onOpenChanged: if (open) { root.drop = ""; root.calendarOn = "" }
-                }
-                Chip {
-                    iconName: "coffee"
-                    on: root.awake
-                    onClicked: root.stayAwake(!root.awake)
-                }
-                Chip {
-                    iconName: "bell"
-                    text: Notifs.count > 0 ? String(Notifs.count) : ""
-                    onClicked: Quickshell.execDetached(["qs", "-c", "strix", "ipc", "call", "notifications", "toggle"])
-                }
-                Chip {
-                    id: powerButton
-                    iconName: "power"
-                    open: bar.dropHere === "session"
-                    onClicked: root.toggleDrop("session", bar.modelData.name)
-                }
-            }
-
             // ---------------------------------------------------------------- the quick panels
-            readonly property string dropHere: root.dropOn === bar.modelData.name ? root.drop : ""
+            readonly property string dropHere: Popups.screen === bar.modelData.name ? root.drop : ""
             /// What the popup shows; stays while it folds back
             property string dropShowing: "wifi"
             onDropHereChanged: if (dropHere !== "") dropShowing = dropHere
@@ -430,7 +434,16 @@ Scope {
             HyprlandFocusGrab {
                 windows: [bar, dropWindow]
                 active: bar.dropHere !== ""
-                onCleared: if (root.dropOn === bar.modelData.name) root.drop = ""
+                onCleared: if (bar.dropHere !== "") Popups.close()
+            }
+
+            // The messages are a window of their own (Notifications). While the bell has them
+            // open, a click outside them and the bar folds them back like a quick panel
+            readonly property bool messagesHere: Popups.shows("notifications", bar.modelData.name)
+            HyprlandFocusGrab {
+                windows: [bar, root.messages]
+                active: bar.messagesHere
+                onCleared: if (bar.messagesHere) Popups.close()
             }
 
             PopupWindow {
@@ -454,7 +467,7 @@ Scope {
                     anchors.fill: parent
                     opacity: dropPresence.shown
                     focus: true
-                    Keys.onEscapePressed: root.drop = ""
+                    Keys.onPressed: event => Popups.key(event)
                     transform: Translate { y: -Theme.space2 * (1 - dropPresence.shown) }
 
                     UpdatePanel {
@@ -462,7 +475,7 @@ Scope {
                         y: Theme.space2
                         visible: bar.dropShowing === "update"
                         update: root.update
-                        onDone: root.drop = ""
+                        onDone: Popups.close()
                     }
                     WifiPanel {
                         id: wifiDrop
@@ -496,7 +509,7 @@ Scope {
                         id: sessionDrop
                         y: Theme.space2
                         visible: bar.dropShowing === "session"
-                        onDone: root.drop = ""
+                        onDone: Popups.close()
                         onSettings: page => root.settings(page)
                     }
                 }

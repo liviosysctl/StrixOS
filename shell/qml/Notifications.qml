@@ -43,6 +43,9 @@ PanelWindow {
         id: column
         width: 320
         spacing: Theme.space2
+        // The keys reach the panel while it is open (the focus grab of the bar)
+        focus: true
+        Keys.onPressed: event => Popups.key(event)
 
         move: Transition {
             NumberAnimation { property: "y"; duration: Theme.durBase; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOut }

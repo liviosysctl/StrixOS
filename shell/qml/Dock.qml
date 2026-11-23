@@ -5,8 +5,8 @@
 // region, a recording of a region (red while one runs, a click stops it), the colour picker; the clipboard history and the theme picker;
 // the night light, in the accent while it is on.
 // Then what is playing, the only place for it: play or pause, and the title, which opens the
-// media player above it. A second click, Escape or a click elsewhere folds it back, and while
-// it is open the dock stays out.
+// media player above it. The player is one of Popups, which folds it back, and while it is
+// open the dock stays out.
 // ipc: dock open media, dock close.
 import QtQuick
 import Quickshell
@@ -23,31 +23,22 @@ Scope {
     required property var bar
 
     /// The media player is open
-    property bool open: false
-    /// The screen whose dock shows it
-    property string screenName: ""
+    readonly property bool open: Popups.current === "media"
 
-    function toggle(screen) {
-        if (root.open && root.screenName === screen) { root.open = false; return }
-        root.screenName = screen
-        root.open = true
-    }
+    function close() { if (root.open) Popups.close() }
 
-    /// Runs a tool and folds the player back
+    /// Runs a tool and folds back what is open
     function run(command) {
-        root.open = false
+        Popups.close()
         Quickshell.execDetached(command)
     }
 
     IpcHandler {
         target: "dock"
         function open(panel: string): void {
-            if (panel !== "media" || !root.player) return
-            root.screenName = Hyprland.focusedMonitor ? Hyprland.focusedMonitor.name
-                : Quickshell.screens.length > 0 ? Quickshell.screens[0].name : ""
-            root.open = true
+            if (panel === "media" && root.player) Popups.show("media", Popups.here())
         }
-        function close(): void { root.open = false }
+        function close(): void { root.close() }
         function isOpen(): bool { return root.open }
     }
 
@@ -70,7 +61,7 @@ Scope {
             || players[0] || null
     }
     onPlayerChanged: {
-        if (!root.player) root.open = false
+        if (!root.player) root.close()
         else if (root.player.isPlaying) root.lastPlayer = root.player
     }
     // MPRIS sends the position only on a seek: ask for it every second while the player is open
@@ -90,7 +81,7 @@ Scope {
             required property var modelData
             screen: modelData
 
-            readonly property bool open: root.open && root.screenName === modelData.name
+            readonly property bool open: Popups.shows("media", modelData.name)
 
             // Out while the pointer is on it or the player is open, and a moment longer
             readonly property bool wanted: edgeHover.hovered || panelHover.hovered || open
@@ -128,10 +119,8 @@ Scope {
             HyprlandFocusGrab {
                 windows: [win]
                 active: win.open
-                onCleared: if (win.open) root.open = false
+                onCleared: if (win.open) Popups.close()
             }
-
-            Shortcut { sequence: "Escape"; enabled: win.open; onActivated: root.open = false }
 
             Presence { id: presence; open: win.open; duration: Theme.durSlow }
 
@@ -144,6 +133,7 @@ Scope {
                 width: (win.out ? dock.openWidth : dock.restWidth) + 2 * Theme.space3
                 height: win.out ? dock.openHeight + Theme.space2 : Theme.dockRest + Theme.lineHair
                 HoverHandler { id: edgeHover }
+                Keys.onPressed: event => Popups.key(event)
 
                 EdgeDock {
                     id: dock
@@ -193,7 +183,7 @@ Scope {
                             const title = !root.player ? "" : [root.player.trackTitle, root.player.trackArtist].filter(t => t).join("  ") || root.player.identity
                             return title.length > 32 ? title.slice(0, 31) + "…" : title
                         }
-                        onClicked: root.toggle(win.modelData.name)
+                        onClicked: Popups.toggle("media", win.modelData.name)
                         // The middle button plays or pauses, the wheel goes to the next or the last title
                         TapHandler {
                             acceptedButtons: Qt.MiddleButton
@@ -243,6 +233,9 @@ Scope {
                     yScale: 0.6 + 0.4 * presence.shown
                 }
                 HoverHandler { id: panelHover }
+                // The keys go to Popups from the dock and from the player, whichever was clicked
+                focus: true
+                Keys.onPressed: event => Popups.key(event)
 
                 MediaPlayer {
                     id: mediaPanel

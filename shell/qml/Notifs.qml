@@ -13,8 +13,8 @@ Singleton {
     readonly property var list: server.trackedNotifications.values
     readonly property int count: list.length
     property bool quiet: false
-    /// The panel with every message (Super N)
-    property bool open: false
+    /// The panel with every message (Super N, the bell of the bar): one of Popups
+    readonly property bool open: Popups.current === "notifications"
     /// The last forty messages that came, newest first, also the ones sent away since: the
     /// panel lists those under "Earlier". Kept until the session ends.
     property var history: []
@@ -35,7 +35,7 @@ Singleton {
 
     IpcHandler {
         target: "notifications"
-        function toggle(): void { root.open = !root.open }
+        function toggle(): void { Popups.toggle("notifications", Popups.here()) }
         function quiet(): void { root.quiet = !root.quiet }
         function clear(): void {
             for (const n of root.list.slice()) n.dismiss()

@@ -1,8 +1,8 @@
 // The tray of the bar: one button for every app that keeps running without a window (a chat, a
 // sync, a password manager), there only while there is one. A click drops a small panel with the
 // apps; a click on an app shows what it offers: opening it, and its own menu, drawn in the look
-// of the shell. The middle button on an app is its second action. A click elsewhere or Escape
-// folds the panel back.
+// of the shell. The middle button on an app is its second action. The panel is one of Popups,
+// which folds it back.
 import QtQuick
 import Quickshell
 import Quickshell.Hyprland
@@ -13,22 +13,22 @@ import Strix
 Chip {
     id: root
 
-    /// The window of the bar, which the panel hangs from
+    /// The window of the bar, which the panel hangs from, and the name of its screen
     required property var window
+    required property string screenName
 
     /// The app whose menu is shown, and the way into its submenus (the last one is shown)
     property var item: null
     property var path: []
     readonly property var shownMenu: path.length > 0 ? path[path.length - 1] : (item && item.hasMenu ? item.menu : null)
-    /// Another panel of the bar opened: this one gives way
-    property bool giveWay: false
-    onGiveWayChanged: if (giveWay) root.close()
 
-    function close() {
-        root.open = false
+    open: Popups.shows("tray", root.screenName)
+    // Opened again, it starts with the apps
+    onOpenChanged: if (!open) {
         root.item = null
         root.path = []
     }
+    function close() { if (root.open) Popups.close() }
     function name(trayItem) {
         return trayItem.tooltipTitle || trayItem.title || trayItem.id
     }
@@ -36,10 +36,7 @@ Chip {
     iconName: "inbox"
     visible: SystemTray.items.values.length > 0
     onVisibleChanged: if (!visible) root.close()
-    onClicked: {
-        if (root.open) root.close()
-        else root.open = true
-    }
+    onClicked: Popups.toggle("tray", root.screenName)
 
     HyprlandFocusGrab {
         windows: [root.window, panel]
@@ -71,7 +68,7 @@ Chip {
             opacity: presence.shown
             transform: Translate { y: -Theme.space2 * (1 - presence.shown) }
             focus: true
-            Keys.onEscapePressed: root.close()
+            Keys.onPressed: event => Popups.key(event)
 
             Column {
                 id: rows
