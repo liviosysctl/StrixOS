@@ -70,9 +70,9 @@ Scope {
             opacity: presence.shown
             scale: 0.97 + 0.03 * presence.shown
             transformOrigin: Item.Top
-            transform: Translate { y: -8 * (1 - presence.shown) }
+            transform: Translate { y: -Theme.space2 * (1 - presence.shown) }
             width: Math.min(parent.width - Theme.space8 * 2, 1080)
-            height: body.implicitHeight + Theme.space5 * 2
+            height: body.implicitHeight + 2 * Theme.space5
             anchors.centerIn: parent
 
             MouseArea { anchors.fill: parent }
@@ -88,7 +88,7 @@ Scope {
                     id: head
                     width: parent.width
                     spacing: Theme.space3
-                    Label { textStyle: "title"; text: "Keys"; anchors.verticalCenter: parent.verticalCenter }
+                    Label { textStyle: "title"; color: Theme.accentText; text: "Keys"; anchors.verticalCenter: parent.verticalCenter }
                     SearchField {
                         id: field
                         width: 280

@@ -109,7 +109,7 @@ Scope {
             exclusionMode: ExclusionMode.Ignore
             anchors.bottom: true
             implicitWidth: 640
-            implicitHeight: Theme.dockHeight + Theme.space2 + 200
+            implicitHeight: dock.openHeight + Theme.space2 + 200
             color: "transparent"
             // Only the dock and its panel take the pointer; the rest of this window lets it through
             mask: Region {
@@ -142,7 +142,7 @@ Scope {
                 anchors.bottom: parent.bottom
                 anchors.horizontalCenter: parent.horizontalCenter
                 width: (win.out ? dock.openWidth : dock.restWidth) + 2 * Theme.space3
-                height: win.out ? Theme.dockHeight + Theme.space2 : Theme.dockRest + 1
+                height: win.out ? dock.openHeight + Theme.space2 : Theme.dockRest + Theme.lineHair
                 HoverHandler { id: edgeHover }
 
                 EdgeDock {
@@ -157,7 +157,7 @@ Scope {
                     Tool { iconName: "type"; onClicked: root.run(["strix-capture", "text"]) }
                     Tool {
                         iconName: "video"
-                        checked: root.bar.recording
+                        on: root.bar.recording
                         onClicked: root.run(["strix-capture", root.bar.recording ? "stop" : "record"])
                     }
                     Tool { iconName: "pipette"; onClicked: root.run(["strix-capture", "colour"]) }
@@ -169,7 +169,7 @@ Scope {
                     // Switches
                     Tool {
                         iconName: "moon"
-                        checked: root.night
+                        on: root.night
                         onClicked: {
                             root.night = !root.night
                             Quickshell.execDetached(["strix-nightlight", root.night ? "on" : "off"])
@@ -183,11 +183,16 @@ Scope {
                         enabled: !!root.player && root.player.canTogglePlaying
                         onClicked: root.player.togglePlaying()
                     }
-                    MeterGroup {
+                    Chip {
                         id: mediaButton
                         visible: !!root.player
-                        anchors.verticalCenter: parent.verticalCenter
-                        gap: Theme.space2
+                        plate: false
+                        iconName: "music"
+                        on: win.open
+                        text: {
+                            const title = !root.player ? "" : [root.player.trackTitle, root.player.trackArtist].filter(t => t).join("  ") || root.player.identity
+                            return title.length > 32 ? title.slice(0, 31) + "…" : title
+                        }
                         onClicked: root.toggle(win.modelData.name)
                         // The middle button plays or pauses, the wheel goes to the next or the last title
                         TapHandler {
@@ -202,33 +207,17 @@ Scope {
                                 else if (event.angleDelta.y > 0 && root.player.canGoPrevious) root.player.previous()
                             }
                         }
-                        Icon {
-                            name: "music"
-                            size: 12
-                            hovered: mediaButton.hovered
-                            color: win.open ? Theme.accentText : mediaButton.hovered ? Theme.text : Theme.textMuted
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-                        Label {
-                            textStyle: "micro"
-                            color: win.open || mediaButton.hovered ? Theme.text : Theme.textMuted
-                            anchors.verticalCenter: parent.verticalCenter
-                            elide: Text.ElideRight
-                            width: Math.min(implicitWidth, 200)
-                            text: !root.player ? "" : [root.player.trackTitle, root.player.trackArtist].filter(t => t).join("  ") || root.player.identity
-                        }
                     }
                 }
             }
 
-            component Tool: IconButton {
-                small: true
-                anchors.verticalCenter: parent ? parent.verticalCenter : undefined
+            component Tool: Chip {
+                plate: false
             }
 
             component Separator: Item {
-                width: Theme.space2 + 1
-                height: 12
+                width: Theme.space1 + Theme.lineHair
+                height: Theme.icon
                 anchors.verticalCenter: parent ? parent.verticalCenter : undefined
                 Rectangle { anchors.centerIn: parent; width: Theme.lineHair; height: parent.height; color: Theme.border }
             }
@@ -238,13 +227,13 @@ Scope {
                 id: panelBox
 
                 /// The middle of the title in the window, where it stands once the dock is out
-                readonly property real sourceX: (win.width - dock.openWidth) / 2 + 6 + mediaButton.x + mediaButton.width / 2
+                readonly property real sourceX: (win.width - dock.openWidth) / 2 + Theme.space1 + mediaButton.x + mediaButton.width / 2
 
                 visible: presence.present
                 width: mediaPanel.width
                 height: mediaPanel.height
                 x: Math.round(Math.max(0, Math.min(win.width - width, sourceX - width / 2)))
-                y: win.height - Theme.dockHeight - Theme.space2 - height
+                y: win.height - dock.openHeight - Theme.space2 - height
                 opacity: presence.shown
                 // It grows out of the title
                 transform: Scale {

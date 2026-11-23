@@ -31,7 +31,7 @@ QuickPanel {
         onClicked: root.run(["systemctl", "poweroff"])
         Rectangle {
             anchors.fill: parent
-            radius: Theme.radiusXs
+            radius: Theme.radiusMd
             color: Theme.error
             opacity: off.hovered ? 0.14 : 0
             Behavior on opacity { NumberAnimation { duration: Theme.durFast } }

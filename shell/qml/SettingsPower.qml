@@ -140,8 +140,8 @@ Column {
         title: "Now"
         Row {
             spacing: Theme.space2
-            Button { small: true; text: "Suspend"; onClicked: Quickshell.execDetached(["systemctl", "suspend"]) }
-            Button { small: true; text: "Hibernate"; onClicked: Quickshell.execDetached(["systemctl", "hibernate"]) }
+            Button { text: "Suspend"; onClicked: Quickshell.execDetached(["systemctl", "suspend"]) }
+            Button { text: "Hibernate"; onClicked: Quickshell.execDetached(["systemctl", "hibernate"]) }
         }
     }
 }

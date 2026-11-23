@@ -52,6 +52,13 @@ Scope {
     // The screen whose bar shows the month, "" when it is closed
     property string calendarOn: ""
 
+    /// A share as a figure of two places: a figure space in front of a single digit keeps the
+    /// button as wide as it was
+    function figure(share) {
+        const percent = Math.round(share * 100)
+        return (percent < 10 ? "\u2007" : "") + percent + "%"
+    }
+
     function settings(page) {
         root.drop = ""
         Quickshell.execDetached(["strix-settings", page])
@@ -204,35 +211,31 @@ Scope {
             exclusiveZone: Theme.barHeight
             color: "transparent"
 
+            // Every part of the bar is a button on its own plate of smoked glass, as high as every
+            // control, a step from its neighbour and two from the edge of the screen
             Row {
-                anchors { left: parent.left; leftMargin: Theme.space4; verticalCenter: parent.verticalCenter }
-                spacing: Theme.space4
+                anchors { left: parent.left; leftMargin: Theme.space2; bottom: parent.bottom }
+                spacing: Theme.space1
 
-                IconButton {
-                    small: true
+                Chip {
                     iconName: "search"
-                    anchors.verticalCenter: parent.verticalCenter
                     onClicked: Quickshell.execDetached(["qs", "-c", "strix", "ipc", "call", "search", "toggle"])
                 }
-                MeterGroup {
+                Chip {
                     id: clockButton
-                    anchors.verticalCenter: parent.verticalCenter
+                    open: root.calendarOn === bar.modelData.name
+                    text: Qt.formatDateTime(clock.date, "ddd d MMM  HH:mm")
                     onClicked: { root.drop = ""; root.calendarOn = root.calendarOn === bar.modelData.name ? "" : bar.modelData.name }
-                    Label {
-                        textStyle: "label"
-                        color: Theme.text
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: Qt.formatDateTime(clock.date, "ddd d MMM  HH:mm")
-                    }
                 }
                 // CPU and memory are one button: the system monitor (btop, strix-monitor)
-                MeterGroup {
-                    anchors.verticalCenter: parent.verticalCenter
+                Chip {
+                    id: load
                     onClicked: Quickshell.execDetached(["strix-monitor"])
-                    Meter { label: "CPU"; value: root.cpu }
-                    Meter { label: "MEM"; value: root.memory }
+                    Icon { name: "cpu"; color: load.symbolInk; hovered: load.hovered; anchors.verticalCenter: parent.verticalCenter }
+                    Label { textStyle: "value"; text: root.figure(root.cpu); anchors.verticalCenter: parent.verticalCenter }
+                    Icon { name: "memory-stick"; color: load.symbolInk; hovered: load.hovered; anchors.verticalCenter: parent.verticalCenter }
+                    Label { textStyle: "value"; text: root.figure(root.memory); anchors.verticalCenter: parent.verticalCenter }
                 }
-
             }
 
             // The calendar under the clock. A click anywhere else or Escape folds it back, like a
@@ -248,30 +251,32 @@ Scope {
                 anchor.window: bar
                 anchor.rect.x: clockButton.mapToItem(null, 0, 0).x
                 anchor.rect.y: bar.height
-                implicitWidth: month.width + 2 * Theme.space4
-                implicitHeight: month.height + 2 * Theme.space4
+                implicitWidth: month.width + 2 * Theme.space3
+                implicitHeight: month.height + 2 * Theme.space3 + Theme.space2
                 color: "transparent"
 
                 Presence { id: calendarPresence; open: root.calendarOn === bar.modelData.name }
 
                 Surface {
-                    anchors.fill: parent
+                    y: Theme.space2
+                    width: parent.width
+                    height: parent.height - Theme.space2
                     elevation: "panel"
                     opacity: calendarPresence.shown
-                    transform: Translate { y: -6 * (1 - calendarPresence.shown) }
+                    transform: Translate { y: -Theme.space2 * (1 - calendarPresence.shown) }
                     focus: true
                     Keys.onEscapePressed: root.calendarOn = ""
                     Calendar {
                         id: month
-                        x: Theme.space4
-                        y: Theme.space4
+                        x: Theme.space3
+                        y: Theme.space3
                         today: clock.date
                     }
                 }
             }
 
             Workspaces {
-                anchors.centerIn: parent
+                anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom }
                 count: Math.max(5, ...Hyprland.workspaces.values.map(w => w.id > 0 ? w.id : 0))
                 current: (Hyprland.focusedWorkspace ? Hyprland.focusedWorkspace.id : 1) - 1
                 used: Hyprland.workspaces.values.filter(w => w.id > 0).map(w => w.id - 1)
@@ -287,82 +292,48 @@ Scope {
             }
 
             Row {
-                anchors { right: parent.right; rightMargin: Theme.space4; verticalCenter: parent.verticalCenter }
-                spacing: Theme.space3
+                anchors { right: parent.right; rightMargin: Theme.space2; bottom: parent.bottom }
+                spacing: Theme.space1
 
-                Label {
+                // The keyboard layout, when there is more than one to tell apart
+                Chip {
                     visible: root.layout !== ""
-                    textStyle: "micro"
-                    color: Theme.textMuted
-                    anchors.verticalCenter: parent.verticalCenter
-                    font.capitalization: Font.AllUppercase
-                    text: root.layout.slice(0, 2)
+                    text: root.layout.slice(0, 2).toUpperCase()
+                    onClicked: root.settings("input")
                 }
                 // A newer version is there: the mark drops what changed and installs it
-                MeterGroup {
+                Chip {
                     id: upd
                     visible: root.updateReady
-                    anchors.verticalCenter: parent.verticalCenter
+                    iconName: "download"
+                    on: true
+                    open: bar.dropHere === "update"
                     onClicked: root.toggleDrop("update", bar.modelData.name)
-                    Icon {
-                        name: "download"
-                        size: 14
-                        hovered: upd.hovered
-                        color: upd.hovered ? Theme.text : Theme.accentText
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
                 }
-                MeterGroup {
+                Chip {
                     id: net
-                    anchors.verticalCenter: parent.verticalCenter
-                    gap: Theme.space2
+                    iconName: "wifi"
+                    text: root.network.length > 20 ? root.network.slice(0, 19) + "…" : root.network
+                    faint: root.network === "Offline"
+                    open: bar.dropHere === "wifi"
                     onClicked: root.toggleDrop("wifi", bar.modelData.name)
-                    Icon {
-                        name: "wifi"
-                        size: 14
-                        hovered: net.hovered
-                        color: net.hovered ? Theme.text : Theme.textMuted
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-                    Label {
-                        textStyle: "micro"
-                        color: root.network === "Offline" ? Theme.textFaint : net.hovered ? Theme.text : Theme.textMuted
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: root.network
-                        elide: Text.ElideRight
-                        width: Math.min(implicitWidth, 140)
-                    }
                 }
-                MeterGroup {
+                Chip {
                     id: bt
                     visible: root.adapter !== null
-                    anchors.verticalCenter: parent.verticalCenter
-                    gap: Theme.space1
+                    iconName: "bluetooth"
+                    text: root.btConnected > 0 ? String(root.btConnected) : ""
+                    faint: !(root.adapter && root.adapter.enabled)
+                    open: bar.dropHere === "bluetooth"
                     onClicked: root.toggleDrop("bluetooth", bar.modelData.name)
-                    Icon {
-                        name: "bluetooth"
-                        size: 14
-                        hovered: bt.hovered
-                        color: !(root.adapter && root.adapter.enabled) ? Theme.textFaint : bt.hovered ? Theme.text : Theme.textMuted
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-                    Label {
-                        visible: root.btConnected > 0
-                        textStyle: "micro"
-                        color: bt.hovered ? Theme.text : Theme.textMuted
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: String(root.btConnected)
-                    }
                 }
-                MeterGroup {
+                Chip {
                     id: vol
-                    anchors.verticalCenter: parent.verticalCenter
+                    iconName: root.muted ? "volume-x" : "volume-2"
+                    text: root.muted ? "" : Math.round(root.volume * 100) + "%"
+                    faint: root.muted
+                    open: bar.dropHere === "sound"
                     onClicked: root.toggleDrop("sound", bar.modelData.name)
-                    Meter {
-                        label: "VOL"
-                        value: root.muted ? 0 : root.volume
-                        valueText: root.muted ? "off" : Math.round(root.volume * 100) + "%"
-                    }
                     // The middle button mutes, scrolling turns the volume in steps of 5 %
                     TapHandler {
                         acceptedButtons: Qt.MiddleButton
@@ -378,16 +349,13 @@ Scope {
                         }
                     }
                 }
-                MeterGroup {
+                Chip {
                     id: bat
                     visible: root.hasBattery
-                    anchors.verticalCenter: parent.verticalCenter
+                    iconName: root.charging ? "battery-charging" : "battery-medium"
+                    text: Math.round(root.charge * 100) + "%"
+                    open: bar.dropHere === "power"
                     onClicked: root.toggleDrop("power", bar.modelData.name)
-                    Meter {
-                        label: root.charging ? "AC" : "BAT"
-                        value: root.charge
-                        valueText: Math.round(root.charge * 100) + "%"
-                    }
                     // Scrolling turns the brightness of the screen, with its mark on the screen
                     WheelHandler {
                         acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
@@ -398,15 +366,14 @@ Scope {
                     }
                 }
                 // While a recording runs: a pulsing dot and the time; a click stops it
-                MeterGroup {
+                Chip {
                     id: rec
                     visible: root.recording
-                    anchors.verticalCenter: parent.verticalCenter
                     onClicked: Quickshell.execDetached(["strix-capture", "stop"])
                     Rectangle {
-                        width: 8
-                        height: 8
-                        radius: 4
+                        width: Theme.space2
+                        height: Theme.space2
+                        radius: width / 2
                         color: Theme.error
                         anchors.verticalCenter: parent.verticalCenter
                         SequentialAnimation on opacity {
@@ -417,57 +384,39 @@ Scope {
                         }
                     }
                     Label {
-                        textStyle: "micro"
+                        textStyle: "value"
                         color: rec.hovered ? Theme.text : Theme.error
                         anchors.verticalCenter: parent.verticalCenter
-                        font.features: { "tnum": 1 }
                         text: rec.hovered ? "Stop"
-                            : "REC " + Math.floor(root.recordingSeconds / 60) + ":" + ("0" + root.recordingSeconds % 60).slice(-2)
+                            : Math.floor(root.recordingSeconds / 60) + ":" + ("0" + root.recordingSeconds % 60).slice(-2)
                     }
                 }
                 // An app listens to the microphone: the mark says so, a click shows the sound panel
-                IconButton {
-                    small: true
-                    iconName: "mic"
-                    checked: true
+                Chip {
                     visible: root.listening
-                    anchors.verticalCenter: parent.verticalCenter
+                    iconName: "mic"
+                    on: true
                     onClicked: root.toggleDrop("sound", bar.modelData.name)
                 }
                 Tray {
                     window: bar
-                    anchors.verticalCenter: parent.verticalCenter
                     giveWay: root.drop !== "" || root.calendarOn !== ""
                     onOpenChanged: if (open) { root.drop = ""; root.calendarOn = "" }
                 }
-                IconButton {
-                    small: true
+                Chip {
                     iconName: "coffee"
-                    checked: root.awake
-                    anchors.verticalCenter: parent.verticalCenter
+                    on: root.awake
                     onClicked: root.stayAwake(!root.awake)
                 }
-                Row {
-                    spacing: Theme.space1
-                    anchors.verticalCenter: parent.verticalCenter
-                    IconButton {
-                        small: true
-                        iconName: "bell"
-                        onClicked: Quickshell.execDetached(["qs", "-c", "strix", "ipc", "call", "notifications", "toggle"])
-                    }
-                    Label {
-                        textStyle: "micro"
-                        color: Theme.textMuted
-                        anchors.verticalCenter: parent.verticalCenter
-                        visible: text !== "0"
-                        text: String(Notifs.count)
-                    }
+                Chip {
+                    iconName: "bell"
+                    text: Notifs.count > 0 ? String(Notifs.count) : ""
+                    onClicked: Quickshell.execDetached(["qs", "-c", "strix", "ipc", "call", "notifications", "toggle"])
                 }
-                IconButton {
+                Chip {
                     id: powerButton
-                    small: true
                     iconName: "power"
-                    anchors.verticalCenter: parent.verticalCenter
+                    open: bar.dropHere === "session"
                     onClicked: root.toggleDrop("session", bar.modelData.name)
                 }
             }
@@ -491,9 +440,9 @@ Scope {
 
                 visible: root.shown && dropPresence.present
                 anchor.window: bar
-                // Under its symbol, its right edge at the symbol's right edge, inside the screen
+                // Under its button, its right edge at the button's right edge, inside the screen
                 anchor.rect.x: Math.max(Theme.space2, Math.min(bar.width - width - Theme.space2,
-                    source.mapToItem(null, source.width, 0).x - width + Theme.space2))
+                    source.mapToItem(null, source.width, 0).x - width))
                 anchor.rect.y: bar.height
                 implicitWidth: body.width
                 implicitHeight: body.height + Theme.space2
@@ -506,7 +455,7 @@ Scope {
                     opacity: dropPresence.shown
                     focus: true
                     Keys.onEscapePressed: root.drop = ""
-                    transform: Translate { y: -6 * (1 - dropPresence.shown) }
+                    transform: Translate { y: -Theme.space2 * (1 - dropPresence.shown) }
 
                     UpdatePanel {
                         id: updateDrop

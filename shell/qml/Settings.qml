@@ -116,7 +116,8 @@ Scope {
         title: "Settings"
         implicitWidth: 920
         implicitHeight: 620
-        color: Theme.background
+        // Smoked glass: the compositor blurs what lies behind the window
+        color: Theme.smoke(Theme.surface)
         onVisibleChanged: if (!visible) root.open = false
 
         Row {
@@ -127,16 +128,18 @@ Scope {
                 visible: root.page !== "home"
                 width: 220
                 height: parent.height
-                color: Theme.surface
+                // A well in the glass of the window, as the cards are
+                color: Theme.alpha(Theme.text, 0.04)
                 Column {
-                    anchors { fill: parent; margins: Theme.space4 }
+                    anchors { fill: parent; margins: Theme.space2 }
                     spacing: Theme.space1
                     // The title leads back to the first page
                     Label {
+                        x: Theme.space2
                         textStyle: "title"
                         color: Theme.text
                         text: "Settings"
-                        bottomPadding: Theme.space3
+                        bottomPadding: Theme.space2
                         HoverHandler { cursorShape: Qt.PointingHandCursor }
                         TapHandler { onTapped: root.page = "home" }
                     }
@@ -145,7 +148,7 @@ Scope {
                         width: parent.width
                         height: nav.height
                         // count: the rows are made after this binding is first read
-                        Glide { target: navRows.count > 0 ? navRows.itemAt(root.pages.findIndex(p => p.id === root.page)) : null; caretX: 7 }
+                        Glide { target: navRows.count > 0 ? navRows.itemAt(root.pages.findIndex(p => p.id === root.page)) : null }
                         Column {
                             id: nav
                             width: parent.width
@@ -171,13 +174,13 @@ Scope {
             Flickable {
                 width: parent.width - (root.page !== "home" ? 220 : 0)
                 height: parent.height
-                contentHeight: content.implicitHeight + Theme.space6 * 2
+                contentHeight: content.implicitHeight + 2 * Theme.space5
                 clip: true
 
                 Column {
                     id: content
-                    x: Theme.space6
-                    y: Theme.space6
+                    x: Theme.space5
+                    y: Theme.space5
                     // A new page comes in from the side it lies on in the list
                     transform: Translate { id: pageShift }
                     property int lastIndex: 0
@@ -193,10 +196,10 @@ Scope {
                     ParallelAnimation {
                         id: pageIn
                         property int direction: 1
-                        NumberAnimation { target: pageShift; property: "y"; from: pageIn.direction * 12; to: 0; duration: Theme.durBase; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOut }
+                        NumberAnimation { target: pageShift; property: "y"; from: pageIn.direction * Theme.space3; to: 0; duration: Theme.durBase; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOut }
                         NumberAnimation { target: content; property: "opacity"; from: 0; to: 1; duration: Theme.durBase; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOut }
                     }
-                    width: parent.width - Theme.space6 * 2
+                    width: parent.width - 2 * Theme.space5
                     spacing: Theme.space4
 
                     // ------------------------------------------------ the first page
@@ -234,9 +237,8 @@ Scope {
                                         onClicked: root.page = tile.modelData.id
                                     }
                                     Icon {
-                                        anchors { right: parent.right; rightMargin: Theme.space4; top: parent.top; topMargin: Theme.space3 + 4 }
+                                        anchors { right: parent.right; rightMargin: Theme.space3; top: parent.top; topMargin: Theme.space3 }
                                         name: tile.modelData.icon
-                                        size: 14
                                         color: Theme.textMuted
                                     }
                                 }
@@ -332,12 +334,10 @@ Scope {
                                         visible: root.admin
                                         spacing: Theme.space2
                                         Button {
-                                            small: true
                                             text: "Update now"
                                             onClicked: root.asRoot("sudo strix-update --themes " + root.quoted(modelData.name || modelData.url))
                                         }
                                         Button {
-                                            small: true
                                             variant: "danger"
                                             text: "Remove"
                                             onClicked: root.asRoot("sudo strix-theme repos remove " + root.quoted(modelData.url)

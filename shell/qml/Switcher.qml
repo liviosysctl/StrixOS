@@ -105,8 +105,9 @@ Scope {
 
             Column {
                 id: rows
+                x: Theme.space2
                 y: Theme.space2
-                width: parent.width
+                width: parent.width - 2 * Theme.space2
 
                 Repeater {
                     model: root.shown
@@ -119,7 +120,7 @@ Scope {
 
                         width: rows.width
                         selected: index === root.selected
-                        leftPadding: 20 + 16 + Theme.space2
+                        leftPadding: Theme.space2 + Theme.icon + Theme.space2
                         text: modelData.title || (entry ? entry.name : modelData.appId)
                         detail: entry ? entry.name : modelData.appId
                         onClicked: { root.selected = index; root.go() }
@@ -128,17 +129,16 @@ Scope {
                         readonly property string symbol: Quickshell.iconPath(entry && entry.icon ? entry.icon : modelData.appId, true)
                         IconImage {
                             visible: row.symbol !== ""
-                            x: 20
+                            x: Theme.space2
                             anchors.verticalCenter: parent.verticalCenter
-                            implicitSize: 16
+                            implicitSize: Theme.icon
                             source: row.symbol
                         }
                         Icon {
                             visible: row.symbol === ""
-                            x: 20 + 1
+                            x: Theme.space2
                             anchors.verticalCenter: parent.verticalCenter
                             name: "app-window"
-                            size: 14
                             color: row.selected ? Theme.text : Theme.textMuted
                         }
                     }

@@ -34,7 +34,7 @@ QuickPanel {
             required property string modelData
             x: Theme.space2
             width: parent.width - 2 * Theme.space2
-            height: 22
+            height: Theme.space5
             verticalAlignment: Text.AlignVCenter
             textStyle: "caption"
             color: Theme.textMuted

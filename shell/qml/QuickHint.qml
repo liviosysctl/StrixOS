@@ -5,7 +5,7 @@ import Strix
 Label {
     x: Theme.space2
     width: parent.width - 2 * Theme.space2
-    height: Theme.controlMd
+    height: Theme.control
     verticalAlignment: Text.AlignVCenter
     textStyle: "caption"
     color: Theme.textFaint

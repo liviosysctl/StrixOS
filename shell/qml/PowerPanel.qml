@@ -79,7 +79,7 @@ QuickPanel {
     Item {
         visible: root.hasBacklight
         width: parent.width
-        height: Theme.controlMd
+        height: Theme.control
         Slider {
             x: Theme.space2
             width: parent.width - 2 * Theme.space2
@@ -97,7 +97,7 @@ QuickPanel {
 
     Item {
         width: parent.width
-        height: Theme.controlMd
+        height: Theme.control
         Segmented {
             x: Theme.space2
             anchors.verticalCenter: parent.verticalCenter
@@ -108,7 +108,7 @@ QuickPanel {
     }
     Item {
         width: parent.width
-        height: Theme.controlMd
+        height: Theme.control
         Switch {
             x: Theme.space2
             anchors.verticalCenter: parent.verticalCenter
@@ -122,7 +122,7 @@ QuickPanel {
     }
     Item {
         width: parent.width
-        height: Theme.controlMd
+        height: Theme.control
         Switch {
             x: Theme.space2
             anchors.verticalCenter: parent.verticalCenter

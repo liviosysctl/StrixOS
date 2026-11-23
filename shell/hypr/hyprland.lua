@@ -30,8 +30,10 @@ end
 
 hl.config({
     general = {
-        gaps_in = 6,
-        gaps_out = 12,
+        -- The grid of the shell: windows stand two steps of four from the screen, the bar and
+        -- each other
+        gaps_in = 4,
+        gaps_out = 8,
         border_size = 1,
         layout = "dwindle",
         resize_on_border = true,
@@ -42,8 +44,9 @@ hl.config({
         rounding = 6,
         inactive_opacity = 0.92,
         shadow = { enabled = true, range = 22, render_power = 3, color = 0x80000000 },
-        -- Smoked glass: what lies behind a translucent window is blurred
-        blur = { enabled = true, size = 6, passes = 2 },
+        -- Smoked glass: what lies behind a translucent window is blurred, and behind what drops
+        -- out of one (menus, the panels of the bar)
+        blur = { enabled = true, size = 6, passes = 3, popups = true, popups_ignorealpha = 0.3 },
     },
     animations = { enabled = true },
     dwindle = { preserve_split = true },
@@ -98,6 +101,7 @@ hl.layer_rule({
         namespace = "^strix-(bar|dock|search|notifications|osd|clipboard|cheatsheet|switcher|theme-picker)$",
     },
     blur = true,
+    blur_popups = true,
     ignore_alpha = 0.3,
 })
 

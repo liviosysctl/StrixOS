@@ -1,4 +1,4 @@
-// The tray of the bar: one symbol for every app that keeps running without a window (a chat, a
+// The tray of the bar: one button for every app that keeps running without a window (a chat, a
 // sync, a password manager), there only while there is one. A click drops a small panel with the
 // apps; a click on an app shows what it offers: opening it, and its own menu, drawn in the look
 // of the shell. The middle button on an app is its second action. A click elsewhere or Escape
@@ -10,13 +10,12 @@ import Quickshell.Services.SystemTray
 import Quickshell.Widgets
 import Strix
 
-IconButton {
+Chip {
     id: root
 
     /// The window of the bar, which the panel hangs from
     required property var window
 
-    property bool open: false
     /// The app whose menu is shown, and the way into its submenus (the last one is shown)
     property var item: null
     property var path: []
@@ -34,9 +33,7 @@ IconButton {
         return trayItem.tooltipTitle || trayItem.title || trayItem.id
     }
 
-    small: true
     iconName: "inbox"
-    checked: root.open
     visible: SystemTray.items.values.length > 0
     onVisibleChanged: if (!visible) root.close()
     onClicked: {
@@ -55,9 +52,9 @@ IconButton {
 
         visible: presence.present
         anchor.window: root.window
-        // Its right edge at the right edge of the symbol, inside the screen
+        // Its right edge at the right edge of the button, inside the screen
         anchor.rect.x: Math.max(Theme.space2, Math.min(root.window.width - width - Theme.space2,
-            root.mapToItem(null, root.width, 0).x - width + Theme.space2))
+            root.mapToItem(null, root.width, 0).x - width))
         anchor.rect.y: root.window.height
         implicitWidth: 280
         implicitHeight: rows.implicitHeight + 3 * Theme.space2
@@ -72,14 +69,15 @@ IconButton {
             height: parent.height - Theme.space2
             elevation: "panel"
             opacity: presence.shown
-            transform: Translate { y: -6 * (1 - presence.shown) }
+            transform: Translate { y: -Theme.space2 * (1 - presence.shown) }
             focus: true
             Keys.onEscapePressed: root.close()
 
             Column {
                 id: rows
+                x: Theme.space2
                 y: Theme.space2
-                width: parent.width
+                width: parent.width - 2 * Theme.space2
 
                 // ------------------------------------------------ the apps
                 Repeater {
@@ -90,15 +88,15 @@ IconButton {
                         required property var modelData
 
                         width: rows.width
-                        leftPadding: 20 + 16 + Theme.space2
+                        leftPadding: Theme.space2 + Theme.icon + Theme.space2
                         text: root.name(modelData)
                         detail: "›"
                         onClicked: root.item = modelData
 
                         IconImage {
-                            x: 20
+                            x: Theme.space2
                             anchors.verticalCenter: parent.verticalCenter
-                            implicitSize: 16
+                            implicitSize: Theme.icon
                             source: app.modelData.icon
                         }
                         TapHandler {
@@ -143,8 +141,8 @@ IconButton {
                         Rectangle {
                             visible: entry.modelData.isSeparator
                             anchors.verticalCenter: parent.verticalCenter
-                            x: Theme.space3
-                            width: parent.width - 2 * Theme.space3
+                            x: Theme.space2
+                            width: parent.width - 2 * Theme.space2
                             height: Theme.lineHair
                             color: Theme.border
                         }

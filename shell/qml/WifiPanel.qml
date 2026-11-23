@@ -64,7 +64,7 @@ QuickPanel {
     Component.onCompleted: readTailnet.running = true
     Item {
         width: parent.width
-        height: Theme.controlMd
+        height: Theme.control
         Switch {
             x: Theme.space2
             anchors.verticalCenter: parent.verticalCenter

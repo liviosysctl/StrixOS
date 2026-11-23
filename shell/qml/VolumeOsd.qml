@@ -65,9 +65,9 @@ Scope {
         exclusionMode: ExclusionMode.Ignore
         anchors.bottom: true
         // 8px lower than the pill's place: the room it rises through
-        margins.bottom: Theme.space8 - 8
+        margins.bottom: Theme.space7 + Theme.space2
         implicitWidth: osd.implicitWidth
-        implicitHeight: osd.implicitHeight + 8
+        implicitHeight: osd.implicitHeight + Theme.space2
         color: "transparent"
         mask: Region {}
 
@@ -78,7 +78,7 @@ Scope {
             value: root.kind === "brightness" ? root.brightness
                 : root.sink && root.sink.audio ? root.sink.audio.volume : 0
             opacity: presence.shown
-            y: 8 * (1 - presence.shown)
+            y: Theme.space2 * (1 - presence.shown)
         }
     }
 }

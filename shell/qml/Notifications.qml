@@ -22,7 +22,7 @@ PanelWindow {
     anchors { top: true; right: true }
     // Up to the edge of the screen, so a message that slides in or out is not cut off before it
     margins.top: Theme.barHeight + Theme.space2
-    implicitWidth: 360 + Theme.space3
+    implicitWidth: 320 + Theme.space2
     implicitHeight: Math.max(1, column.implicitHeight)
     color: "transparent"
     visible: shown.length > 0 || Notifs.open
@@ -41,7 +41,7 @@ PanelWindow {
 
     Column {
         id: column
-        width: 360
+        width: 320
         spacing: Theme.space2
 
         move: Transition {
@@ -59,7 +59,7 @@ PanelWindow {
                 // It arrives from the edge of the screen and leaves the same way
                 property real away: 1
                 opacity: 1 - away
-                transform: Translate { x: note.away * (Theme.space3 + 24) }
+                transform: Translate { x: note.away * Theme.space6 }
                 NumberAnimation on away {
                     to: 0
                     duration: Theme.durSlow
@@ -108,14 +108,15 @@ PanelWindow {
 
             Column {
                 id: earlier
+                x: Theme.space2
                 y: Theme.space2
-                width: parent.width
+                width: parent.width - 2 * Theme.space2
 
                 Item {
                     width: parent.width
-                    height: Theme.controlMd
+                    height: Theme.control
                     Label {
-                        x: 20
+                        x: Theme.space2
                         anchors.verticalCenter: parent.verticalCenter
                         textStyle: "label"
                         color: Theme.text
@@ -123,8 +124,7 @@ PanelWindow {
                     }
                     Button {
                         visible: Notifs.earlier.length > 0 || Notifs.count > 0
-                        anchors { right: parent.right; rightMargin: Theme.space2; verticalCenter: parent.verticalCenter }
-                        small: true
+                        anchors { right: parent.right; verticalCenter: parent.verticalCenter }
                         variant: "quiet"
                         text: "Clear all"
                         onClicked: {

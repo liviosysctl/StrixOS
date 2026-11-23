@@ -109,17 +109,17 @@ Scope {
             opacity: presence.shown
             scale: 0.97 + 0.03 * presence.shown
             transformOrigin: Item.Top
-            transform: Translate { y: -8 * (1 - presence.shown) }
+            transform: Translate { y: -Theme.space2 * (1 - presence.shown) }
             width: 560
-            height: column.implicitHeight + Theme.space4 * 2
+            height: column.implicitHeight + 2 * Theme.space2
             anchors { horizontalCenter: parent.horizontalCenter; top: parent.top; topMargin: parent.height * 0.14 }
 
             MouseArea { anchors.fill: parent }
 
             Column {
                 id: column
-                anchors { left: parent.left; right: parent.right; top: parent.top; margins: Theme.space4 }
-                spacing: Theme.space3
+                anchors { left: parent.left; right: parent.right; top: parent.top; margins: Theme.space2 }
+                spacing: Theme.space2
 
                 SearchField {
                     id: input
@@ -138,6 +138,8 @@ Scope {
 
                 Label {
                     visible: root.shown.length === 0
+                    x: Theme.space2
+                    height: Theme.control
                     textStyle: "body"
                     color: Theme.textFaint
                     text: root.entries.length === 0 ? "Nothing copied yet" : "Nothing matches"
@@ -146,7 +148,7 @@ Scope {
                 ListView {
                     id: rows
                     width: parent.width
-                    height: Math.min(contentHeight, 36 * 10)
+                    height: Math.min(contentHeight, 10 * Theme.control)
                     clip: true
                     model: root.shown
                     currentIndex: root.selected
@@ -159,13 +161,13 @@ Scope {
                         selected: index === root.selected
                         onClicked: root.pick(modelData)
                         // A picture gets a taller row with itself at the right
-                        implicitHeight: modelData.picture !== "" ? 68 : Theme.controlMd
+                        implicitHeight: modelData.picture !== "" ? 2 * Theme.control + Theme.space2 : Theme.control
                         Image {
                             visible: modelData.picture !== ""
                             source: modelData.picture
                             anchors { right: parent.right; rightMargin: Theme.space2; verticalCenter: parent.verticalCenter }
-                            height: 60
-                            width: 180
+                            height: 2 * Theme.control
+                            width: 6 * Theme.control
                             sourceSize.height: 120
                             fillMode: Image.PreserveAspectFit
                             horizontalAlignment: Image.AlignRight
@@ -175,9 +177,10 @@ Scope {
                 }
 
                 Row {
+                    x: Theme.space2
                     spacing: Theme.space4
-                    Row { spacing: Theme.space1; KeyCaps { keys: "Enter" } Label { textStyle: "caption"; color: Theme.textFaint; text: "copy" } }
-                    Row { spacing: Theme.space1; KeyCaps { keys: "Delete" } Label { textStyle: "caption"; color: Theme.textFaint; text: "forget" } }
+                    Row { spacing: Theme.space2; KeyCaps { keys: "Enter" } Label { height: Theme.mark; textStyle: "caption"; color: Theme.textFaint; text: "copy" } }
+                    Row { spacing: Theme.space2; KeyCaps { keys: "Delete" } Label { height: Theme.mark; textStyle: "caption"; color: Theme.textFaint; text: "forget" } }
                 }
             }
         }

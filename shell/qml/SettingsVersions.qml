@@ -96,14 +96,12 @@ Column {
                 Row {
                     spacing: Theme.space2
                     Button {
-                        small: true
                         variant: "quiet"
                         text: version.open ? "Hide" : "Changes"
                         onClicked: page.show(version.modelData.generation)
                     }
                     Button {
                         visible: !version.modelData.current
-                        small: true
                         text: "Go back"
                         onClicked: page.run("sudo strix-generations switch " + version.modelData.generation)
                     }
@@ -140,6 +138,6 @@ Column {
         width: page.width
         title: "Tidy up"
         text: "Keep the last five versions and free the space of the rest"
-        Button { small: true; text: "Tidy up"; onClicked: page.run("sudo strix-generations clean") }
+        Button { text: "Tidy up"; onClicked: page.run("sudo strix-generations clean") }
     }
 }

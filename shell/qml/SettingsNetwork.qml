@@ -98,14 +98,12 @@ Column {
                         valueText: ""
                     }
                     Button {
-                        small: true
                         anchors.verticalCenter: parent.verticalCenter
                         visible: modelData.connected
                         text: "Disconnect"
                         onClicked: modelData.disconnect()
                     }
                     Button {
-                        small: true
                         anchors.verticalCenter: parent.verticalCenter
                         visible: !modelData.connected
                         variant: "primary"
@@ -114,7 +112,6 @@ Column {
                         onClicked: page.join(modelData)
                     }
                     Button {
-                        small: true
                         anchors.verticalCenter: parent.verticalCenter
                         visible: modelData.known
                         variant: "quiet"

@@ -26,6 +26,8 @@ let
     font-style = SemiBold
     font-style-bold = Bold
     font-size = 13
+    # Smoked glass: the compositor blurs what lies behind the terminal
+    background-opacity = 0.72
     window-padding-x = 12
     window-padding-y = 8
     window-decoration = none

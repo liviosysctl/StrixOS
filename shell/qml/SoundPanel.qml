@@ -29,7 +29,7 @@ QuickPanel {
 
     Item {
         width: parent.width
-        height: Theme.controlMd
+        height: Theme.control
         Slider {
             x: Theme.space2
             width: parent.width - 2 * Theme.space2
@@ -69,8 +69,8 @@ QuickPanel {
             required property var modelData
             width: parent.width
             Label {
-                x: 20
-                width: parent.width - 20 - Theme.space2
+                x: Theme.space2
+                width: parent.width - 2 * Theme.space2
                 elide: Text.ElideRight
                 textStyle: "caption"
                 color: Theme.textMuted
@@ -78,7 +78,7 @@ QuickPanel {
             }
             Item {
                 width: parent.width
-                height: Theme.controlMd
+                height: Theme.control
                 Slider {
                     x: Theme.space2
                     width: parent.width - 2 * Theme.space2
