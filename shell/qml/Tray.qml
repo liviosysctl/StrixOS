@@ -1,7 +1,8 @@
-// The tray of the bar: the symbols of apps that keep running without a window (a chat, a sync, a
-// password manager). A click does what the app means by it, the middle button its second action,
-// the right button (or a click, where the app only has a menu) opens its menu under the symbol,
-// in the look of the shell. A click elsewhere or Escape folds the menu back.
+// The tray of the bar: one symbol for every app that keeps running without a window (a chat, a
+// sync, a password manager), there only while there is one. A click drops a small panel with the
+// apps; a click on an app shows what it offers: opening it, and its own menu, drawn in the look
+// of the shell. The middle button on an app is its second action. A click elsewhere or Escape
+// folds the panel back.
 import QtQuick
 import Quickshell
 import Quickshell.Hyprland
@@ -9,95 +10,60 @@ import Quickshell.Services.SystemTray
 import Quickshell.Widgets
 import Strix
 
-Row {
+IconButton {
     id: root
 
-    /// The window of the bar, which the menu hangs from
+    /// The window of the bar, which the panel hangs from
     required property var window
 
-    /// The item whose menu is open, and the way into its submenus (the last one is shown)
+    property bool open: false
+    /// The app whose menu is shown, and the way into its submenus (the last one is shown)
     property var item: null
     property var path: []
-    readonly property var shownMenu: path.length > 0 ? path[path.length - 1] : (item ? item.menu : null)
-    /// Where the menu hangs: its right edge at the right edge of the symbol, inside the screen
-    property real menuX: 0
-    /// Another panel of the bar opened: the menu gives way
+    readonly property var shownMenu: path.length > 0 ? path[path.length - 1] : (item && item.hasMenu ? item.menu : null)
+    /// Another panel of the bar opened: this one gives way
     property bool giveWay: false
     onGiveWayChanged: if (giveWay) root.close()
 
-    function open(trayItem, symbol) {
-        if (root.item === trayItem) { root.close(); return }
-        root.path = []
-        root.item = trayItem
-        root.menuX = Math.max(Theme.space2, Math.min(root.window.width - menu.implicitWidth - Theme.space2,
-            symbol.mapToItem(null, symbol.width, 0).x - menu.implicitWidth + Theme.space2))
-    }
     function close() {
+        root.open = false
         root.item = null
         root.path = []
     }
+    function name(trayItem) {
+        return trayItem.tooltipTitle || trayItem.title || trayItem.id
+    }
 
-    spacing: Theme.space1
+    small: true
+    iconName: "inbox"
+    checked: root.open
     visible: SystemTray.items.values.length > 0
-
-    Repeater {
-        model: SystemTray.items
-
-        Item {
-            id: symbol
-            required property var modelData
-
-            width: Theme.controlSm
-            height: Theme.controlSm
-
-            Rectangle {
-                anchors.fill: parent
-                radius: Theme.radiusSm
-                color: here.hovered || root.item === symbol.modelData ? Theme.surfaceRaised : "transparent"
-                Behavior on color { ColorAnimation { duration: Theme.durFast } }
-            }
-            IconImage {
-                anchors.centerIn: parent
-                implicitSize: 14
-                source: symbol.modelData.icon
-            }
-
-            HoverHandler { id: here; cursorShape: Qt.PointingHandCursor }
-            TapHandler {
-                acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
-                onTapped: (point, button) => {
-                    const item = symbol.modelData
-                    if (button === Qt.MiddleButton) item.secondaryActivate()
-                    else if (button === Qt.RightButton || item.onlyMenu) { if (item.hasMenu) root.open(item, symbol) }
-                    else { root.close(); item.activate() }
-                }
-            }
-            WheelHandler {
-                acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
-                onWheel: event => symbol.modelData.scroll(event.angleDelta.y, false)
-            }
-        }
+    onVisibleChanged: if (!visible) root.close()
+    onClicked: {
+        if (root.open) root.close()
+        else root.open = true
     }
 
     HyprlandFocusGrab {
-        windows: [root.window, menu]
-        active: root.item !== null
+        windows: [root.window, panel]
+        active: root.open
         onCleared: root.close()
     }
 
     PopupWindow {
-        id: menu
+        id: panel
 
         visible: presence.present
         anchor.window: root.window
-        anchor.rect.x: root.menuX
+        // Its right edge at the right edge of the symbol, inside the screen
+        anchor.rect.x: Math.max(Theme.space2, Math.min(root.window.width - width - Theme.space2,
+            root.mapToItem(null, root.width, 0).x - width + Theme.space2))
         anchor.rect.y: root.window.height
-        implicitWidth: 260
+        implicitWidth: 280
         implicitHeight: rows.implicitHeight + 3 * Theme.space2
         color: "transparent"
 
-        // The app sends its menu a moment after it is asked: the window opens once it knows its size
-        Presence { id: presence; open: root.item !== null && opener.children.values.length > 0 }
+        Presence { id: presence; open: root.open }
         QsMenuOpener { id: opener; menu: root.shownMenu }
 
         Surface {
@@ -115,17 +81,57 @@ Row {
                 y: Theme.space2
                 width: parent.width
 
-                // Inside a submenu: the way back
+                // ------------------------------------------------ the apps
+                Repeater {
+                    model: root.item ? [] : SystemTray.items.values
+
+                    ListRow {
+                        id: app
+                        required property var modelData
+
+                        width: rows.width
+                        leftPadding: 20 + 16 + Theme.space2
+                        text: root.name(modelData)
+                        detail: "›"
+                        onClicked: root.item = modelData
+
+                        IconImage {
+                            x: 20
+                            anchors.verticalCenter: parent.verticalCenter
+                            implicitSize: 16
+                            source: app.modelData.icon
+                        }
+                        TapHandler {
+                            acceptedButtons: Qt.MiddleButton
+                            onTapped: app.modelData.secondaryActivate()
+                        }
+                    }
+                }
+
+                // ------------------------------------------------ one app: opening it, and its menu
                 ListRow {
-                    visible: root.path.length > 0
+                    visible: root.item !== null
                     width: parent.width
                     iconName: "chevron-left"
-                    text: "Back"
-                    onClicked: root.path = root.path.slice(0, -1)
+                    text: root.path.length > 0 ? "Back" : (root.item ? root.name(root.item) : "")
+                    onClicked: {
+                        if (root.path.length > 0) root.path = root.path.slice(0, -1)
+                        else root.item = null
+                    }
+                }
+                ListRow {
+                    visible: root.item !== null && root.path.length === 0 && !root.item.onlyMenu
+                    width: parent.width
+                    iconName: "app-window"
+                    text: "Open"
+                    onClicked: {
+                        root.item.activate()
+                        root.close()
+                    }
                 }
 
                 Repeater {
-                    model: opener.children
+                    model: root.item ? opener.children : []
 
                     Item {
                         id: entry
