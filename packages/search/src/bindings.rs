@@ -109,6 +109,27 @@ fn key_name(key: &str) -> Option<String> {
         "Tab" => "Tab",
         "=" => "equal",
         "-" => "minus",
+        "." => "period",
+        "," => "comma",
+        "/" => "slash",
+        ";" => "semicolon",
+        "'" => "apostrophe",
+        "[" => "bracketleft",
+        "]" => "bracketright",
+        "\\" => "backslash",
+        "`" => "grave",
+        "<" => "less",
+        "$" => "dollar",
+        "§" => "section",
+        "Ä" => "adiaeresis",
+        "Ö" => "odiaeresis",
+        "Ü" => "udiaeresis",
+        "Delete" => "Delete",
+        "Insert" => "Insert",
+        "Home" => "Home",
+        "End" => "End",
+        "PageUp" => "Page_Up",
+        "PageDown" => "Page_Down",
         "Left" => "left",
         "Right" => "right",
         "Up" => "up",
@@ -474,6 +495,9 @@ mod tests {
             ["left", "right", "up", "down"]
         );
         assert_eq!(expand("Super = -").unwrap().1, ["equal", "minus"]);
+        assert_eq!(expand("Super .").unwrap().1, ["period"]);
+        assert_eq!(expand("Super Shift Ü").unwrap().1, ["udiaeresis"]);
+        assert_eq!(expand("Ctrl Alt Delete").unwrap().1, ["Delete"]);
         assert_eq!(
             expand("Print").unwrap(),
             (String::new(), vec!["Print".into()])

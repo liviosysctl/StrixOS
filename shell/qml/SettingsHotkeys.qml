@@ -38,7 +38,14 @@ Column {
         const named = {
             [Qt.Key_Return]: "Return", [Qt.Key_Enter]: "Return", [Qt.Key_Space]: "Space", [Qt.Key_Tab]: "Tab",
             [Qt.Key_Left]: "Left", [Qt.Key_Right]: "Right", [Qt.Key_Up]: "Up", [Qt.Key_Down]: "Down",
-            [Qt.Key_Print]: "Print", [Qt.Key_Equal]: "=", [Qt.Key_Minus]: "-"
+            [Qt.Key_Print]: "Print", [Qt.Key_Equal]: "=", [Qt.Key_Minus]: "-",
+            // The signs and letters a keyboard has keys of their own for, and the keys over the arrows
+            [Qt.Key_Period]: ".", [Qt.Key_Comma]: ",", [Qt.Key_Slash]: "/", [Qt.Key_Semicolon]: ";", [Qt.Key_Apostrophe]: "'",
+            [Qt.Key_BracketLeft]: "[", [Qt.Key_BracketRight]: "]", [Qt.Key_Backslash]: "\\", [Qt.Key_QuoteLeft]: "`",
+            [Qt.Key_Less]: "<", [Qt.Key_Dollar]: "$", [Qt.Key_section]: "§",
+            [Qt.Key_Adiaeresis]: "Ä", [Qt.Key_Odiaeresis]: "Ö", [Qt.Key_Udiaeresis]: "Ü",
+            [Qt.Key_Delete]: "Delete", [Qt.Key_Insert]: "Insert", [Qt.Key_Home]: "Home", [Qt.Key_End]: "End",
+            [Qt.Key_PageUp]: "PageUp", [Qt.Key_PageDown]: "PageDown"
         }
         let key = named[event.key] || ""
         if (!key && event.key >= Qt.Key_A && event.key <= Qt.Key_Z) key = String.fromCharCode(event.key)
