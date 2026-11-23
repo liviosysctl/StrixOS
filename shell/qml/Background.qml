@@ -1,7 +1,6 @@
-// The engraving of the current theme behind everything, on every screen, with its plate caption
-// bottom left. When the theme changes, the new engraving grows as a circle from the middle of the
-// screen and the caption fades over (motion.md); while something covers the desktop (the lock
-// screen, the theme picker) it changes at once.
+// The engraving of the current theme behind everything, on every screen. When the theme changes,
+// the new engraving grows as a circle from the middle of the screen (motion.md); while something
+// covers the desktop (the lock screen, the theme picker) it changes at once.
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
@@ -66,24 +65,6 @@ Variants {
                     window.next = ""
                     window.change(picture)
                 }
-            }
-        }
-
-        Plate {
-            id: plate
-            anchors { left: parent.left; bottom: parent.bottom; margins: Theme.space4 }
-            width: Math.min(parent.width / 2, 680)
-            wrapMode: Text.WordWrap
-            readonly property string wanted: Theme.about.plate || ""
-            text: wanted
-            onWantedChanged: if (!root.quiet) recaption.restart(); else text = wanted
-
-            // The old caption fades out, the new one in
-            SequentialAnimation {
-                id: recaption
-                NumberAnimation { target: plate; property: "opacity"; to: 0; duration: Theme.durFast; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeIn }
-                ScriptAction { script: plate.text = plate.wanted }
-                NumberAnimation { target: plate; property: "opacity"; to: 1; duration: Theme.durBase; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOut }
             }
         }
     }

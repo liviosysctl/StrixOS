@@ -1,5 +1,5 @@
 // The theme picker (ThemePicker in StrixUI): the gods as slanted plates over the dimmed desktop,
-// the chosen one in the middle with its caption; Keep stops the change every 10 minutes.
+// the chosen one in the middle with its name; Keep stops the change every 10 minutes.
 // The session's theme service (strix-theme session, Backend "theme") runs the cycle and the
 // choice; Enter sets the machine's theme, which the boot splash follows too.
 //
@@ -42,13 +42,6 @@ Scope {
     function picture(t) {
         if (!t) return ""
         return Theme.gods[t.id] ? Theme.wallpaper(t.id) : "file://" + t.dir + "/wallpaper.jpg"
-    }
-
-    function caption(t) {
-        if (!t) return ""
-        if (Theme.gods[t.id]) return Theme.gods[t.id].plate
-        if (Theme.external && Theme.external.id === t.id && Theme.external.plate) return Theme.external.plate
-        return t.description
     }
 
     function take(s) {
@@ -287,7 +280,6 @@ Scope {
                                 anchors.verticalCenter: parent.verticalCenter
                                 source: root.picture(modelData)
                                 name: modelData.name
-                                caption: modelData.description
                                 accent: modelData.accent || Theme.accent
                                 selected: index === root.selected
                                 lift: Math.max(0, 1 - Math.abs(index - plates.at))
@@ -300,8 +292,8 @@ Scope {
                     }
                 }
 
-                // What belongs to the choice stands on one plate under the carousel: what the
-                // engraving shows, dark or light, keeping the theme, and the keys
+                // What belongs to the choice stands on one plate under the carousel: dark or
+                // light, keeping the theme, and the keys
                 Surface {
                     anchors.horizontalCenter: parent.horizontalCenter
                     width: Math.min(parent.width - 2 * Theme.space6, 640)
@@ -317,15 +309,6 @@ Scope {
                         y: Theme.space3
                         width: parent.width - 2 * Theme.space3
                         spacing: Theme.space3
-
-                        Label {
-                            width: parent.width
-                            horizontalAlignment: Text.AlignHCenter
-                            wrapMode: Text.WordWrap
-                            textStyle: "aside"
-                            color: Theme.textMuted
-                            text: root.caption(root.shown)
-                        }
 
                         Item {
                             width: parent.width

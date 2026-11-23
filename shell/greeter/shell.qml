@@ -177,13 +177,5 @@ ShellRoot {
             anchors { right: parent.right; bottom: parent.bottom; margins: Theme.space8 }
             Wordmark { anchors.right: parent.right }
         }
-
-        Plate {
-            anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom; bottomMargin: Theme.space6 }
-            width: Math.min(parent.width / 2, 560)
-            horizontalAlignment: Text.AlignHCenter
-            wrapMode: Text.WordWrap
-            text: Theme.about.plate || ""
-        }
     }
 }
