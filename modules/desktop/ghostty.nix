@@ -34,6 +34,9 @@ let
     gtk-titlebar = false
     confirm-close-surface = false
     cursor-style = bar
+    # The terminal waits in the background from the login on (its service, below) and stays
+    # there when its last window is closed: a new window is there at once
+    quit-after-last-window-closed = false
   '';
 in
 {
@@ -42,6 +45,12 @@ in
     environment.etc."xdg/${id}/ghostty/user".source = ghosttyUser;
 
     environment.systemPackages = [ pkgs.ghostty ];
+
+    # Starting the terminal takes about a second: its toolkit, the fonts, the graphics card.
+    # Ghostty brings a service that pays that once, at the login, with no window; every
+    # `ghostty` after it only asks the one that runs for a new window.
+    systemd.packages = [ pkgs.ghostty ];
+    systemd.user.services."app-com.mitchellh.ghostty".wantedBy = [ "graphical-session.target" ];
 
     # A new user gets the Ghostty config that follows the theme, copied once and then theirs to
     # change. The link to the session's colors is made again at every login.

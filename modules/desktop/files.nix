@@ -30,7 +30,8 @@ let
       fi
       # Not a local folder (a phone, a network share): the home folder
       [ -d "$dir" ] || dir=$HOME
-      exec ghostty --working-directory="$dir"
+      # With a folder named it is a terminal of its own, which ends with its window
+      exec ghostty --quit-after-last-window-closed=true --working-directory="$dir"
     '';
   };
 in
