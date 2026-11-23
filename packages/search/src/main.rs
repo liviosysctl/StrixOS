@@ -5,6 +5,7 @@ mod calc;
 mod config;
 mod desktop;
 mod entry;
+mod files;
 mod index;
 mod keys;
 mod run;

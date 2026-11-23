@@ -11,6 +11,8 @@ pub enum Kind {
     Setting,
     Command,
     Menu,
+    /// A file or a folder of the home, looked up when asked (files.rs)
+    File,
 }
 
 impl Kind {

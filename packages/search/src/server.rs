@@ -86,16 +86,37 @@ impl State {
                     limit: params.get("limit").and_then(Value::as_u64).unwrap_or(50) as usize,
                 };
                 let usage = Usage::load(self.cfg.usage_file.as_deref());
-                // A calculation is answered above what was found
-                let answer = if q.scope.is_none() {
+                // A calculation is answered above what was found, files of the home come below
+                let plain = q.scope.is_none() && q.filter.is_none();
+                let answer = if plain {
                     crate::calc::answer(&q.text)
                 } else {
                     None
                 };
-                Ok(json!({ "results": index.query(&q, &usage, now()), "answer": answer }))
+                let files = match std::env::var_os("HOME") {
+                    Some(home) if plain && answer.is_none() => {
+                        crate::files::find(&q.text, std::path::Path::new(&home))
+                    }
+                    _ => Vec::new(),
+                };
+                let mut results = index.query(&q, &usage, now());
+                results.extend(files.iter().map(|entry| crate::index::Hit {
+                    entry,
+                    score: 0.0,
+                    hits: Vec::new(),
+                }));
+                Ok(json!({ "results": results, "answer": answer }))
             }
             "activate" => {
                 let id = text("id").ok_or("activate needs an id")?;
+                // A file is not in the index: it is opened by what is the default for it
+                if let Some(path) = id.strip_prefix(crate::files::PREFIX) {
+                    let argv = crate::files::open(path);
+                    if !dry {
+                        run::spawn(&argv)?;
+                    }
+                    return Ok(json!({ "enter": false, "ran": argv }));
+                }
                 let entry = index
                     .get(id)
                     .ok_or_else(|| format!("nothing has the id {id}"))?;
