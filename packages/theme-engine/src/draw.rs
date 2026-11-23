@@ -260,11 +260,11 @@ pub fn grub(dir: &Path, theme: &Theme, variant: &Variant, grub: &Grub) -> Result
 <rect width="{W}" height="{H}" fill="{background}"/>
 {picture}
 <rect width="{W}" height="{H}" fill="url(#veil)"/>
-{owl}<text x="{}" y="305" font-family="Grenze Gotisch" font-weight="300" font-size="168" fill="{}">{}</text>
-<text x="{X}" y="358" font-family="IM FELL English" font-style="italic" font-size="30" fill="{}">{}</text>
+{owl}<text x="{}" y="305" font-family="Cormorant Garamond" font-style="italic" font-weight="500" font-size="168" fill="{}">{}</text>
+<text x="{X}" y="358" font-family="Cormorant Garamond" font-style="italic" font-weight="500" font-size="32" fill="{}">{}</text>
 <rect x="{X}" y="392" width="{COL}" height="1" fill="{}"/>
 <rect x="{X}" y="391" width="56" height="3" fill="{}"/>
-<text x="{X}" y="{}" font-family="JetBrains Mono" font-size="17" xml:space="preserve">{keys}</text>
+<text x="{X}" y="{}" font-family="IBM Plex Mono" font-size="17" xml:space="preserve">{keys}</text>
 </svg>
 "##,
         X - 6,
@@ -453,7 +453,7 @@ mod tests {
         assert!(svg.contains("&amp; &lt;knows&gt;"));
         // The owl sits in the column, in the accent
         assert!(svg.contains(r#"<svg x="460" y="168" width="160" height="160""#));
-        assert!(svg.contains(r##"r="32" fill="#c8102e""##));
+        assert!(svg.contains(r##"r="5.1" fill="#c8102e""##));
         let txt = fs::read_to_string(dir.join("theme.txt")).unwrap();
         assert!(txt.contains(r#"item_font = "Strix Mono Regular 16""#));
         assert!(txt.contains("top = 722"));
