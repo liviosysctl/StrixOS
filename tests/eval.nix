@@ -336,6 +336,7 @@ in
     in
     assert cfg.boot.plymouth.theme == "${branding.id}-saturnus-dark";
     assert lib.all (name: lib.elem name names) (map (god: "${branding.id}-${god}-dark") gods);
+    assert lib.all (name: lib.elem name names) (map (god: "${branding.id}-${god}-light") gods);
     assert cfg.boot.initrd.systemd.services ? ${unit};
     assert lib.elem "plymouth-start.service" cfg.boot.initrd.systemd.services.${unit}.before;
     assert
@@ -388,7 +389,8 @@ in
     assert reference.config.${branding.id}.theme.repos.file == null;
     assert cfg.${branding.id}.theme.repos.file != null;
     assert lib.elem "${branding.id}-lucifer-dark" names;
-    assert lib.length names == lib.length gods + 1;
+    # Every god in its dark and its light variant, and the theme of the repository
+    assert lib.length names == 2 * lib.length gods + 1;
     cfg.system.build.themes;
 
   # strix-update with the theme repositories: when it fetches, when it rebuilds,
