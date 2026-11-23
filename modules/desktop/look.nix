@@ -33,17 +33,17 @@ in
             gtk-theme = "adw-gtk3-dark";
             cursor-theme = cursorTheme;
             icon-theme = if cfg.live then "Adwaita" else "Papirus-Dark";
-            monospace-font-name = "JetBrains Mono 11";
+            monospace-font-name = "IBM Plex Mono 11";
           };
         }
       ];
     };
 
-    # Noto for text in every script; Geist Mono with the Nerd Font icons for the terminal and its
+    # Noto for text in every script; IBM Plex Mono with the Nerd Font icons (BlexMono) for the terminal and its
     # prompt
     fonts.packages = [
       pkgs.noto-fonts
-      pkgs.nerd-fonts.geist-mono
+      pkgs.nerd-fonts.blex-mono
     ];
 
     environment.systemPackages =

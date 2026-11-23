@@ -22,9 +22,9 @@ let
 
   ghosttyDefaults = pkgs.writeText "ghostty-defaults" ''
     # The look of ${branding.name} (modules/desktop/ghostty.nix)
-    font-family = GeistMono Nerd Font Mono
+    font-family = BlexMono Nerd Font Mono
     font-style = SemiBold
-    font-style-bold = ExtraBold
+    font-style-bold = Bold
     font-size = 13
     window-padding-x = 12
     window-padding-y = 8
