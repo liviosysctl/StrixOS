@@ -6,10 +6,14 @@
 # Actions, the run, "Artifacts". The ISO comes from a clean checkout with
 # flake.lock, so machines installed from it are pinned to that commit.
 #
-# On every push to main and m245-poc: the cache job builds the distro's own
-# packages and the reference system and pushes them to the binary cache
+# On every push to main, m245-poc and staging: the cache job builds the distro's
+# own packages and the reference system and pushes them to the binary cache
 # (modules/core/cache.nix), so installed machines download them instead of
 # compiling. It needs the secret CACHIX_AUTH_TOKEN and does nothing without it.
+#
+# staging is where a change goes first when it brings something that takes long
+# to build (a patched program): main gets it once this run has filled the cache,
+# so a machine that updates right after never compiles it.
 name: Check
 
 on:
@@ -43,7 +47,8 @@ jobs:
     needs: flake
     if: >-
       github.event_name != 'pull_request' &&
-      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/m245-poc')
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/m245-poc' ||
+      github.ref == 'refs/heads/staging')
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:
