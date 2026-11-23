@@ -78,7 +78,7 @@ in
       default = "";
       example = ''
         hl.config({ general = { gaps_out = 4 } })
-        hl.bind("SUPER + B", hl.dsp.exec_cmd("uwsm app -- zen-beta"))
+        hl.bind("SUPER + B", hl.dsp.exec_cmd("uwsm app -- firefox"))
       '';
       description = ''
         Own Hyprland settings in Lua, read after the ones of ${branding.name}. Each user can also

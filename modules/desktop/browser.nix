@@ -1,4 +1,6 @@
-# The browser: Zen, as it comes.
+# The browser: the one of Strix (flake input strix-browser), whose window is drawn like the
+# shell and into which the search grows. Firefox is there beside it, plain, for the page that
+# needs another browser; Search finds it among the apps.
 {
   config,
   lib,
@@ -12,12 +14,11 @@ let
   inherit (branding) id;
   cfg = config.${id}.desktop;
 
-  # The browser: Zen, the only one installed (flake input zen-browser, not in nixpkgs)
-  zen = distroFlake.inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default;
+  browser = distroFlake.inputs.strix-browser.packages.${pkgs.stdenv.hostPlatform.system}.default;
 in
 {
   config = lib.mkIf cfg.enable {
-    # Links, web pages and PDFs open in Zen; the live session of the ISO has no browser
+    # Links, web pages and PDFs open in the browser; the live session of the ISO has none
     xdg.mime.defaultApplications = lib.mkIf (!cfg.live) (
       lib.genAttrs [
         "text/html"
@@ -25,11 +26,13 @@ in
         "application/pdf"
         "x-scheme-handler/http"
         "x-scheme-handler/https"
-      ] (_: "zen-beta.desktop")
+      ] (_: "strix-browser.desktop")
     );
 
-    environment.sessionVariables.BROWSER = lib.mkIf (!cfg.live) "zen-beta";
+    environment.sessionVariables.BROWSER = lib.mkIf (!cfg.live) "strix-browser";
 
-    environment.systemPackages = lib.optionals (!cfg.live) [ zen ];
+    environment.systemPackages = lib.optionals (!cfg.live) [ browser ];
+
+    programs.firefox.enable = lib.mkIf (!cfg.live) true;
   };
 }
