@@ -12,6 +12,7 @@ name = "search"
 path = "src/main.rs"
 
 [dependencies]
+fend-core = "1"
 libc = "0.2"
 nucleo-matcher = "0.3"
 serde = { version = "1", features = ["derive"] }

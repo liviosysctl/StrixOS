@@ -86,7 +86,13 @@ impl State {
                     limit: params.get("limit").and_then(Value::as_u64).unwrap_or(50) as usize,
                 };
                 let usage = Usage::load(self.cfg.usage_file.as_deref());
-                Ok(json!({ "results": index.query(&q, &usage, now()) }))
+                // A calculation is answered above what was found
+                let answer = if q.scope.is_none() {
+                    crate::calc::answer(&q.text)
+                } else {
+                    None
+                };
+                Ok(json!({ "results": index.query(&q, &usage, now()), "answer": answer }))
             }
             "activate" => {
                 let id = text("id").ok_or("activate needs an id")?;

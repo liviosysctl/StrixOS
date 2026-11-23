@@ -17,6 +17,9 @@ Scope {
     /// The group shown, with the titles on the way there
     property var trail: []
     property var results: []
+    /// A calculation typed into the field and what it comes to ({ text, value }), else null. It
+    /// stands above the results and is what Enter takes (selected is -1) until Down leaves it
+    property var answer: null
     property int selected: 0
 
     /// 1 when the last move went into a group, -1 back out: the list slides in from that side
@@ -38,9 +41,21 @@ Scope {
         }
         search.call(text !== "" ? "query" : "browse", params, r => {
             root.results = (r && r.results) || []
-            root.selected = 0
+            root.answer = (r && r.answer) || null
+            root.selected = root.answer ? -1 : 0
             if (root.direction !== 0) slide.restart()
         })
+    }
+
+    /// Enter: the answer of a calculation goes to the clipboard, a result is run
+    function accept() {
+        if (root.answer && root.selected === -1) {
+            // fend marks a rounded value; the number is what is wanted in the clipboard
+            Quickshell.execDetached(["wl-copy", root.answer.value.replace(/^approx\. /, "")])
+            root.open = false
+        } else {
+            root.activate(root.results[root.selected])
+        }
     }
 
     function activate(hit) {
@@ -130,7 +145,7 @@ Scope {
                         width: parent.width - (root.trail.length ? x : 0)
                         KeyCaps { keys: "Esc" }
                         onTextChanged: root.refresh(text)
-                        onAccepted: root.activate(root.results[root.selected])
+                        onAccepted: root.accept()
                         Timer {
                             interval: 100
                             repeat: true
@@ -138,6 +153,17 @@ Scope {
                             onTriggered: input.field.forceActiveFocus()
                         }
                     }
+                }
+
+                // The answer to a calculation; Enter copies it
+                ListRow {
+                    visible: root.answer !== null
+                    width: parent.width
+                    selected: root.selected === -1
+                    iconName: "corner-down-left"
+                    text: root.answer ? root.answer.value : ""
+                    detail: "Enter copies"
+                    onClicked: { root.selected = -1; root.accept() }
                 }
 
                 ListView {
@@ -189,7 +215,7 @@ Scope {
         }
 
         Shortcut { sequence: "Down"; enabled: root.open; onActivated: root.selected = Math.min(root.selected + 1, root.results.length - 1) }
-        Shortcut { sequence: "Up"; enabled: root.open; onActivated: root.selected = Math.max(root.selected - 1, 0) }
+        Shortcut { sequence: "Up"; enabled: root.open; onActivated: root.selected = Math.max(root.selected - 1, root.answer ? -1 : 0) }
         Shortcut {
             sequence: "Escape"
             enabled: root.open

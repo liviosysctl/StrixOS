@@ -1,6 +1,7 @@
 //! One search for apps, actions, settings and commands. Installed as `<id>-search`.
 
 mod bindings;
+mod calc;
 mod config;
 mod desktop;
 mod entry;
