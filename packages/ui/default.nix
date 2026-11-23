@@ -4,7 +4,7 @@
 #
 #   share/<id>-ui/qml       the QML module, for QML_IMPORT_PATH
 #   share/<id>-ui/assets    the wallpapers; Theme.qml finds them as ../../assets
-#   share/fonts/truetype    Grenze Gotisch, IM Fell English, JetBrains Mono
+#   share/fonts/truetype    Hanken Grotesk, Cormorant Garamond, IBM Plex Mono
 {
   lib,
   stdenvNoCC,

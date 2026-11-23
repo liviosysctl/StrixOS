@@ -49,11 +49,11 @@
     --input-background-color: var(--strix-sunken) !important;
 
     /* One small radius, hair lines instead of shadows */
-    --border-radius-xsmall: 1px !important;
-    --border-radius-small: 2px !important;
-    --border-radius-medium: 2px !important;
-    --border-radius-large: 4px !important;
-    --button-border-radius: 2px !important;
+    --border-radius-xsmall: 2px !important;
+    --border-radius-small: 4px !important;
+    --border-radius-medium: 4px !important;
+    --border-radius-large: 6px !important;
+    --button-border-radius: 4px !important;
     --box-shadow-level-1: none !important;
     --box-shadow-level-2: none !important;
     --box-shadow-level-3: 0 8px 22px rgba(0, 0, 0, 0.5) !important;
@@ -61,7 +61,7 @@
     --card-box-shadow: none !important;
 
     /* The type of the shell */
-    font-family: "JetBrains Mono", "GeistMono Nerd Font Mono", monospace !important;
+    font-family: "Hanken Grotesk", sans-serif !important;
     scrollbar-width: thin;
     scrollbar-color: var(--strix-border-strong) transparent;
   }
@@ -73,13 +73,13 @@
   /* Settings: what Zen shapes by hand */
   groupbox button,
   groupbox menulist {
-    border-radius: 2px !important;
+    border-radius: 4px !important;
     background-color: var(--strix-raised) !important;
     color: var(--strix-text) !important;
   }
   /* The list of pages at the side: the selected one is raised and carries the accent */
   moz-page-nav-button {
-    --page-nav-button-border-radius: 2px !important;
+    --page-nav-button-border-radius: 4px !important;
     --page-nav-button-text-color: var(--strix-muted) !important;
     --page-nav-button-text-color-hover: var(--strix-text) !important;
     --page-nav-button-text-color-selected: var(--strix-text) !important;

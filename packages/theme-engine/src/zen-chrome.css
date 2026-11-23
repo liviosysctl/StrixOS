@@ -7,17 +7,17 @@
    --------------------------------------------------------------------------------------------- */
 
 :root {
-  --zen-border-radius: 4px !important;
-  --zen-webview-border-radius: 4px !important;
-  --zen-native-inner-radius: 4px !important;
+  --zen-border-radius: 6px !important;
+  --zen-webview-border-radius: 6px !important;
+  --zen-native-inner-radius: 6px !important;
   --zen-big-shadow: 0 0 0 1px var(--strix-border) !important;
-  --tab-border-radius: 2px !important;
-  --toolbarbutton-border-radius: 2px !important;
-  --border-radius-small: 2px !important;
-  --border-radius-medium: 2px !important;
-  --arrowpanel-border-radius: 4px !important;
-  --panel-border-radius: 4px !important;
-  --menuitem-border-radius: 1px !important;
+  --tab-border-radius: 4px !important;
+  --toolbarbutton-border-radius: 4px !important;
+  --border-radius-small: 4px !important;
+  --border-radius-medium: 4px !important;
+  --arrowpanel-border-radius: 6px !important;
+  --panel-border-radius: 6px !important;
+  --menuitem-border-radius: 2px !important;
   --urlbarView-highlight-background: var(--strix-raised) !important;
   --urlbarView-highlight-color: var(--strix-text) !important;
   --focus-outline-color: var(--strix-accent) !important;
@@ -25,8 +25,8 @@
   --lwt-accent-color: var(--strix-background) !important;
   --lwt-text-color: var(--strix-text) !important;
   --zen-squircle-value: 1 !important;
-  --arrowpanel-menuitem-border-radius: 1px !important;
-  --button-border-radius: 2px !important;
+  --arrowpanel-menuitem-border-radius: 2px !important;
+  --button-border-radius: 4px !important;
   --button-background-color-primary: var(--strix-accent) !important;
   --button-background-color-primary-hover: color-mix(in srgb, var(--strix-accent) 88%, white) !important;
   --button-background-color-primary-active: color-mix(in srgb, var(--strix-accent) 88%, black) !important;
@@ -43,7 +43,7 @@
   --border-color: var(--strix-border) !important;
   --promo-background-color-vibrant: var(--strix-raised) !important;
   --promo-message-text-color-vibrant: var(--strix-text) !important;
-  --promo-border-radius: 2px !important;
+  --promo-border-radius: 4px !important;
 }
 /* Zen sets its radii again in the places that use them: the same answer there */
 #navigator-toolbox,
@@ -54,11 +54,11 @@
 .identity-box-button,
 #urlbar,
 #zen-media-controls-toolbar {
-  --border-radius-medium: 2px !important;
-  --tab-border-radius: 2px !important;
-  --toolbarbutton-border-radius: 2px !important;
-  --urlbar-icon-border-radius: 2px !important;
-  --urlbar-inner-border-radius: 2px !important;
+  --border-radius-medium: 4px !important;
+  --tab-border-radius: 4px !important;
+  --toolbarbutton-border-radius: 4px !important;
+  --urlbar-icon-border-radius: 4px !important;
+  --urlbar-inner-border-radius: 4px !important;
 }
 
 /* The type of the shell: its mono for everything that is read, small */
@@ -70,7 +70,7 @@ panel,
 #urlbar,
 #urlbar-input,
 .urlbarView {
-  font-family: "JetBrains Mono", "GeistMono Nerd Font Mono", monospace !important;
+  font-family: "Hanken Grotesk", sans-serif !important;
   font-size: 12px !important;
   letter-spacing: 0 !important;
 }
@@ -85,7 +85,7 @@ zen-workspace,
   --tab-text-color-selected: var(--strix-text) !important;
 }
 .tabbrowser-tab .tab-background {
-  border-radius: 2px !important;
+  border-radius: 4px !important;
   box-shadow: none !important;
   outline: none !important;
 }
@@ -103,7 +103,7 @@ zen-workspace,
   color: var(--strix-text) !important;
 }
 .tabbrowser-tab .tab-close-button {
-  border-radius: 2px !important;
+  border-radius: 4px !important;
   color: var(--strix-muted) !important;
 }
 .tabbrowser-tab .tab-close-button:hover {
@@ -116,7 +116,7 @@ zen-workspace,
   --zen-essential-tab-selected-bg-hover: var(--strix-raised) !important;
 }
 .tabbrowser-tab[zen-essential] .tab-background {
-  border-radius: 2px !important;
+  border-radius: 4px !important;
 }
 .tabbrowser-tab[zen-essential]:not([visuallyselected], [multiselected]) .tab-background {
   background: var(--strix-surface) !important;
@@ -126,12 +126,12 @@ zen-workspace,
 }
 .tabbrowser-tab[zen-essential] .tab-background::before,
 .tabbrowser-tab[zen-essential] .tab-background::after {
-  border-radius: 1px !important;
+  border-radius: 2px !important;
 }
 /* Folders, and the list a folder shows of its tabs */
 zen-folder > .tab-group-label-container,
 .folders-tabs-list-item-content {
-  border-radius: 2px !important;
+  border-radius: 4px !important;
 }
 /* A tab that plays or is muted keeps its mark in the accent */
 .tab-icon-overlay,
@@ -145,7 +145,7 @@ zen-folder > .tab-group-label-container,
 .zen-workspace-tabs-section .toolbarbutton-1,
 .zen-current-workspace-indicator {
   color: var(--strix-muted) !important;
-  border-radius: 2px !important;
+  border-radius: 4px !important;
 }
 /* While the address bar stands in for a new tab, its row is the selected one */
 #tabs-newtab-button[in-urlbar] {
@@ -154,7 +154,7 @@ zen-folder > .tab-group-label-container,
   color: var(--strix-text) !important;
 }
 .zen-current-workspace-indicator .zen-current-workspace-indicator-name {
-  font-family: "JetBrains Mono", monospace !important;
+  font-family: "Hanken Grotesk", sans-serif !important;
   font-size: 11px !important;
   text-transform: uppercase !important;
   letter-spacing: 0.08em !important;
@@ -165,7 +165,7 @@ zen-folder > .tab-group-label-container,
 #urlbar .urlbar-background,
 #urlbar-background,
 #searchbar {
-  border-radius: 2px !important;
+  border-radius: 4px !important;
   border: 1px solid var(--strix-border) !important;
   background: var(--strix-sunken) !important;
   box-shadow: none !important;
@@ -185,14 +185,14 @@ zen-folder > .tab-group-label-container,
 #urlbar #identity-icon-box,
 #urlbar .searchbar-engine-one-off-item,
 #urlbar .urlbarView-favicon {
-  border-radius: 2px !important;
+  border-radius: 4px !important;
 }
 #urlbar-input::selection {
   background: var(--strix-accent) !important;
   color: var(--strix-on-accent) !important;
 }
 .urlbarView-row {
-  border-radius: 1px !important;
+  border-radius: 2px !important;
 }
 .urlbarView-row:is([selected], :hover) {
   background: var(--strix-raised) !important;
@@ -217,7 +217,7 @@ toolbarbutton:is(:hover, [open], [checked]),
 }
 toolbarbutton > .toolbarbutton-icon,
 toolbarbutton > .toolbarbutton-badge-stack {
-  border-radius: 2px !important;
+  border-radius: 4px !important;
 }
 
 /* ---- The page: the radius of a window and a hair line (the big shadow above) around it;
@@ -232,7 +232,7 @@ panel {
   --panel-background: var(--strix-surface) !important;
   --panel-color: var(--strix-text) !important;
   --panel-border-color: var(--strix-border) !important;
-  --panel-border-radius: 4px !important;
+  --panel-border-radius: 6px !important;
   --panel-shadow: 0 8px 22px rgba(0, 0, 0, 0.5) !important;
   --panel-padding: 4px !important;
   --panel-separator-color: var(--strix-border) !important;
@@ -241,7 +241,7 @@ menu,
 menuitem,
 .subviewbutton,
 .panel-subview-body toolbarbutton {
-  border-radius: 1px !important;
+  border-radius: 2px !important;
   color: var(--strix-text) !important;
 }
 :is(menu, menuitem)[_moz-menuactive],
@@ -263,13 +263,13 @@ tooltip {
   background: var(--strix-raised) !important;
   color: var(--strix-text) !important;
   border: 1px solid var(--strix-border) !important;
-  border-radius: 1px !important;
+  border-radius: 2px !important;
   padding: 2px 6px !important;
 }
 
 /* ---- Dialogs and what Zen says in a corner ---- */
 .dialogBox {
-  border-radius: 4px !important;
+  border-radius: 6px !important;
   border: 1px solid var(--strix-border) !important;
   outline: none !important;
   background: var(--strix-surface) !important;
@@ -280,10 +280,10 @@ dialog::part(dialog-button),
 .footer-button,
 button.subviewbutton-nav,
 .panel-footer > button {
-  border-radius: 2px !important;
+  border-radius: 4px !important;
 }
 #zen-toast-container .zen-toast {
-  border-radius: 2px !important;
+  border-radius: 4px !important;
   border: 1px solid var(--strix-border) !important;
   background: var(--strix-raised) !important;
   color: var(--strix-text) !important;
@@ -295,7 +295,7 @@ button.subviewbutton-nav,
   --zen-sidebar-notification-outline: 1px solid var(--strix-border) !important;
 }
 .zen-media-card {
-  border-radius: 2px !important;
+  border-radius: 4px !important;
 }
 
 /* ---- Small things ---- */

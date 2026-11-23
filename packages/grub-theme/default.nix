@@ -1,15 +1,14 @@
 # A GRUB theme for one theme variant, in the look of StrixUI: the god's
-# wallpaper darkened towards the left, the wordmark in fraktur with the motto,
+# wallpaper darkened towards the left, the wordmark in the serif italic with the motto,
 # and a boot menu whose chosen row is raised and marked in the accent. The
 # theme engine writes the pieces (draw grub), rsvg-convert draws the picture
 # with the fonts of StrixUI. GRUB draws text from bitmap fonts (.pf2), made
-# here from JetBrains Mono.
+# here from IBM Plex Mono.
 {
   lib,
   runCommand,
   grub2_efi,
   jq,
-  jetbrains-mono,
   librsvg,
   makeFontsConf,
   woff2,
@@ -29,23 +28,20 @@
 
 let
   branding = import ../../branding.nix;
-  mono = "${jetbrains-mono}/share/fonts/truetype/JetBrainsMono-Regular.ttf";
+  mono = "${fonts}/IBMPlexMono-Regular.ttf";
   fontName = "${branding.name} Mono";
 
   # StrixUI ships web fonts; fontconfig gets them as TrueType
   fonts = runCommand "${branding.id}-grub-fonts" { nativeBuildInputs = [ woff2 ]; } ''
     mkdir $out
-    for font in GrenzeGotisch-Variable IMFellEnglish-Italic; do
+    for font in CormorantGaramond-Italic-Variable IBMPlexMono-Regular; do
       cp ${strixui}/src/fonts/$font.woff2 $out/
       woff2_decompress $out/$font.woff2
       rm $out/$font.woff2
     done
   '';
   fontsConf = makeFontsConf {
-    fontDirectories = [
-      fonts
-      jetbrains-mono
-    ];
+    fontDirectories = [ fonts ];
   };
 in
 runCommand name
@@ -61,9 +57,13 @@ runCommand name
     tokens=$(${lib.getExe engine} render tokens ${lib.escapeShellArg selection} --themes ${themes})
     dir=$(jq -r .dir <<<"$tokens")
     theme=$(jq -r .theme <<<"$tokens")
+    variant=$(jq -r .variant <<<"$tokens")
     wallpaper=()
     if [ -f "$dir/wallpaper.jpg" ]; then
       wallpaper=(--wallpaper "$dir/wallpaper.jpg")
+    elif [ "$variant" = light ] && [ -f ${strixui}/src/wallpapers/$theme-light.jpg ]; then
+      # The light variant of a god has its own plate
+      wallpaper=(--wallpaper ${strixui}/src/wallpapers/$theme-light.jpg)
     elif [ -f ${strixui}/src/wallpapers/$theme.jpg ]; then
       wallpaper=(--wallpaper ${strixui}/src/wallpapers/$theme.jpg)
     fi
