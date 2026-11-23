@@ -1,4 +1,5 @@
-# The tools around /etc/nixos: rebuild, update (with the theme repositories), apps, generations.
+# The tools around /etc/nixos: rebuild, update (with the theme repositories), apps, generations,
+# and doctor, which looks the system over.
 # The names come from branding.nix (e.g. strix-rebuild).
 {
   config,
@@ -83,6 +84,21 @@ let
     excludeShellChecks = [ "SC2034" ];
   };
 
+  doctor = tool {
+    name = "doctor";
+    runtimeInputs = [
+      pkgs.systemd
+      pkgs.jq
+      pkgs.gitMinimal
+      pkgs.curl
+      pkgs.gawk
+      pkgs.gnused
+      pkgs.gnutar
+      pkgs.gzip
+    ];
+    extraEnv.ID = branding.id;
+  };
+
   apps = tool {
     name = "apps";
     runtimeInputs = [
@@ -98,6 +114,7 @@ in
     update
     apps
     generations
+    doctor
   ];
 
   # Reachable for tests: nix build .#nixosConfigurations.<name>.config.system.build.distroTools.apps
@@ -107,6 +124,7 @@ in
       update
       apps
       generations
+      doctor
       ;
   };
 }
