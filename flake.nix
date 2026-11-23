@@ -219,6 +219,7 @@
 
         # The search service, with the system menu and the command files (10-search in the plan)
         search = pkgs.callPackage ./packages/search { };
+        desk = pkgs.callPackage ./packages/desk { };
 
         machine-template = machineTemplate upstream.ref;
 

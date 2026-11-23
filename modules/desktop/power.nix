@@ -39,20 +39,16 @@ let
 
   # What happens when nobody is at the machine: <id>-idle, which runs hypridle with the times of
   # ~/.config/<id>/idle.json (Settings › Power), apart for power and battery, and keeps awake
-  idleCommand = pkgs.writeShellApplication {
-    name = "${id}-idle";
-    runtimeInputs = with pkgs; [
+  idleCommand = (pkgs.callPackage ../../packages/desk { }).command "idle" (
+    with pkgs;
+    [
       hypridle
-      jq
-      coreutils
       brightnessctl
       systemd
       quickshell
       config.programs.hyprland.package
-    ];
-    runtimeEnv.ID = id;
-    text = builtins.readFile ../../shell/bin/idle.sh;
-  };
+    ]
+  );
 in
 {
   options.${id}.desktop = {

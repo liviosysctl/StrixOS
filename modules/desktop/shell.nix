@@ -16,20 +16,20 @@ let
 
   ui = config.${id}.ui.package;
 
+  # The commands of the desktop (packages/desk)
+  desk = pkgs.callPackage ../../packages/desk { };
+
   # Screenshots, a recording, the colour picker: <id>-capture region|window|screen|record|colour
-  captureCommand = pkgs.writeShellApplication {
-    name = "${id}-capture";
-    runtimeInputs = with pkgs; [
+  captureCommand = desk.command "capture" (
+    with pkgs;
+    [
       grim
       slurp
       wl-clipboard
-      jq
       libnotify
       wf-recorder
       hyprpicker
       procps
-      coreutils
-      gnused
       # Drawing on a screenshot, and reading the words in one (the languages of the installer)
       satty
       (tesseract.override {
@@ -41,25 +41,19 @@ let
         ];
       })
       config.programs.hyprland.package
-    ];
-    text = builtins.readFile ../../shell/bin/capture.sh;
-  };
+    ]
+  );
 
   # The system monitor of the bar's load figures: <id>-monitor (btop in Ghostty)
-  monitorCommand = pkgs.writeShellApplication {
-    name = "${id}-monitor";
-    runtimeInputs = with pkgs; [
+  monitorCommand = desk.command "monitor" (
+    with pkgs;
+    [
       btop
       ghostty
-      jq
-      coreutils
-      gnused
       uwsm
       config.programs.hyprland.package
-    ];
-    runtimeEnv.ID = id;
-    text = builtins.readFile ../../shell/bin/monitor.sh;
-  };
+    ]
+  );
 
   # Settings at a page and a row, for Search and people: <id>-settings [PAGE [ROW]]
   settingsCommand = pkgs.writeShellScriptBin "${id}-settings" ''

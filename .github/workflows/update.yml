@@ -5,6 +5,7 @@
 #                                         and the god themes) and the other inputs
 #   cargo update (packages/theme-engine)  the crates of the theme engine
 #   cargo update (packages/search)        the crates of the search service
+#   cargo update (packages/desk)          the crates of the commands of the desktop
 #   cargo update (installer)              the crates of the installer
 #
 # The update is committed locally first (the install test needs a committed
@@ -68,6 +69,7 @@ jobs:
           nix flake update 2>&1 | tee update.log
           (cd packages/theme-engine && cargo update 2>&1) | tee -a update.log
           (cd packages/search && cargo update 2>&1) | tee -a update.log
+          (cd packages/desk && cargo update 2>&1) | tee -a update.log
           (cd installer && cargo update 2>&1) | tee -a update.log
           if git diff --quiet; then
             echo "Everything is already up to date."
