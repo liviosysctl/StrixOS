@@ -22,5 +22,15 @@ in
     };
 
     environment.systemPackages = lib.optionals (!cfg.live) [ pkgs.system-config-printer ];
+    # "Print Settings" brings a tray applet that starts with every session and stays. Nothing
+    # here shows it: the entry of the same name in /etc/xdg comes first and turns it off
+    environment.etc."xdg/autostart/print-applet.desktop" = lib.mkIf (!cfg.live) {
+      text = ''
+        [Desktop Entry]
+        Type=Application
+        Name=Print Queue Applet
+        Hidden=true
+      '';
+    };
   };
 }

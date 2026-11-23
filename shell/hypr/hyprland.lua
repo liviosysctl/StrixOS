@@ -64,6 +64,14 @@ hl.config({
     ecosystem = { no_update_news = true, no_donation_nag = true },
 })
 
+-- Everything here speaks Wayland. Without this Hyprland keeps an X server running for apps that
+-- never come; a machine that needs one turns it on again in strix.desktop.extraConfig. On its
+-- own and guarded, so the rest of the configuration does not depend on it.
+local ok, err = pcall(hl.config, { xwayland = { enabled = false } })
+if not ok then
+    print("strix: xwayland: " .. tostring(err))
+end
+
 -- Motion. Windows move as in the configuration Strix grew out of: they slide in fast and
 -- settle softly (wind), leave with a small swing back (win-out), and workspaces glide the same
 -- way. Shell layers only fade here, in the curves of motion.md: the shell animates its own
