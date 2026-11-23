@@ -418,7 +418,7 @@ in
     ${branding.id}.theme.default = "nope";
   });
   theme-default-unknown-variant = mustFail "theme-default-unknown-variant" (toplevelWith {
-    ${branding.id}.theme.default = "janus:light";
+    ${branding.id}.theme.default = "janus:sepia";
   });
 
   # The ISO: console colors and the command, but no splash and so no EFI variable
