@@ -72,11 +72,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1795462241,
-        "narHash": "sha256-aPmLGID4ov9H2ZSfQYC9Ts7ffDCM+KdmfEUOUL8DbTE=",
+        "lastModified": 1795467469,
+        "narHash": "sha256-7ua9fMfI9PS0YUmDOdS9lNXOGZkTqnNsFmbq+dOn41U=",
         "owner": "liviosysctl",
         "repo": "strix-browser",
-        "rev": "f6cbebbaefa672e12e87fbc2298ba89634039dc5",
+        "rev": "de8ee665f1a1ede1122ff0c2f2f491e8a6b3d02c",
         "type": "github"
       },
       "original": {
@@ -88,11 +88,11 @@
     "strixui": {
       "flake": false,
       "locked": {
-        "lastModified": 1795462231,
-        "narHash": "sha256-NdsolhZf/rRxrSrr8DTxDSTsKPd8XaMEs1NrK2pj+cg=",
+        "lastModified": 1795467459,
+        "narHash": "sha256-tfqXiepyLzzYAfEXqKXAwyR0EzDChyXEIN9Q2y38zR8=",
         "owner": "liviosysctl",
         "repo": "StrixUI",
-        "rev": "b2bfeb4a4598313f61a30df6f2bf02d12364405c",
+        "rev": "31f3d42275609d90fe8a489bbe3e4741244360f0",
         "type": "github"
       },
       "original": {
