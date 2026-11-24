@@ -50,7 +50,19 @@ in
     # Ghostty brings a service that pays that once, at the login, with no window; every
     # `ghostty` after it only asks the one that runs for a new window.
     systemd.packages = [ pkgs.ghostty ];
-    systemd.user.services."app-com.mitchellh.ghostty".wantedBy = [ "graphical-session.target" ];
+    systemd.user.services."app-com.mitchellh.ghostty" = {
+      wantedBy = [ "graphical-session.target" ];
+      # Every window is a child of this service, and NixOS gives a user service only a handful
+      # of tools on PATH: without the session's own, no command is found in the terminal
+      environment.PATH = lib.mkForce (
+        lib.concatStringsSep ":" [
+          "%h/.nix-profile/bin"
+          "/etc/profiles/per-user/%u/bin"
+          "/run/wrappers/bin"
+          "/run/current-system/sw/bin"
+        ]
+      );
+    };
 
     # A new user gets the Ghostty config that follows the theme, copied once and then theirs to
     # change. The link to the session's colors is made again at every login.
