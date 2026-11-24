@@ -14,9 +14,9 @@ State :: work in progress, tested on an old laptop
 
 ![The desktop under Saturnus](docs/images/desktop.jpg)
 
-*Saturnus with his sickle. Engraved by Hendrick Goltzius after Polidoro da Caravaggio, 1592*
+*Saturnus devours one of his children, his scythe beside him in the niche. Jacob Binck after Rosso Fiorentino, 1530*
 
-The look comes from [StrixUI](https://github.com/liviosysctl/StrixUI), the design system of Strix: near-black surfaces, an old engraving as the ground, one accent colour, type from an old printing house beside a quiet monospace. The proof of concept has a single theme, Saturnus; nothing changes by itself.
+The look comes from [StrixUI](https://github.com/liviosysctl/StrixUI), the design system of Strix: near-black surfaces, an old engraving as the ground, one accent colour that is used sparingly, floating surfaces of smoked glass, an old-style serif for titles beside a plain grotesque for everything else. The proof of concept has a single theme, Saturnus; nothing changes by itself.
 
 | | |
 |---|---|
@@ -27,12 +27,10 @@ The look comes from [StrixUI](https://github.com/liviosysctl/StrixUI), the desig
 
 | | |
 |---|---|
-| ![The dock](docs/images/dock.jpg) | ![The terminal](docs/images/terminal.jpg) |
-| *The dock* | *The terminal, Ghostty in the theme's colours* |
-| ![The boot splash](docs/images/boot-splash.jpg) | ![The QML components under Saturnus](docs/images/qml-gallery.jpg) |
-| *The boot splash* | *The QML components under Saturnus* |
+| ![The terminal](docs/images/terminal.jpg) | ![The boot splash](docs/images/boot-splash.jpg) |
+| *The terminal, Ghostty in the theme's colours* | *The boot splash* |
 
-These are renderings of the design from StrixUI; the shell in this repository is built from the same components. The dock is designed but not built yet. Sources and licences of every picture are in [docs/images/README.md](docs/images/README.md).
+These are renderings of the design from StrixUI; the shell in this repository is built from the same components. Sources and licences of every picture are in [docs/images/README.md](docs/images/README.md).
 
 ## Branches
 
