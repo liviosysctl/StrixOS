@@ -20,11 +20,12 @@
       url = "github:nix-community/nix-index-database";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # The browser of Strix: Chromium pages in a window of the shell's own making, with the
-    # Quickshell that can show them and the back end that filters their requests.
-    strix-browser = {
-      url = "github:liviosysctl/strix-browser";
+    # Zen, the browser of Strix (not in nixpkgs). Its Home Manager module is not used, so that
+    # input points nowhere.
+    zen-browser = {
+      url = "github:0xc000022070/zen-browser-flake";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.home-manager.follows = "";
     };
   };
 

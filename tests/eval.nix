@@ -69,7 +69,7 @@ in
       user."${branding.id}-installer-ui".serviceConfig.ExecStart;
     assert lib.hasInfix "^Installer$" iso.${branding.id}.desktop.extraConfig;
     assert !iso.programs.firefox.enable;
-    assert !(lib.any (p: lib.getName p == "strix-browser") iso.environment.systemPackages);
+    assert !(lib.any (p: lib.hasPrefix "zen-beta" (p.name or "")) iso.environment.systemPackages);
     assert !iso.system.installer.channel.enable;
     assert !iso.services.speechd.enable;
     assert !(user ? hypridle);
@@ -213,10 +213,10 @@ in
       reference'.systemd.user.services."${branding.id}-shell".environment.PATH;
     assert lib.hasInfix "/run/current-system/sw/bin"
       reference'.systemd.user.services."${branding.id}-search".environment.PATH;
-    # The browser of Strix opens links; Firefox is there beside it
-    assert reference'.programs.firefox.enable;
-    assert reference'.xdg.mime.defaultApplications."x-scheme-handler/https" == "strix-browser.desktop";
-    assert lib.any (p: lib.getName p == "strix-browser") reference'.environment.systemPackages;
+    # Zen is the browser, the only one
+    assert !reference'.programs.firefox.enable;
+    assert reference'.xdg.mime.defaultApplications."x-scheme-handler/https" == "zen-beta.desktop";
+    assert lib.any (p: lib.hasPrefix "zen-beta" (p.name or "")) reference'.environment.systemPackages;
     assert reference'.${branding.id}.desktop.greeter == "strix";
     assert
       reference'.environment.sessionVariables.HYPRLAND_CONFIG
@@ -233,6 +233,12 @@ in
     assert reference'.environment.etc."xdg/${branding.id}/lid".text == "suspend\n";
     # GTK apps take the god's colors
     assert lib.any (lib.hasInfix "gtk-4.0/gtk.css") reference'.systemd.user.tmpfiles.rules;
+    # and so does Zen, which is told to read the stylesheets of its profile
+    assert reference'.systemd.user.services ? "${branding.id}-zen-colors";
+    assert reference'.systemd.user.paths ? "${branding.id}-zen-colors";
+    # and its shape and settings from the file the theme engine reads
+    assert lib.hasSuffix "browser.toml"
+      reference'.systemd.user.services."${branding.id}-theme-session".environment.BROWSER_BASE;
     assert lib.any (p: lib.getName p == "adw-gtk3") reference'.environment.systemPackages;
     pkgs.runCommand "check-desktop"
       {
