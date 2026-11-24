@@ -22,6 +22,7 @@
 //! ```
 
 use crate::adapters;
+use crate::browser::Browser;
 use crate::system;
 use crate::theme::{Catalog, Selection, Theme, Variant};
 use serde_json::{Value, json};
@@ -129,6 +130,9 @@ pub struct Settings {
     /// The prompt's configuration (PROMPT_BASE, shell/starship.toml): written again with the
     /// palette of the theme as starship.toml
     pub prompt: Option<PathBuf>,
+    /// The shape and the settings of the browser (BROWSER_BASE, then BROWSER_USER): browser.toml
+    /// of the distribution and the user's own, which changes single lines of it
+    pub browser: Vec<PathBuf>,
 }
 
 /// The session: which theme it shows and whether it is kept
@@ -195,6 +199,7 @@ impl Session {
             theme,
             variant,
             self.settings.prompt.as_deref(),
+            &self.settings.browser,
         )?;
         let (theme_id, variant_id) = (theme.id.clone(), variant.id.clone());
         self.theme = theme_id;
@@ -442,7 +447,7 @@ fn read_state(file: &Path) -> (bool, Option<String>) {
     )
 }
 
-/// tokens.json, hyprland.lua, ghostty, btop.theme, the GTK files, mpv.conf, lazygit.yml, the
+/// tokens.json, hyprland.lua, ghostty, btop.theme, the GTK and Zen files, mpv.conf, lazygit.yml, the
 /// palettes of Qt (qt6.conf, qt5.conf), shell.sh
 /// and, with the prompt's
 /// configuration `prompt`, starship.toml for one theme; tokens.json last, so whoever watches it
@@ -452,7 +457,9 @@ pub fn write_output(
     theme: &Theme,
     variant: &Variant,
     prompt: Option<&Path>,
+    browser: &[PathBuf],
 ) -> Result<(), String> {
+    let browser = Browser::read(browser);
     let tokens = serde_json::to_string_pretty(&adapters::tokens(theme, variant))
         .map_err(|e| e.to_string())?
         + "\n";
@@ -462,6 +469,15 @@ pub fn write_output(
         ("btop.theme", adapters::btop(theme, variant)),
         ("gtk3.css", adapters::gtk3(theme, variant)),
         ("gtk4.css", adapters::gtk4(theme, variant)),
+        (
+            "zen-userChrome.css",
+            adapters::zen_chrome(theme, variant, &browser),
+        ),
+        (
+            "zen-userContent.css",
+            adapters::zen_content(theme, variant, &browser),
+        ),
+        ("zen-user.js", adapters::zen_prefs(theme, variant, &browser)),
         ("mpv.conf", adapters::mpv(theme, variant)),
         ("lazygit.yml", adapters::lazygit(theme, variant)),
         ("qt6.conf", adapters::qt_colors(theme, variant, true)),
@@ -723,6 +739,7 @@ mod tests {
             pkexec: PathBuf::from("/nonexistent/pkexec"),
             command: None,
             prompt: Some(base.join("starship.toml")),
+            browser: vec![base.join("browser.toml"), base.join("own/browser.toml")],
         }
     }
 
@@ -786,6 +803,16 @@ mod tests {
         assert!(base.join("session/lazygit.yml").is_file());
         assert!(base.join("session/gtk3.css").is_file());
         assert!(base.join("session/gtk4.css").is_file());
+        assert!(base.join("session/zen-userChrome.css").is_file());
+        assert!(base.join("session/zen-userContent.css").is_file());
+        // Without a browser.toml Zen gets the shape the engine knows, and its settings
+        let chrome = fs::read_to_string(base.join("session/zen-userChrome.css")).unwrap();
+        assert!(chrome.contains("  --strix-radius: 12px;\n"), "{chrome}");
+        let prefs = fs::read_to_string(base.join("session/zen-user.js")).unwrap();
+        assert!(
+            prefs.contains("user_pref(\"zen.theme.accent-color\", \"#"),
+            "{prefs}"
+        );
 
         // Ten minutes later: another god, never the outside theme
         for _ in 0..20 {

@@ -1,0 +1,20 @@
+# How Zen is shaped and set, beyond the colours it takes from the theme. The theme engine reads
+# this file and writes Zen's stylesheets and settings from it (packages/theme-engine/src/browser.rs).
+# The same file in ~/.config/strix/browser.toml changes single lines of it for one user.
+# A change shows after the next change of theme and the next start of Zen.
+
+# The corners, in pixels: of the page, the panels, the dialogs and the address bar ...
+radius = 12
+# ... and of what is pressed: tabs, essentials, buttons. What stands in a list takes two thirds.
+control = 8
+# The size of the type of tabs, address bar and menus, in pixels
+font-size = 13
+# The selected tab, the chosen row of a menu and of the address bar carry the accent as a line
+stroke = true
+# The gap between the page and the edge of the window, in pixels
+gap = 8
+
+# Settings of Zen itself (about:config), by their names. They are written into user.js of the
+# profile and count at every start of Zen, over what was set by hand. For example the address
+# bar over the page instead of in the strip.
+[prefs]
