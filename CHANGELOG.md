@@ -2,6 +2,13 @@
 
 All notable changes to this project. Versions follow [Semantic Versioning](https://semver.org); entries are generated from [Conventional Commits](https://www.conventionalcommits.org) with git-cliff.
 
+## v1.2.0 — 2026-11-24
+
+The proof of concept in the new look of StrixUI: smoked glass, new type, new wallpaper and owl.
+
+### Changed
+- Change the look to the new design system
+
 ## v1.1.1 — 2026-11-19
 
 Updates install the boot loader again.
