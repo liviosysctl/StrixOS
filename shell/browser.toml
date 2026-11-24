@@ -13,6 +13,9 @@ font-size = 13
 stroke = true
 # The gap between the page and the edge of the window, in pixels
 gap = 8
+# How much of the desktop behind the window its smoked glass covers, in percent, as the plates of
+# the shell do: 40 to 100. With 100 the window is the solid ground of the theme.
+glass = 72
 
 # Settings of Zen itself (about:config), by their names. They are written into user.js of the
 # profile and count at every start of Zen, over what was set by hand. For example the address

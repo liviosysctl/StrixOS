@@ -20,6 +20,8 @@ pub struct Browser {
     pub stroke: bool,
     /// The gap between the page and the edge of the window
     pub gap: u32,
+    /// How much of what is behind the window its glass covers, in percent; 100 is no glass
+    pub glass: u32,
     /// Settings of Zen by their names in about:config
     pub prefs: BTreeMap<String, Pref>,
 }
@@ -40,6 +42,7 @@ impl Default for Browser {
             font_size: 13,
             stroke: true,
             gap: 8,
+            glass: 72,
             prefs: BTreeMap::new(),
         }
     }
@@ -76,6 +79,13 @@ impl Browser {
                 "radius" => pixels(32).map(|n| self.radius = n),
                 "control" => pixels(24).map(|n| self.control = n),
                 "gap" => pixels(32).map(|n| self.gap = n),
+                "glass" => match value.as_integer() {
+                    Some(n) if (40..=100).contains(&n) => {
+                        self.glass = n as u32;
+                        Ok(())
+                    }
+                    _ => Err("glass must be a number from 40 to 100".to_string()),
+                },
                 "font-size" => match value.as_integer() {
                     Some(n) if (9..=20).contains(&n) => {
                         self.font_size = n as u32;
@@ -115,6 +125,12 @@ impl Browser {
     /// The corners of what stands in a list: rows of menus, of the address bar
     pub fn item(&self) -> u32 {
         self.control * 2 / 3
+    }
+
+    /// What the glass of a plate over a page covers (the address bar, a menu): more than the
+    /// window, since a page behind it can be white where the desktop never is
+    pub fn raised(&self) -> u32 {
+        (self.glass + 16).min(100)
     }
 }
 
@@ -166,6 +182,10 @@ mod tests {
                 .is_empty()
         );
         assert_eq!((browser.radius, browser.control, browser.item()), (4, 9, 6));
+        assert_eq!((browser.glass, browser.raised()), (72, 88));
+        assert!(browser.layer("glass = 90").is_empty());
+        assert_eq!((browser.glass, browser.raised()), (90, 100));
+        assert_eq!(browser.layer("glass = 10").len(), 1);
         assert_eq!(browser.prefs["zen.watermark.enabled"].written(), "false");
     }
 

@@ -562,7 +562,6 @@ fn zen_colors(variant: &Variant) -> Vec<(&'static str, Rgb)> {
         ("zen-colors-border", border),
         ("zen-colors-border-contrast", strong),
         ("zen-colors-input-bg", sunken),
-        ("zen-main-browser-background", background),
         ("zen-dialog-background", raised),
         ("zen-toolbar-element-bg", surface),
         ("zen-toolbar-element-bg-hover", raised),
@@ -570,19 +569,17 @@ fn zen_colors(variant: &Variant) -> Vec<(&'static str, Rgb)> {
         ("zen-branding-dark", background),
         ("zen-sidebar-notification-bg", raised),
         ("zen-sidebar-themed-icon-fill", text),
-        ("toolbar-bgcolor", surface),
         ("toolbar-color", text),
         ("toolbox-textcolor", text),
         ("tab-selected-bgcolor", raised),
         ("tab-selected-textcolor", text),
-        ("arrowpanel-background", raised),
         ("arrowpanel-color", text),
-        ("arrowpanel-border-color", border),
     ]
 }
 
 /// The measures of browser.toml by the names the two Zen stylesheets use: the corners, the type,
-/// and the accent as a line on what is selected (at its left edge, and under an essential)
+/// the accent as a line on what is selected (at its left edge, and under an essential), and how
+/// much the glass covers: the window, and what floats over a page, which covers more
 fn zen_shape(browser: &Browser, indent: &str) -> String {
     let stroke = |shadow: &str| {
         if browser.stroke {
@@ -599,6 +596,8 @@ fn zen_shape(browser: &Browser, indent: &str) -> String {
         ("font-size", format!("{}px", browser.font_size)),
         ("stroke", stroke("inset 2px 0 0")),
         ("stroke-under", stroke("inset 0 -2px 0")),
+        ("glass-cover", format!("{}%", browser.glass)),
+        ("glass-cover-raised", format!("{}%", browser.raised())),
     ]
     .iter()
     .map(|(name, value)| format!("{indent}--strix-{name}: {value};\n"))
@@ -682,8 +681,9 @@ pub fn zen_content(theme: &Theme, variant: &Variant, browser: &Browser) -> Strin
 }
 
 /// zen-user.js: the settings Zen is given at every start, over what was set by hand. Its accent
-/// is the one of the theme, so what Zen colours by itself follows too; the gap around the page
-/// and whatever browser.toml names under [prefs] come from there.
+/// is the one of the theme, so what Zen colours by itself follows too; the gap around the page,
+/// whether the window lets the desktop through (glass) and whatever browser.toml names under
+/// [prefs] come from there.
 pub fn zen_prefs(theme: &Theme, variant: &Variant, browser: &Browser) -> String {
     let mut prefs = browser.prefs.clone();
     prefs.insert(
@@ -693,6 +693,10 @@ pub fn zen_prefs(theme: &Theme, variant: &Variant, browser: &Browser) -> String 
     prefs.insert(
         "zen.theme.content-element-separation".into(),
         Pref::Number(browser.gap.into()),
+    );
+    prefs.insert(
+        "zen.widget.linux.transparency".into(),
+        Pref::Bool(browser.glass < 100),
     );
     let mut out = format!(
         "// The settings of Zen for {} ({}:{}), written by the theme engine.\n",
@@ -926,7 +930,14 @@ mod tests {
             chrome.contains("  --zen-primary-color: #c8102e !important;\n"),
             "{chrome}"
         );
-        assert!(chrome.contains("  --zen-main-browser-background: #000000 !important;\n"));
+        // The ground is the glass of the window, mixed from the colours of the theme
+        assert!(
+            chrome.contains("  --zen-main-browser-background: var(--strix-glass) !important;\n")
+        );
+        assert!(chrome.contains("  --strix-background: #000000;\n"));
+        assert!(
+            chrome.contains("  --strix-glass-cover: 72%;\n  --strix-glass-cover-raised: 88%;\n")
+        );
         assert!(chrome.contains("background-blend-mode: normal !important;"));
         // Every color Zen has a name for wins over an inline style
         let own = chrome.split("  --strix-").next().unwrap();
@@ -952,6 +963,16 @@ mod tests {
             "  --strix-radius: 6px;\n  --strix-radius-control: 4px;\n  --strix-radius-item: 2px;\n"
         ));
         assert!(chrome.contains("  --strix-font-size: 12px;\n  --strix-stroke: none;\n"));
+        // Without glass the window is the solid ground and Zen is not asked to let anything through
+        assert!(square.layer("glass = 100").is_empty());
+        let chrome = zen_chrome(&theme, variant, &square);
+        assert!(
+            chrome.contains("  --strix-glass-cover: 100%;\n  --strix-glass-cover-raised: 100%;\n")
+        );
+        assert!(
+            zen_prefs(&theme, variant, &square)
+                .contains("user_pref(\"zen.widget.linux.transparency\", false);\n")
+        );
         let content = zen_content(&theme, variant, &browser);
         assert!(content.contains("    --strix-radius: 12px;\n"));
         assert!(content.contains("@-moz-document regexp(\"about:(?!blank|srcdoc|reader).*\") {\n"));
@@ -976,6 +997,7 @@ mod tests {
         assert!(prefs.starts_with("// The settings of Zen for Test (test:dark)"));
         assert!(prefs.contains("user_pref(\"zen.theme.accent-color\", \"#c8102e\");\n"));
         assert!(prefs.contains("user_pref(\"zen.theme.content-element-separation\", 4);\n"));
+        assert!(prefs.contains("user_pref(\"zen.widget.linux.transparency\", true);\n"));
         assert!(prefs.contains("user_pref(\"zen.watermark.enabled\", false);\n"));
         assert!(prefs.contains("user_pref(\"a.name\", \"x\");\n"));
     }
