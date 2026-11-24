@@ -5,9 +5,9 @@
 //
 // When nothing is found, the one row left offers the web. Taking it grows the panel into the
 // window of the browser: the field stays where the hand is and becomes the address, the tabs come
-// in at its left and the page takes the place of the results. The browser is started at the
-// same moment, without its window, so the page loads while the panel grows; when the panel
-// stands where the window will be, the window is shown and the panel gives way to it.
+// in at its left and the page takes the place of the results. The browser (Zen) is asked for the
+// page at the same moment; when the panel stands where a window stands and the browser has one,
+// the panel gives way to it.
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -44,26 +44,37 @@ Scope {
     }
     function mix(from, to) { return from + (to - from) * root.grown }
 
-    /// Starts the browser without its window, or opens a tab in the one that runs
+    /// The browser has a window: one that was open already, or the one it opens now
+    property bool arrived: false
+    /// Asks the browser for what was typed, an address as it is and words as a search, while
+    /// the panel grows to where its window stands
     function browse(text) {
         root.page = text
+        root.arrived = ToplevelManager.toplevels.values.some(window => (window.appId || "").startsWith("zen"))
         root.browsing = true
-        Quickshell.execDetached(["env", "STRIX_BROWSER_HIDDEN=1", "strix-browser", text])
+        const address = /^([a-z][a-z0-9+.-]*:\/\/\S+|localhost(:\d+)?(\/\S*)?|[^\s\/]+\.[^\s\/]+(\/\S*)?)$/i.test(text.trim())
+        Quickshell.execDetached(["uwsm", "app", "--", "zen-beta"].concat(address ? [text.trim()] : ["--search", text]))
     }
-    // Arrived: the window of the browser comes and takes the focus, and the panel leaves once
-    // the window is there, or after a moment when it was open all along
-    onGrownChanged: if (root.grown === 1 && root.browsing) {
-        Quickshell.execDetached(["strix-browser", "--show"])
-        Hyprland.dispatch("hl.dsp.focus({ window = \"class:^strix-browser$\" })")
+    // Arrived: the window of the browser takes the focus and the panel leaves. A browser that
+    // had to start is waited for, but not for ever
+    function hand() {
+        if (!root.browsing || root.grown < 1 || !root.arrived) return
+        Hyprland.dispatch("hl.dsp.focus({ window = \"class:^zen\" })")
         handover.restart()
     }
-    Timer { id: handover; interval: 1500; onTriggered: if (root.browsing) root.open = false }
+    onGrownChanged: {
+        root.hand()
+        if (root.grown === 1 && root.browsing && !root.arrived) patience.restart()
+    }
+    onArrivedChanged: root.hand()
+    Timer { id: handover; interval: 400; onTriggered: if (root.browsing) root.open = false }
+    Timer { id: patience; interval: 8000; onTriggered: if (root.browsing) root.open = false }
     Connections {
         target: Hyprland
         enabled: root.browsing
         function onRawEvent(event) {
             // openwindow: address, workspace, class, title
-            if (event.name === "openwindow" && event.data.split(",")[2] === "strix-browser") root.open = false
+            if (event.name === "openwindow" && event.data.split(",")[2].startsWith("zen")) root.arrived = true
         }
     }
 
@@ -174,7 +185,7 @@ Scope {
             // The search: 640 wide, near the top. The browser: where a tiled window stands, a
             // gap of two steps from the bar and the edges of the screen
             readonly property int gap: 2 * Theme.space1
-            /// The strip of the browser and the height of its rows (BrowserWindow.qml)
+            /// The strip of the browser's tabs and the height of its rows
             readonly property int side: 264
             readonly property int row: Theme.control + Theme.space2 - Theme.lineBold
             x: root.mix((parent.width - 640) / 2, gap)
@@ -184,46 +195,54 @@ Scope {
 
             MouseArea { anchors.fill: parent }
 
-            // The strip of the browser comes out around the field: over it back, forward and
-            // again, under it the tabs. The field itself becomes the place where the page is
-            Row {
+            // The tabs, down the left side: they open like a drawer while the panel grows
+            Item {
                 x: Theme.space2
                 y: Theme.space2
+                width: panel.side * root.grown
+                height: parent.height - 2 * Theme.space2
                 visible: root.grown > 0
                 opacity: root.grown
-                spacing: Theme.space1
-                IconButton { iconName: "chevron-left" }
-                IconButton { iconName: "chevron-right" }
-                IconButton { iconName: "rotate-cw" }
-            }
-            Column {
-                x: Theme.space2
-                y: column.y + Theme.control + Theme.space2
-                width: panel.side
-                visible: root.grown > 0
-                opacity: root.grown
-                spacing: Theme.space2
-                Rule { width: parent.width }
-                ListRow { width: parent.width; height: panel.row; iconName: "plus"; text: "New tab"; detail: "Ctrl T" }
-                ListRow {
-                    width: parent.width
-                    height: panel.row
-                    iconName: "search"
-                    text: root.page
-                    selected: true
+                clip: true
+
+                Column {
+                    width: panel.side
+                    spacing: Theme.lineBold
+                    Rule { width: parent.width; height: Theme.space4 }
+                    ListRow { width: parent.width; height: panel.row; iconName: "plus"; text: "New tab"; detail: "Ctrl T" }
+                    ListRow {
+                        width: parent.width
+                        height: panel.row
+                        iconName: "search"
+                        text: root.page
+                        selected: true
+                    }
                 }
             }
 
             Column {
                 id: column
-                x: Theme.space2
-                y: Theme.space2 + (Theme.control + Theme.space2) * root.grown
-                width: root.mix(parent.width - 2 * Theme.space2, panel.side)
+                x: Theme.space2 + (panel.side + Theme.space2) * root.grown
+                y: Theme.space2
+                width: parent.width - x - Theme.space2
                 spacing: Theme.space2
 
                 Row {
                     spacing: Theme.space2
                     width: parent.width
+                    // The strip, back, forward and again come out in front of the field, as Zen has them
+                    Row {
+                        id: steps
+                        visible: root.grown > 0
+                        opacity: root.grown
+                        width: implicitWidth * root.grown
+                        clip: true
+                        spacing: Theme.space1
+                        IconButton { iconName: "app-window" }
+                        IconButton { iconName: "chevron-left" }
+                        IconButton { iconName: "chevron-right" }
+                        IconButton { iconName: "rotate-cw" }
+                    }
                     Label {
                         visible: root.trail.length > 0
                         anchors.verticalCenter: parent.verticalCenter
@@ -319,12 +338,12 @@ Scope {
                 }
             }
 
-            // The page stands beside the strip: what was searched for is written there until the
-            // window of the browser shows the page itself
+            // The page takes the place of the results, under the address: what was searched for
+            // stands there until the window of the browser shows the page itself
             Rectangle {
-                x: Theme.space2 + panel.side + Theme.space2
-                y: Theme.space2
-                width: parent.width - x - Theme.space2
+                x: column.x
+                y: Theme.space2 + panel.row + Theme.space2
+                width: column.width
                 height: parent.height - y - Theme.space2
                 visible: root.grown > 0
                 opacity: root.grown
