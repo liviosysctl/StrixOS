@@ -110,11 +110,12 @@ Scope {
         title: "Store"
         implicitWidth: 860
         implicitHeight: 640
-        color: Theme.background
+        // Smoked glass: the compositor blurs what lies behind the window
+        color: Theme.smoke(Theme.surface)
         onVisibleChanged: if (!visible) root.open = false
 
         Column {
-            anchors { fill: parent; margins: Theme.space6 }
+            anchors { fill: parent; margins: Theme.space5 }
             spacing: Theme.space3
 
             Row {
@@ -172,12 +173,22 @@ Scope {
                     required property var modelData
                     required property int index
                     width: list.width
-                    height: 56
+                    // Two lines of text, and room for a control beside them
+                    height: Theme.control + Theme.space5
 
+                    // The chosen row: a lighter plate and the stroke of the accent, as in every list
                     Rectangle {
                         anchors.fill: parent
-                        radius: Theme.radiusSm
+                        radius: Theme.radiusMd
                         color: index === root.selected ? Theme.surfaceRaised : "transparent"
+                        Rectangle {
+                            visible: index === root.selected
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: Theme.lineBold
+                            height: Theme.icon
+                            radius: width / 2
+                            color: Theme.accent
+                        }
                     }
                     MouseArea { anchors.fill: parent; onClicked: root.selected = index }
 
@@ -202,15 +213,13 @@ Scope {
                     Button {
                         id: shellButton
                         anchors { right: button.left; rightMargin: Theme.space2; verticalCenter: parent.verticalCenter }
-                        small: true
                         text: "strix-shell"
                         onClicked: root.shell(modelData, false)
                     }
 
                     Button {
                         id: button
-                        anchors { right: parent.right; rightMargin: Theme.space3; verticalCenter: parent.verticalCenter }
-                        small: true
+                        anchors { right: parent.right; rightMargin: Theme.space2; verticalCenter: parent.verticalCenter }
                         variant: modelData.installed ? "danger" : "primary"
                         text: modelData.installed ? "Remove" : "Install"
                         loading: !!(root.job && root.job.running && root.job.attr === modelData.attr)
@@ -220,12 +229,15 @@ Scope {
                 }
             }
 
-            // What strix-apps says while it rebuilds
-            Surface {
+            // What strix-apps says while it rebuilds, in a well in the glass of the window
+            Rectangle {
                 id: log
                 visible: root.job !== null
                 width: parent.width
                 height: 150
+                radius: Theme.radiusMd
+                color: Theme.alpha(Theme.text, 0.04)
+                border.color: Theme.glassEdge
 
                 Column {
                     anchors { fill: parent; margins: Theme.space3 }
@@ -253,12 +265,11 @@ Scope {
                         clip: true
                         model: root.lines
                         onCountChanged: positionViewAtEnd()
-                        delegate: Text {
+                        delegate: Label {
                             required property string modelData
                             width: output.width
                             elide: Text.ElideRight
-                            font.family: "JetBrains Mono"
-                            font.pixelSize: 11
+                            textStyle: "code"
                             color: Theme.textMuted
                             text: modelData
                         }

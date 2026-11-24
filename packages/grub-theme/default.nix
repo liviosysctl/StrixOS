@@ -1,15 +1,14 @@
 # A GRUB theme for one theme variant, in the look of StrixUI: the god's
-# wallpaper darkened towards the left, the wordmark in fraktur with the motto,
-# and a boot menu whose chosen row is raised and marked in the accent
-# (render.py). GRUB draws text from bitmap fonts (.pf2), made here from
-# JetBrains Mono.
+# wallpaper darkened towards the left, the wordmark in the serif italic with
+# the motto, and a boot menu whose chosen row is raised and marked in the
+# accent (render.py). GRUB draws text from bitmap fonts (.pf2), made here from
+# IBM Plex Mono.
 {
   lib,
   runCommand,
   python3,
   grub2_efi,
   jq,
-  jetbrains-mono,
 }:
 
 {
@@ -31,7 +30,6 @@ let
     ps.fonttools
     ps.brotli
   ]);
-  mono = "${jetbrains-mono}/share/fonts/truetype/JetBrainsMono-Regular.ttf";
   fontName = "${branding.name} Mono";
 in
 runCommand name { nativeBuildInputs = [ jq ]; } ''
@@ -40,9 +38,13 @@ runCommand name { nativeBuildInputs = [ jq ]; } ''
   # A theme from a theme repository brings its own wallpaper; the gods have theirs in StrixUI
   dir=$(jq -r .dir tokens.json)
   theme=$(jq -r .theme tokens.json)
+  variant=$(jq -r .variant tokens.json)
   wallpaper=-
   if [ -f "$dir/wallpaper.jpg" ]; then
     wallpaper=$dir/wallpaper.jpg
+  elif [ "$variant" = light ] && [ -f ${strixui}/src/wallpapers/$theme-light.jpg ]; then
+    # The light variant of a god has its own plate
+    wallpaper=${strixui}/src/wallpapers/$theme-light.jpg
   elif [ -f ${strixui}/src/wallpapers/$theme.jpg ]; then
     wallpaper=${strixui}/src/wallpapers/$theme.jpg
   fi
@@ -53,15 +55,15 @@ runCommand name { nativeBuildInputs = [ jq ]; } ''
   from fontTools.ttLib import TTFont
   for src, dst in zip(sys.argv[1::2], sys.argv[2::2]):
       f = TTFont(src); f.flavor = None; f.save(dst)
-  ' ${strixui}/src/fonts/GrenzeGotisch-Variable.woff2 fraktur.ttf \
-    ${strixui}/src/fonts/IMFellEnglish-Italic.woff2 italic.ttf
+  ' ${strixui}/src/fonts/CormorantGaramond-Italic-Variable.woff2 italic.ttf \
+    ${strixui}/src/fonts/IBMPlexMono-Regular.woff2 mono.ttf
 
   ${lib.getExe python} ${./render.py} $out tokens.json "$wallpaper" \
     ${lib.escapeShellArgs [ branding.name branding.motto ]} \
-    fraktur.ttf italic.ttf ${mono} ${lib.escapeShellArg "${fontName} Regular"}
+    italic.ttf mono.ttf ${lib.escapeShellArg "${fontName} Regular"}
 
   for size in 14 16; do
     ${grub2_efi}/bin/grub-mkfont --size $size --name ${lib.escapeShellArg fontName} \
-      --output $out/mono-$size.pf2 ${mono} 2>/dev/null
+      --output $out/mono-$size.pf2 mono.ttf 2>/dev/null
   done
 ''

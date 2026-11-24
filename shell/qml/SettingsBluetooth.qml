@@ -54,7 +54,6 @@ Column {
             Row {
                 spacing: Theme.space2
                 Button {
-                    small: true
                     visible: !modelData.paired
                     variant: "primary"
                     loading: modelData.pairing
@@ -62,13 +61,11 @@ Column {
                     onClicked: { modelData.trusted = true; modelData.pair() }
                 }
                 Button {
-                    small: true
                     visible: modelData.paired
                     text: modelData.connected ? "Disconnect" : "Connect"
                     onClicked: modelData.connected ? modelData.disconnect() : modelData.connect()
                 }
                 Button {
-                    small: true
                     visible: modelData.paired
                     variant: "quiet"
                     text: "Forget"

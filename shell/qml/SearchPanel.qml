@@ -124,15 +124,15 @@ Scope {
             id: panel
             elevation: "panel"
             width: 640
-            height: column.implicitHeight + Theme.space4 * 2
+            height: column.implicitHeight + 2 * Theme.space2
             anchors { horizontalCenter: parent.horizontalCenter; top: parent.top; topMargin: parent.height * 0.14 }
 
             MouseArea { anchors.fill: parent }
 
             Column {
                 id: column
-                anchors { left: parent.left; right: parent.right; top: parent.top; margins: Theme.space4 }
-                spacing: Theme.space3
+                anchors { left: parent.left; right: parent.right; top: parent.top; margins: Theme.space2 }
+                spacing: Theme.space2
 
                 Row {
                     spacing: Theme.space2
@@ -162,7 +162,7 @@ Scope {
                 ListView {
                     id: list
                     width: parent.width
-                    height: Math.min(contentHeight, 40 * 9)
+                    height: Math.min(contentHeight, 9 * (Theme.control + Theme.space3))
                     clip: true
                     model: root.all
                     currentIndex: root.selected

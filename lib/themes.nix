@@ -120,7 +120,7 @@ let
 
   # The owl of the distro in the colors of every variant, for fastfetch
   logos = pkgs.callPackage ../packages/logo { } {
-    inherit engine variants;
+    inherit engine variants strixui;
     themes = dir;
   };
 

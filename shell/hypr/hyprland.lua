@@ -30,19 +30,23 @@ end
 
 hl.config({
     general = {
-        gaps_in = 6,
-        gaps_out = 12,
+        -- The grid of the shell: windows stand two steps of four from the screen, the bar and
+        -- each other
+        gaps_in = 4,
+        gaps_out = 8,
         border_size = 1,
         layout = "dwindle",
         resize_on_border = true,
         -- Saturnus until the theme engine has written theme.lua
-        col = { active_border = "rgb(712829)", inactive_border = "rgb(2f2c28)" },
+        col = { active_border = "rgb(c8102e)", inactive_border = "rgb(2a2724)" },
     },
     decoration = {
-        rounding = 4,
+        rounding = 6,
         inactive_opacity = 0.92,
         shadow = { enabled = true, range = 22, render_power = 3, color = 0x80000000 },
-        blur = { enabled = false },
+        -- Smoked glass: what lies behind a translucent window is blurred, and behind what drops
+        -- out of one (menus, the calendar of the bar)
+        blur = { enabled = true, size = 6, passes = 3, popups = true, popups_ignorealpha = 0.3 },
     },
     animations = { enabled = true },
     dwindle = { preserve_split = true },
@@ -55,7 +59,7 @@ hl.config({
         disable_hyprland_logo = true,
         disable_splash_rendering = true,
         focus_on_activate = true,
-        background_color = 0x0b0a09,
+        background_color = 0x080707,
     },
     ecosystem = { no_update_news = true, no_donation_nag = true },
 })
@@ -85,6 +89,16 @@ hl.animation({ leaf = "fadePopupsIn", enabled = true, speed = 1.4, bezier = "eas
 hl.animation({ leaf = "fadePopupsOut", enabled = true, speed = 1.4, bezier = "ease-in" })
 hl.animation({ leaf = "workspaces", enabled = true, speed = 5, bezier = "wind" })
 hl.animation({ leaf = "specialWorkspace", enabled = true, speed = 5, bezier = "wind", style = "slidevert" })
+
+hl.layer_rule({
+    -- Smoked glass: what lies behind the surfaces of the shell is blurred. Their clear parts stay
+    -- clear, so the bar is still only its buttons on the picture.
+    name = "shell-glass",
+    match = { namespace = "^strix-(bar|search|notifications|osd)$" },
+    blur = true,
+    blur_popups = true,
+    ignore_alpha = 0.3,
+})
 
 hl.window_rule({
     -- The system monitor of the bar (strix-monitor) floats in the middle

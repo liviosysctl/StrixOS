@@ -205,13 +205,13 @@ pkgs.testers.runNixOSTest {
         machine.send_key("meta_l-ret")
         alice_until("hyprctl -j clients | grep -q com.mitchellh.ghostty")
         machine.sleep(10)
-        expect_border("saturnus", "#712829")
+        expect_border("saturnus", "#c8102e")
 
     with subtest("the session keeps its one theme"):
         machine.wait_for_unit("${id}-theme-session.service", "alice")
         state = session("next")
         assert state["theme"] == "saturnus", state
-        expect_border("still-saturnus", "#712829")
+        expect_border("still-saturnus", "#c8102e")
 
     with subtest("Settings opens at a page"):
         as_alice("${id}-settings power")

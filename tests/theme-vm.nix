@@ -75,7 +75,7 @@ pkgs.testers.runNixOSTest {
         assert runs.strip() == "1", f"the initrd unit ran {runs.strip()} times"
         machine.succeed("od -An -c ${efiVariable} | tr -d ' \\n' | grep -F 'saturnus:dark'")
         # saturnus: the console background is its terminal background
-        expect_background("saturnus", "#0b0a09")
+        expect_background("saturnus", "#080707")
 
     with subtest("list and show work without root"):
         machine.succeed("runuser -u alice -- ${id}-theme list | grep -E '^\\* saturnus:dark'")
@@ -116,7 +116,7 @@ pkgs.testers.runNixOSTest {
         machine.succeed("systemctl restart ${id}-theme.service")
         machine.succeed("${id}-theme current | grep -x saturnus:dark")
         machine.succeed("grep -x 'Theme=${id}-saturnus-dark' /etc/plymouth/plymouthd.conf")
-        expect_background("fallback", "#0b0a09")
+        expect_background("fallback", "#080707")
 
     with subtest("theme repositories"):
         # A theme repository in a local Git repository; on real machines only https://

@@ -69,8 +69,9 @@ lib.mkIf theme.enable {
     logo = {
       type = "auto";
       source = "${logos}/${look.theme or ""}-${look.variant or ""}.png";
-      width = 32;
-      height = 18;
+      # In cells, which are about 2.25 times as tall as wide: this keeps the owl square
+      width = 36;
+      height = 16;
       padding = {
         top = 0;
         right = 2;

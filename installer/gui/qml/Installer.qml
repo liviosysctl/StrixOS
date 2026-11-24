@@ -242,10 +242,10 @@ Item {
                     readonly property bool current: root.page === index || (index === 5 && root.installing)
                     readonly property bool done: root.page > index
                     width: parent.width
-                    height: 34
+                    height: Theme.control
                     Rectangle {
                         anchors.fill: parent
-                        radius: Theme.radiusXs
+                        radius: Theme.radiusMd
                         color: row.current || (hover.hovered && row.done && !root.installing) ? Theme.surfaceRaised : "transparent"
                         Behavior on color { ColorAnimation { duration: Theme.durFast } }
                     }
@@ -260,7 +260,7 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         spacing: Theme.space3
                         Item {
-                            width: 16; height: 16
+                            width: Theme.icon; height: Theme.icon
                             anchors.verticalCenter: parent.verticalCenter
                             Label {
                                 anchors.centerIn: parent
@@ -269,7 +269,7 @@ Item {
                                 textStyle: "caption"
                                 color: row.current ? Theme.accentText : Theme.textFaint
                             }
-                            Icon { anchors.centerIn: parent; visible: row.done && !row.current; name: "check"; size: 12; color: Theme.success }
+                            Icon { anchors.centerIn: parent; visible: row.done && !row.current; name: "check"; color: Theme.success }
                         }
                         Label {
                             text: root.t(row.modelData)
@@ -383,7 +383,7 @@ Item {
                 Row {
                     visible: root.online
                     spacing: Theme.space2
-                    Icon { name: "wifi"; size: 16; color: Theme.success; anchors.verticalCenter: parent.verticalCenter }
+                    Icon { name: "wifi"; color: Theme.success; anchors.verticalCenter: parent.verticalCenter }
                     Label { text: root.t("g_online"); color: Theme.text; anchors.verticalCenter: parent.verticalCenter }
                 }
                 Row {
@@ -391,7 +391,7 @@ Item {
                     width: parent.width
                     Label { textStyle: "micro"; color: Theme.textFaint; text: root.t("g_wifi").toUpperCase(); anchors.verticalCenter: parent.verticalCenter }
                     Item { width: parent.width - 260; height: 1 }
-                    Button { small: true; variant: "quiet"; iconName: "refresh-cw"; text: root.t("b_rescan"); loading: root.scanning; onClicked: root.scan() }
+                    Button { variant: "quiet"; iconName: "refresh-cw"; text: root.t("b_rescan"); loading: root.scanning; onClicked: root.scan() }
                 }
                 Label { visible: !root.online && !root.scanning && root.networks.length === 0; color: Theme.textMuted; text: root.t("g_no_wifi") }
                 ListView {
@@ -489,7 +489,7 @@ Item {
                         required property var modelData
                         required property int index
                         width: parent.width
-                        height: 36
+                        height: Theme.control
                         iconName: modelData.transport === "usb" ? "usb" : "hard-drive"
                         text: modelData.path.replace("/dev/", "") + "   " + root.gib(modelData.bytes) + " GiB   " + modelData.model
                         detail: modelData.transport
@@ -499,7 +499,7 @@ Item {
                 }
                 Row {
                     spacing: Theme.space2
-                    Icon { name: "triangle-alert"; size: 14; color: Theme.warning; anchors.verticalCenter: parent.verticalCenter }
+                    Icon { name: "triangle-alert"; color: Theme.warning; anchors.verticalCenter: parent.verticalCenter }
                     Label { text: root.t("h_disk_whole"); color: Theme.warning; anchors.verticalCenter: parent.verticalCenter }
                 }
                 Item { width: 1; height: Theme.space3 }
@@ -619,14 +619,14 @@ Item {
                     visible: root.facts.secureBoot
                     width: parent.width
                     spacing: Theme.space2
-                    Icon { id: sbIcon; name: "lock"; size: 14; color: Theme.info; y: 2 }
+                    Icon { id: sbIcon; name: "lock"; color: Theme.info; y: 2 }
                     Label { width: parent.width - sbIcon.width - parent.spacing; wrapMode: Text.WordWrap; text: root.tf("g_secure_boot", root.facts.name); color: Theme.textMuted }
                 }
                 Column {
                     spacing: Theme.space3
                     Row {
                         spacing: Theme.space2
-                        Icon { name: "triangle-alert"; size: 14; color: Theme.error; anchors.verticalCenter: parent.verticalCenter }
+                        Icon { name: "triangle-alert"; color: Theme.error; anchors.verticalCenter: parent.verticalCenter }
                         Label { text: root.tf("w_deleted", root.disk ? root.disk.path : ""); color: Theme.error; anchors.verticalCenter: parent.verticalCenter }
                     }
                     CheckBox {
@@ -662,8 +662,8 @@ Item {
                             spacing: Theme.space2
                             readonly property int n: index + 1
                             Item {
-                                width: 16; height: 18
-                                Icon { anchors.centerIn: parent; visible: n < root.step; name: "check"; size: 12; color: Theme.success }
+                                width: Theme.icon; height: Theme.mark
+                                Icon { anchors.centerIn: parent; visible: n < root.step; name: "check"; color: Theme.success }
                                 Label { anchors.centerIn: parent; visible: n === root.step; text: ">"; textStyle: "label"; color: Theme.accentText }
                             }
                             Label {
@@ -713,7 +713,6 @@ Item {
 
                 Button {
                     variant: "quiet"
-                    small: true
                     iconName: root.showLog ? "eye-off" : "eye"
                     text: root.showLog ? root.t("g_log_hide") : root.t("g_log_show")
                     onClicked: root.showLog = !root.showLog
@@ -724,7 +723,7 @@ Item {
                     height: 180
                     color: Theme.surfaceSunken
                     border.color: Theme.border
-                    radius: Theme.radiusSm
+                    radius: Theme.radiusMd
                     clip: true
                     Label {
                         anchors { left: parent.left; right: parent.right; bottom: parent.bottom; margins: Theme.space2 }

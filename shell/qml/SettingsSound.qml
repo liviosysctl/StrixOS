@@ -32,12 +32,10 @@ Column {
                 onMoved: if (node.audio) node.audio.volume = value
             }
             IconButton {
-                small: true
                 iconName: node.audio && node.audio.muted ? "x" : "volume-2"
                 onClicked: if (node.audio) node.audio.muted = !node.audio.muted
             }
             Button {
-                small: true
                 visible: !chosen
                 text: "Use"
                 onClicked: {

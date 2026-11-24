@@ -17,8 +17,8 @@ PanelWindow {
     WlrLayershell.layer: WlrLayer.Overlay
     exclusionMode: ExclusionMode.Ignore
     anchors { top: true; right: true }
-    margins { top: Theme.barHeight + Theme.space2; right: Theme.space3 }
-    implicitWidth: 360
+    margins { top: Theme.barHeight + Theme.space2; right: Theme.space2 }
+    implicitWidth: 320
     implicitHeight: Math.max(1, column.implicitHeight)
     color: "transparent"
     visible: shown.length > 0

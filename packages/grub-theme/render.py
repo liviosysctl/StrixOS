@@ -1,8 +1,8 @@
 """Draws a GRUB theme for one theme variant in the look of StrixUI: the god's wallpaper, darkened towards the
-left like the lock screen, the wordmark in fraktur with the motto, and a boot menu of quiet rows where the
-chosen one is raised and marked with an accent bar.
+left like the lock screen, the wordmark in the serif italic with the motto, and a boot menu of quiet rows
+where the chosen one is raised and marked with an accent bar.
 
-    render.py OUT TOKENS.json WALLPAPER|- NAME MOTTO FRAKTUR.ttf SERIF-ITALIC.ttf MONO.ttf FONT-NAME
+    render.py OUT TOKENS.json WALLPAPER|- NAME MOTTO SERIF-ITALIC.ttf MONO.ttf FONT-NAME
 
 Writes OUT/background.png, the pieces of the menu box and the selection, and OUT/theme.txt. The fonts GRUB
 draws itself (.pf2) are made next to it by default.nix.
@@ -11,7 +11,7 @@ import json, os, sys
 
 from PIL import Image, ImageDraw, ImageFont
 
-out, tokens_file, wallpaper, name, motto, fraktur, serif, mono, font_name = sys.argv[1:10]
+out, tokens_file, wallpaper, name, motto, serif, mono, font_name = sys.argv[1:9]
 os.makedirs(out, exist_ok=True)
 c = json.load(open(tokens_file))['colors']
 
@@ -52,15 +52,21 @@ img = Image.alpha_composite(img.convert('RGBA'), row.resize((W, H)))
 
 d = ImageDraw.Draw(img)
 
-word = ImageFont.truetype(fraktur, 168)
-try:
-    word.set_variation_by_axes([300])
-except Exception:
-    pass
-d.text((X - 6, 120), name, font=word, fill=rgb(c['text']))
 
-italic = ImageFont.truetype(serif, 30)
-d.text((X, 330), motto, font=italic, fill=rgb(c['text-muted']))
+
+def italic(size):
+    """The serif italic of the design system at its weight for titles, 500"""
+    font = ImageFont.truetype(serif, size)
+    try:
+        font.set_variation_by_axes([500])
+    except Exception:
+        pass
+    return font
+
+
+# Both stand on their baselines: the wordmark and, under it, the motto
+d.text((X - 6, 305), name, font=italic(168), fill=rgb(c['text']), anchor='ls')
+d.text((X, 358), motto, font=italic(32), fill=rgb(c['text-muted']), anchor='ls')
 
 # The rule of StrixUI: a hair line with a short piece in the accent at its start
 d.rectangle((X, 392, X + COL, 392), fill=rgb(c['border-strong']))
@@ -82,7 +88,7 @@ img.convert('RGB').save(os.path.join(out, 'background.png'), optimize=True)
 
 # ---------------------------------------------------------------- pieces of the boxes (GRUB draws them as nine pieces)
 
-def pieces(prefix, fill, border, corner=4):
+def pieces(prefix, fill, border, corner=6):
     """A box with a 1px border and rounded corners, cut into GRUB's nine pieces."""
     size = corner * 2 + 1
     box = Image.new('RGBA', (size, size), (0, 0, 0, 0))

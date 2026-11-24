@@ -1,5 +1,5 @@
-// The engraving of the current theme behind everything, on every screen, with its plate caption
-// bottom left. Follows the theme at once: Theme.wallpaper() changes with ThemeFile.
+// The engraving of the current theme behind everything, on every screen. Follows the theme at
+// once: Theme.wallpaper() changes with ThemeFile.
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
@@ -19,12 +19,5 @@ Variants {
         color: Theme.background
 
         Wallpaper { anchors.fill: parent }
-
-        Plate {
-            anchors { left: parent.left; bottom: parent.bottom; margins: Theme.space4 }
-            width: Math.min(parent.width / 2, 520)
-            wrapMode: Text.WordWrap
-            text: Theme.about.plate || ""
-        }
     }
 }

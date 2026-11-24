@@ -37,9 +37,6 @@ Scope {
 
     Process { id: terminal }
 
-
-
-
     FileView {
         path: "/etc/os-release"
         printErrors: false
@@ -63,7 +60,8 @@ Scope {
         title: "Settings"
         implicitWidth: 920
         implicitHeight: 620
-        color: Theme.background
+        // Smoked glass: the compositor blurs what lies behind the window
+        color: Theme.smoke(Theme.surface)
         onVisibleChanged: if (!visible) root.open = false
 
         Row {
@@ -73,11 +71,12 @@ Scope {
             Rectangle {
                 width: 220
                 height: parent.height
-                color: Theme.surface
+                // A well in the glass of the window
+                color: Theme.alpha(Theme.text, 0.04)
                 Column {
-                    anchors { fill: parent; margins: Theme.space4 }
+                    anchors { fill: parent; margins: Theme.space2 }
                     spacing: Theme.space1
-                    Label { textStyle: "title"; color: Theme.text; text: "Settings"; bottomPadding: Theme.space3 }
+                    Label { x: Theme.space2; textStyle: "title"; color: Theme.text; text: "Settings"; bottomPadding: Theme.space2 }
                     Repeater {
                         model: root.pages
                         ListRow {
@@ -95,14 +94,14 @@ Scope {
             Flickable {
                 width: parent.width - 220
                 height: parent.height
-                contentHeight: content.implicitHeight + Theme.space6 * 2
+                contentHeight: content.implicitHeight + 2 * Theme.space5
                 clip: true
 
                 Column {
                     id: content
-                    x: Theme.space6
-                    y: Theme.space6
-                    width: parent.width - Theme.space6 * 2
+                    x: Theme.space5
+                    y: Theme.space5
+                    width: parent.width - 2 * Theme.space5
                     spacing: Theme.space4
 
                     SettingsNetwork { visible: root.page === "network"; active: root.open && visible; width: parent.width }

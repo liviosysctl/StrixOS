@@ -107,7 +107,7 @@ Scope {
                     font.letterSpacing: 1.6
                     readonly property int hour: clock.date.getHours()
                     text: (hour < 5 ? "good night" : hour < 12 ? "good morning" : hour < 18 ? "good afternoon" : "good evening")
-                        + ", " + (Quickshell.env("USER") || "")
+                        + (Quickshell.env("USER") ? ", " + Quickshell.env("USER") : "")
                 }
 
                 Item { width: 1; height: Theme.space4 }
@@ -151,14 +151,6 @@ Scope {
                 anchors { right: parent.right; bottom: parent.bottom; margins: Theme.space8 }
                 spacing: Theme.space2
                 Wordmark { anchors.right: parent.right }
-            }
-
-            Plate {
-                anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom; bottomMargin: Theme.space6 }
-                width: Math.min(parent.width / 2, 560)
-                horizontalAlignment: Text.AlignHCenter
-                wrapMode: Text.WordWrap
-                text: Theme.about.plate || ""
             }
         }
     }

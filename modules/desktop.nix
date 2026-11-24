@@ -56,8 +56,8 @@ let
   # no telemetry, no updates of its own (Nix updates it)
   zedSettings = pkgs.writeText "zed-settings.json" (builtins.toJSON {
     theme = branding.name;
-    ui_font_family = "JetBrains Mono";
-    buffer_font_family = "JetBrains Mono";
+    ui_font_family = "Hanken Grotesk";
+    buffer_font_family = "IBM Plex Mono";
     telemetry = { diagnostics = false; metrics = false; };
     auto_update = false;
   });
@@ -232,10 +232,12 @@ let
 
   ghosttyDefaults = pkgs.writeText "ghostty-defaults" ''
     # The look of ${branding.name} (modules/desktop.nix)
-    font-family = GeistMono Nerd Font Mono
+    font-family = BlexMono Nerd Font Mono
     font-style = SemiBold
-    font-style-bold = ExtraBold
+    font-style-bold = Bold
     font-size = 13
+    # Smoked glass: the compositor blurs what lies behind the terminal
+    background-opacity = 0.72
     window-padding-x = 12
     window-padding-y = 8
     window-decoration = none
@@ -387,7 +389,7 @@ in
             color-scheme = "prefer-dark";
             gtk-theme = "adw-gtk3-dark";
             cursor-theme = "Adwaita";
-            monospace-font-name = "JetBrains Mono 11";
+            monospace-font-name = "IBM Plex Mono 11";
           };
         }
       ];
@@ -405,8 +407,9 @@ in
       source = lib.getExe openInGhostty;
     };
 
-    # Noto for text in every script; Geist Mono with the Nerd Font icons for the terminal
-    fonts.packages = [ pkgs.noto-fonts pkgs.nerd-fonts.geist-mono ];
+    # Noto for text in every script; IBM Plex Mono with the Nerd Font icons (BlexMono) for the
+    # terminal
+    fonts.packages = [ pkgs.noto-fonts pkgs.nerd-fonts.blex-mono ];
 
     # The search service behind Search and the cheat sheet
     ${id}.search.enable = true;
