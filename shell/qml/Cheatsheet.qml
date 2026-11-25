@@ -29,14 +29,19 @@ Scope {
         return out
     }
 
+    /// Windows besides the sheet that may be clicked without closing it (the tour's bubble)
+    property var companions: []
+
+    function toggle() {
+        root.open = !root.open
+        if (root.open) search.call("hotkeys", {}, r => root.rows = r || [])
+    }
+
     Backend { id: search; service: "search" }
 
     IpcHandler {
         target: "cheatsheet"
-        function toggle(): void {
-            root.open = !root.open
-            if (root.open) search.call("hotkeys", {}, r => root.rows = r || [])
-        }
+        function toggle(): void { root.toggle() }
         function isOpen(): bool { return root.open }
         function count(): int { return root.rows.length }
     }
@@ -46,7 +51,7 @@ Scope {
     Presence { id: presence; open: root.open }
 
     HyprlandFocusGrab {
-        windows: [overlay]
+        windows: [overlay].concat(root.companions)
         active: root.open
         onCleared: root.open = false
     }

@@ -162,8 +162,11 @@ Scope {
     // Opened again, it is the search
     onOpenChanged: if (!open) { input.text = ""; root.trail = []; root.browsing = false }
 
+    /// Windows besides the panel that may be clicked without closing it (the tour's bubble)
+    property var companions: []
+
     HyprlandFocusGrab {
-        windows: [overlay]
+        windows: [overlay].concat(root.companions)
         active: root.open
         onCleared: root.open = false
     }

@@ -158,11 +158,14 @@ pkgs.testers.runNixOSTest {
             raise
         targets = as_alice("qs -c ${id} ipc show")
         print(targets)
-        for target in ["bar", "lock", "search", "notifications", "cheatsheet", "settings", "store"]:
+        for target in ["bar", "lock", "search", "notifications", "cheatsheet", "settings", "store", "tour"]:
             assert f"target {target}" in targets, target
         for gone in ["clipboard", "theme"]:
             assert f"target {gone}" not in targets, gone
         machine.wait_for_unit("${id}-search.service", "alice")
+        # The first login asks about the tour; the question goes away unanswered
+        alice_until("qs -c ${id} ipc call tour isOpen | grep -qx true", timeout=120)
+        as_alice("qs -c ${id} ipc call tour stop")
         machine.sleep(10)
         machine.screenshot("desktop")
         image = Image.open(machine.out_dir / "desktop.png").convert("RGB")

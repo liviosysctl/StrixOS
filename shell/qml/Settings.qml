@@ -1,6 +1,7 @@
 // Settings in the proof of concept: a first page with a card for every page, then Network,
 // Bluetooth, Sound, Display, Input, Power, Hotkeys, Versions and About, as on main; each page but
-// About is its own file. The theme is fixed, so there is no page for themes.
+// About is its own file. The theme is fixed, so there is no page for themes. About also starts the
+// tour (Tour.qml) and turns its question at login on and off.
 // Opened by strix-settings [PAGE [ROW]] (ipc: settings open), from Search or the system menu.
 // Hotkeys: every key, from the search service (Backend "search", hotkeys), changed one by one.
 import QtQuick
@@ -42,6 +43,18 @@ Scope {
     }
 
     Process { id: terminal }
+
+    // The answer to the tour's question at login (Tour.qml keeps it): it asks unless done or never
+    FileView {
+        id: tourFile
+        path: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/strix/tour"
+        printErrors: false
+        watchChanges: true
+        onFileChanged: reload()
+        onLoaded: root.tourAnswer = text().trim()
+        onLoadFailed: root.tourAnswer = ""
+    }
+    property string tourAnswer: ""
 
     FileView {
         path: "/etc/os-release"
@@ -193,6 +206,30 @@ Scope {
                             title: "Update"
                             text: "Fetch the newest version"
                             Button { text: "Update now"; onClicked: root.asRoot("sudo strix-update") }
+                        }
+                        SettingRow {
+                            width: parent.width
+                            title: "Tour"
+                            text: "The search, the keys, the Store and Settings, opened one after the other and explained"
+                            Button {
+                                text: "Start the tour"
+                                onClicked: {
+                                    root.open = false
+                                    Quickshell.execDetached(["qs", "-c", "strix", "ipc", "call", "tour", "start"])
+                                }
+                            }
+                        }
+                        SettingRow {
+                            width: parent.width
+                            title: "Offer the tour at login"
+                            text: "Asks once after the next login whether to show it"
+                            Switch {
+                                checked: root.tourAnswer !== "done" && root.tourAnswer !== "never"
+                                onToggled: {
+                                    root.tourAnswer = checked ? "later" : "never"
+                                    tourFile.setText(root.tourAnswer + "\n")
+                                }
+                            }
                         }
                     }
                 }

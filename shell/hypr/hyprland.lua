@@ -94,7 +94,7 @@ hl.layer_rule({
     -- Smoked glass: what lies behind the surfaces of the shell is blurred. Their clear parts stay
     -- clear, so the bar is still only its buttons on the picture.
     name = "shell-glass",
-    match = { namespace = "^strix-(bar|search|notifications|osd|cheatsheet)$" },
+    match = { namespace = "^strix-(bar|search|notifications|osd|cheatsheet|tour)$" },
     blur = true,
     blur_popups = true,
     ignore_alpha = 0.3,

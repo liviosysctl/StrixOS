@@ -578,23 +578,21 @@ in
       };
     };
 
-    # The first login shows the cheat sheet once: the keys are all one needs to know
+    # After a login the shell asks whether to show the tour (shell/qml/Tour.qml), unless it was
+    # answered with done or never; the answer is kept in the state folder made here
     systemd.user.services."${id}-welcome" = lib.mkIf (!cfg.live) {
-      description = "Show the cheat sheet at the first login";
+      description = "Offer the tour after the login";
       partOf = [ "graphical-session.target" ];
       after = [ "${id}-shell.service" ];
       wantedBy = [ "graphical-session.target" ];
       path = [ pkgs.quickshell pkgs.coreutils ];
       serviceConfig.Type = "oneshot";
       script = ''
-        seen="''${XDG_STATE_HOME:-$HOME/.local/state}/${id}/welcomed"
-        [ ! -e "$seen" ] || exit 0
+        mkdir -p "''${XDG_STATE_HOME:-$HOME/.local/state}/${id}"
         for _ in $(seq 1 30); do
-          if [ "$(qs -c ${id} ipc call cheatsheet isOpen 2>/dev/null)" = false ]; then
+          if [ "$(qs -c ${id} ipc call tour isOpen 2>/dev/null)" = false ]; then
             sleep 3
-            qs -c ${id} ipc call cheatsheet toggle
-            mkdir -p "''${seen%/*}"
-            touch "$seen"
+            qs -c ${id} ipc call tour offer
             exit 0
           fi
           sleep 2
