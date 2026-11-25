@@ -40,7 +40,14 @@ let
   };
 
   # The browser: Zen, the only one installed (flake input zen-browser, not in nixpkgs)
-  zen = distroFlake.inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default;
+  # It reads userChrome.css of the profile, where the colors of the theme arrive (see the
+  # <id>-zen-colors service); Zen leaves that switched off by itself.
+  zen = distroFlake.inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default.override {
+    extraPolicies.Preferences."toolkit.legacyUserProfileCustomizations.stylesheets" = {
+      Value = true;
+      Status = "default";
+    };
+  };
   xkb = config.services.xserver.xkb;
   runtimeDir = "/run/${id}/theme";
   luaString = s: builtins.toJSON s;
@@ -437,6 +444,10 @@ in
     );
     environment.sessionVariables.BROWSER = lib.mkIf (!cfg.live) "zen-beta";
 
+    # Video is decoded by the graphics card where it can be. Mesa brings the drivers for that
+    # for most cards; Intel's newer ones need this one.
+    hardware.graphics.extraPackages = lib.mkIf (!cfg.live) [ pkgs.intel-media-driver ];
+
     environment.systemPackages = with pkgs; [
       settingsCommand
       captureCommand
@@ -592,6 +603,55 @@ in
       '';
     };
 
+    # Zen takes the god's colors from the session's zen-userChrome.css and zen-userContent.css,
+    # linked into chrome/ of every profile, and its settings from zen-user.js, linked as user.js.
+    # As with GTK, a file of the user's own stays. Zen makes its profile at its first start, so
+    # the path unit links it then; Zen reads the files when it starts, so they show from the
+    # next start on.
+    systemd.user.services."${id}-zen-colors" = lib.mkIf (!cfg.live) {
+      description = "Give Zen the colors of the session's theme";
+      wantedBy = [ "default.target" ];
+      serviceConfig.Type = "oneshot";
+      path = [
+        pkgs.coreutils
+        pkgs.gnused
+      ];
+      script = ''
+        [ -w "$HOME" ] || exit 0
+        for ini in "$HOME/.config/zen/profiles.ini" "$HOME/.zen/profiles.ini"; do
+          [ -r "$ini" ] || continue
+          sed -n 's/^Path=//p' "$ini" | while IFS= read -r path; do
+            case "$path" in
+              /*) profile=$path ;;
+              *) profile=''${ini%/*}/$path ;;
+            esac
+            [ -d "$profile" ] || continue
+            mkdir -p "$profile/chrome"
+            for name in chrome/userChrome.css chrome/userContent.css user.js; do
+              target="$XDG_RUNTIME_DIR/${id}/theme/zen-''${name##*/}"
+              file="$profile/$name"
+              if [ -L "$file" ] && [ "$(readlink "$file")" = "$target" ]; then
+                continue
+              fi
+              if [ -e "$file" ] || [ -L "$file" ]; then
+                echo "$file is the user's own, left alone"
+                continue
+              fi
+              ln -s "$target" "$file"
+            done
+          done
+        done
+      '';
+    };
+    systemd.user.paths."${id}-zen-colors" = lib.mkIf (!cfg.live) {
+      description = "Link the colors into a new Zen profile";
+      wantedBy = [ "default.target" ];
+      pathConfig.PathChanged = [
+        "%h/.config/zen/profiles.ini"
+        "%h/.zen/profiles.ini"
+      ];
+    };
+
     # The session's theme (Q14, Q15): its own colors, another god every period unless kept, the
     # socket for the theme picker
     systemd.user.services."${id}-theme-session" = {
@@ -608,6 +668,9 @@ in
         SESSION_HOOK = "${sessionHook}";
         PKEXEC = "/run/wrappers/bin/pkexec";
         THEME_COMMAND = themeCommand;
+        # The shape and the settings of Zen: the file of ${branding.name}, then the user's own
+        BROWSER_BASE = "${../shell/browser.toml}";
+        BROWSER_USER = "%E/${id}/browser.toml";
       };
       serviceConfig = {
         Type = "notify";

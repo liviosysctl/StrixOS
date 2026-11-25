@@ -1,8 +1,10 @@
 //! Adapters: turn a theme variant into what a program reads.
 //! Everything here is pure, the parts that touch the system are in system.rs.
 
+use crate::browser::{Browser, Pref};
 use crate::color::Rgb;
 use crate::theme::{FORMAT, PALETTE_NAMES, Theme, Variant};
+use crate::zen;
 use serde_json::{Map, Value, json};
 
 /// tokens.json: the selected variant for programs that read the tokens
@@ -258,6 +260,195 @@ pub fn gtk4(theme: &Theme, variant: &Variant) -> String {
         ));
     }
     out.push_str("}\n");
+    out
+}
+
+/// The colours of the theme by the names the two Zen stylesheets use (`--strix-<name>`)
+fn zen_shell_colors(variant: &Variant) -> [(&'static str, Rgb); 12] {
+    [
+        ("background", variant.color("background")),
+        ("surface", variant.color("surface")),
+        ("raised", extra_or(variant, "surface-raised", "surface")),
+        ("sunken", extra_or(variant, "surface-sunken", "background")),
+        ("border", variant.color("border")),
+        (
+            "border-strong",
+            extra_or(variant, "border-strong", "border"),
+        ),
+        ("text", variant.color("text")),
+        ("muted", variant.color("text-muted")),
+        ("faint", extra_or(variant, "text-faint", "text-muted")),
+        ("accent", variant.color("accent")),
+        ("accent-text", extra_or(variant, "accent-text", "accent")),
+        ("on-accent", variant.color("on-accent")),
+    ]
+}
+
+/// The colors Zen draws itself with, by the names of Zen and Firefox
+fn zen_colors(variant: &Variant) -> Vec<(&'static str, Rgb)> {
+    let background = variant.color("background");
+    let surface = variant.color("surface");
+    let raised = extra_or(variant, "surface-raised", "surface");
+    let sunken = extra_or(variant, "surface-sunken", "background");
+    let border = variant.color("border");
+    let strong = extra_or(variant, "border-strong", "border");
+    let text = variant.color("text");
+    let accent = variant.color("accent");
+    vec![
+        // Zen mixes most of its palette from this one
+        ("zen-primary-color", accent),
+        ("zen-colors-primary", accent),
+        ("zen-colors-secondary", raised),
+        ("zen-colors-tertiary", surface),
+        ("zen-colors-hover-bg", raised),
+        ("zen-colors-primary-foreground", text),
+        ("zen-colors-border", border),
+        ("zen-colors-border-contrast", strong),
+        ("zen-colors-input-bg", sunken),
+        ("zen-dialog-background", raised),
+        ("zen-toolbar-element-bg", surface),
+        ("zen-toolbar-element-bg-hover", raised),
+        ("zen-urlbar-background", surface),
+        ("zen-branding-dark", background),
+        ("zen-sidebar-notification-bg", raised),
+        ("zen-sidebar-themed-icon-fill", text),
+        ("toolbar-color", text),
+        ("toolbox-textcolor", text),
+        ("tab-selected-bgcolor", raised),
+        ("tab-selected-textcolor", text),
+        ("arrowpanel-color", text),
+    ]
+}
+
+/// The measures of browser.toml by the names the two Zen stylesheets use: the corners, the type,
+/// the accent as a line on what is selected (at its left edge, and under an essential), and how
+/// much the glass covers: the window, and what floats over a page, which covers more
+fn zen_shape(browser: &Browser, indent: &str) -> String {
+    let stroke = |shadow: &str| {
+        if browser.stroke {
+            format!("{shadow} var(--strix-accent)")
+        } else {
+            "none".to_string()
+        }
+    };
+    [
+        ("radius", format!("{}px", browser.radius)),
+        ("radius-control", format!("{}px", browser.control)),
+        ("radius-item", format!("{}px", browser.item())),
+        ("font", "\"Hanken Grotesk\", sans-serif".to_string()),
+        ("font-size", format!("{}px", browser.font_size)),
+        ("stroke", stroke("inset 2px 0 0")),
+        ("stroke-under", stroke("inset 0 -2px 0")),
+        ("glass-cover", format!("{}%", browser.glass)),
+        ("glass-cover-raised", format!("{}%", browser.raised())),
+    ]
+    .iter()
+    .map(|(name, value)| format!("{indent}--strix-{name}: {value};\n"))
+    .collect()
+}
+
+/// zen-userChrome.css: the window of Zen (sidebar, toolbars, tabs, address bar, menus): the colours
+/// of the theme and the measures of browser.toml, then the stylesheet zen::CHROME, which gives
+/// Zen the look of the shell with them. Zen sets
+/// its accent and the color of its ground as inline styles on the space and on the element that
+/// paints the ground, so the names are set there as well, and with !important, which an inline
+/// style without it loses to. Zen reads the file when it starts.
+pub fn zen_chrome(theme: &Theme, variant: &Variant, browser: &Browser) -> String {
+    let mut out = format!(
+        "/* The colors of {} ({}:{}), written by the theme engine. */\n\
+         :root, zen-workspace, .zen-browser-generic-background {{\n",
+        theme.name, theme.id, variant.id
+    );
+    for (name, color) in zen_colors(variant) {
+        out.push_str(&format!("  --{name}: {} !important;\n", color.hex()));
+    }
+    // The same colours by the names of the shell, for the stylesheet below
+    for (name, color) in zen_shell_colors(variant) {
+        out.push_str(&format!("  --strix-{name}: {};\n", color.hex()));
+    }
+    out.push_str(&zen_shape(browser, "  "));
+    // Zen picks many of its own colours with light-dark(): tell it which side the theme is on.
+    // And it blends its ground as "screen", which only ever lightens it
+    out.push_str(&format!(
+        "}}\n:root {{\n  color-scheme: {} !important;\n}}\n\
+         .zen-browser-generic-background {{\n  background-blend-mode: normal !important;\n}}\n",
+        variant.appearance.as_str()
+    ));
+    // The look of Zen, the same for every theme
+    out.push_str(zen::CHROME);
+    out
+}
+
+/// zen-userContent.css: the pages of the browser itself (new tab, settings, about:), by the names
+/// Firefox gives their colors. Web pages are left alone, and so are the empty documents a web
+/// page can make inside itself (about:blank, about:srcdoc) and the reader view.
+pub fn zen_content(theme: &Theme, variant: &Variant, browser: &Browser) -> String {
+    let surface = variant.color("surface");
+    let colors = [
+        ("in-content-page-background", variant.color("background")),
+        ("in-content-page-color", variant.color("text")),
+        ("in-content-box-background", surface),
+        ("in-content-box-background-odd", surface),
+        ("in-content-box-border-color", variant.color("border")),
+        (
+            "in-content-primary-button-background",
+            variant.color("accent"),
+        ),
+        (
+            "in-content-primary-button-text-color",
+            variant.color("on-accent"),
+        ),
+        ("color-accent-primary", variant.color("accent")),
+        ("newtab-background-color", variant.color("background")),
+        ("newtab-background-color-secondary", surface),
+        ("newtab-text-primary-color", variant.color("text")),
+    ];
+    let mut out = format!(
+        "/* The colors of {} ({}:{}), written by the theme engine. */\n\
+         @-moz-document regexp(\"about:(?!blank|srcdoc|reader).*\") {{\n  :root {{\n",
+        theme.name, theme.id, variant.id
+    );
+    for (name, color) in colors {
+        out.push_str(&format!("    --{name}: {} !important;\n", color.hex()));
+    }
+    for (name, color) in zen_shell_colors(variant) {
+        out.push_str(&format!("    --strix-{name}: {};\n", color.hex()));
+    }
+    out.push_str(&zen_shape(browser, "    "));
+    out.push_str("  }\n");
+
+    // The shape of those pages, the same for every theme
+    out.push_str(zen::CONTENT);
+    out.push_str("}\n");
+    out
+}
+
+/// zen-user.js: the settings Zen is given at every start, over what was set by hand. Its accent
+/// is the one of the theme, so what Zen colours by itself follows too; the gap around the page,
+/// whether the window lets the desktop through (glass) and whatever browser.toml names under
+/// [prefs] come from there.
+pub fn zen_prefs(theme: &Theme, variant: &Variant, browser: &Browser) -> String {
+    let mut prefs = browser.prefs.clone();
+    prefs.insert(
+        "zen.theme.accent-color".into(),
+        Pref::Text(variant.color("accent").hex()),
+    );
+    prefs.insert(
+        "zen.theme.content-element-separation".into(),
+        Pref::Number(browser.gap.into()),
+    );
+    prefs.insert(
+        "zen.widget.linux.transparency".into(),
+        Pref::Bool(browser.glass < 100),
+    );
+    let mut out = format!(
+        "// The settings of Zen for {} ({}:{}), written by the theme engine.\n",
+        theme.name, theme.id, variant.id
+    );
+    for (name, value) in &prefs {
+        let name = serde_json::Value::String(name.clone());
+        out.push_str(&format!("user_pref({name}, {});\n", value.written()));
+    }
     out
 }
 
@@ -540,5 +731,89 @@ mod tests {
         let lines = palette_lines(&theme.variants["dark"]);
         assert_eq!(lines.len(), 16);
         assert_eq!(lines[1], "red            #c8102e");
+    }
+
+    #[test]
+    fn zen_takes_the_colors_where_it_sets_its_own() {
+        let theme = good();
+        let variant = theme.variant("dark").unwrap();
+        let browser = Browser::default();
+        let chrome = zen_chrome(&theme, variant, &browser);
+        assert!(chrome.starts_with("/* The colors of Test (test:dark)"));
+        assert!(chrome.contains(":root, zen-workspace, .zen-browser-generic-background {\n"));
+        assert!(
+            chrome.contains("  --zen-primary-color: #c8102e !important;\n"),
+            "{chrome}"
+        );
+        // The ground is the glass of the window, mixed from the colours of the theme
+        assert!(
+            chrome.contains("  --zen-main-browser-background: var(--strix-glass) !important;\n")
+        );
+        assert!(chrome.contains("  --strix-background: #000000;\n"));
+        assert!(
+            chrome.contains("  --strix-glass-cover: 72%;\n  --strix-glass-cover-raised: 88%;\n")
+        );
+        assert!(chrome.contains("background-blend-mode: normal !important;"));
+        // Every color Zen has a name for wins over an inline style
+        let own = chrome.split("  --strix-").next().unwrap();
+        assert_eq!(
+            own.matches("  --").count(),
+            own.matches(" !important;\n").count()
+        );
+        // The shell's names for the same colors, and the stylesheet that uses them
+        assert!(chrome.contains("  --strix-accent: #c8102e;\n"));
+        assert!(chrome.contains("box-shadow: var(--strix-stroke) !important;"));
+        // The measures of browser.toml: rounder than the shell unless it says otherwise
+        assert!(chrome.contains("  --strix-radius: 12px;\n  --strix-radius-control: 8px;\n"));
+        assert!(chrome.contains("  --strix-stroke: inset 2px 0 0 var(--strix-accent);\n"));
+        assert!(!chrome.contains("radius: 4px") && !chrome.contains("radius: 6px"));
+        let mut square = Browser::default();
+        assert!(
+            square
+                .layer("radius = 6\ncontrol = 4\nstroke = false\nfont-size = 12")
+                .is_empty()
+        );
+        let chrome = zen_chrome(&theme, variant, &square);
+        assert!(chrome.contains(
+            "  --strix-radius: 6px;\n  --strix-radius-control: 4px;\n  --strix-radius-item: 2px;\n"
+        ));
+        assert!(chrome.contains("  --strix-font-size: 12px;\n  --strix-stroke: none;\n"));
+        // Without glass the window is the solid ground and Zen is not asked to let anything through
+        assert!(square.layer("glass = 100").is_empty());
+        let chrome = zen_chrome(&theme, variant, &square);
+        assert!(
+            chrome.contains("  --strix-glass-cover: 100%;\n  --strix-glass-cover-raised: 100%;\n")
+        );
+        assert!(
+            zen_prefs(&theme, variant, &square)
+                .contains("user_pref(\"zen.widget.linux.transparency\", false);\n")
+        );
+        let content = zen_content(&theme, variant, &browser);
+        assert!(content.contains("    --strix-radius: 12px;\n"));
+        assert!(content.contains("@-moz-document regexp(\"about:(?!blank|srcdoc|reader).*\") {\n"));
+        assert!(content.contains("    --strix-accent: #c8102e;\n"));
+        assert!(content.contains("--background-color-canvas: var(--strix-background) !important;"));
+        assert!(content.contains("    --in-content-page-background: #000000 !important;\n"));
+        assert!(content.contains("    --color-accent-primary: #c8102e !important;\n"));
+        assert_eq!(content.matches('{').count(), content.matches('}').count());
+    }
+
+    #[test]
+    fn zen_is_given_its_settings() {
+        let theme = good();
+        let variant = theme.variant("dark").unwrap();
+        let mut browser = Browser::default();
+        assert!(
+            browser
+                .layer("gap = 4\n[prefs]\n\"zen.watermark.enabled\" = false\n\"a.name\" = \"x\"")
+                .is_empty()
+        );
+        let prefs = zen_prefs(&theme, variant, &browser);
+        assert!(prefs.starts_with("// The settings of Zen for Test (test:dark)"));
+        assert!(prefs.contains("user_pref(\"zen.theme.accent-color\", \"#c8102e\");\n"));
+        assert!(prefs.contains("user_pref(\"zen.theme.content-element-separation\", 4);\n"));
+        assert!(prefs.contains("user_pref(\"zen.widget.linux.transparency\", true);\n"));
+        assert!(prefs.contains("user_pref(\"zen.watermark.enabled\", false);\n"));
+        assert!(prefs.contains("user_pref(\"a.name\", \"x\");\n"));
     }
 }

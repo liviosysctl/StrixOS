@@ -21,6 +21,7 @@
 //! ```
 
 use crate::adapters;
+use crate::browser::Browser;
 use crate::system;
 use crate::theme::{Catalog, Selection, Theme, Variant};
 use serde_json::{Value, json};
@@ -122,6 +123,9 @@ pub struct Settings {
     /// pkexec and the theme command, for `set`
     pub pkexec: PathBuf,
     pub command: Option<PathBuf>,
+    /// The shape and the settings of the browser (BROWSER_BASE, then BROWSER_USER): browser.toml
+    /// of the distribution and the user's own, which changes single lines of it
+    pub browser: Vec<PathBuf>,
 }
 
 /// The session: which theme it shows and whether it is kept
@@ -180,7 +184,7 @@ impl Session {
     /// Shows `text` (theme or theme:variant) in this session and starts a new period
     pub fn show(&mut self, text: &str) -> Result<(), String> {
         let (theme, variant) = self.resolve(text)?;
-        write_output(&self.settings.dir, theme, variant)?;
+        write_output(&self.settings.dir, theme, variant, &self.settings.browser)?;
         let (theme_id, variant_id) = (theme.id.clone(), variant.id.clone());
         self.theme = theme_id;
         self.variant = variant_id;
@@ -363,9 +367,15 @@ fn read_kept(file: &Path) -> bool {
         .unwrap_or(false)
 }
 
-/// tokens.json, hyprland.lua, ghostty, btop.theme and the GTK files for one theme; tokens.json last, so
-/// whoever watches it finds the others already new
-pub fn write_output(dir: &Path, theme: &Theme, variant: &Variant) -> Result<(), String> {
+/// tokens.json, hyprland.lua, ghostty, btop.theme and the GTK and Zen files for one theme;
+/// tokens.json last, so whoever watches it finds the others already new
+pub fn write_output(
+    dir: &Path,
+    theme: &Theme,
+    variant: &Variant,
+    browser: &[PathBuf],
+) -> Result<(), String> {
+    let browser = Browser::read(browser);
     let tokens = serde_json::to_string_pretty(&adapters::tokens(theme, variant))
         .map_err(|e| e.to_string())?
         + "\n";
@@ -375,6 +385,15 @@ pub fn write_output(dir: &Path, theme: &Theme, variant: &Variant) -> Result<(), 
         ("btop.theme", adapters::btop(theme, variant)),
         ("gtk3.css", adapters::gtk3(theme, variant)),
         ("gtk4.css", adapters::gtk4(theme, variant)),
+        (
+            "zen-userChrome.css",
+            adapters::zen_chrome(theme, variant, &browser),
+        ),
+        (
+            "zen-userContent.css",
+            adapters::zen_content(theme, variant, &browser),
+        ),
+        ("zen-user.js", adapters::zen_prefs(theme, variant, &browser)),
         ("tokens.json", tokens),
     ];
     fs::create_dir_all(dir).map_err(|e| format!("cannot create {}: {e}", dir.display()))?;
@@ -617,6 +636,7 @@ mod tests {
             hook: None,
             pkexec: PathBuf::from("/nonexistent/pkexec"),
             command: None,
+            browser: vec![base.join("browser.toml"), base.join("own/browser.toml")],
         }
     }
 
@@ -672,6 +692,16 @@ mod tests {
         assert!(base.join("session/btop.theme").is_file());
         assert!(base.join("session/gtk3.css").is_file());
         assert!(base.join("session/gtk4.css").is_file());
+        assert!(base.join("session/zen-userChrome.css").is_file());
+        assert!(base.join("session/zen-userContent.css").is_file());
+        // Without a browser.toml Zen gets the shape the engine knows, and its settings
+        let chrome = fs::read_to_string(base.join("session/zen-userChrome.css")).unwrap();
+        assert!(chrome.contains("  --strix-radius: 12px;\n"), "{chrome}");
+        let prefs = fs::read_to_string(base.join("session/zen-user.js")).unwrap();
+        assert!(
+            prefs.contains("user_pref(\"zen.theme.accent-color\", \"#"),
+            "{prefs}"
+        );
 
         // Ten minutes later: another god, never the outside theme
         for _ in 0..20 {

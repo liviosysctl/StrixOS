@@ -204,6 +204,12 @@ in
     assert !reference'.programs.firefox.enable;
     assert reference'.xdg.mime.defaultApplications."x-scheme-handler/https" == "zen-beta.desktop";
     assert lib.any (p: lib.hasPrefix "zen-beta" (p.name or "")) reference'.environment.systemPackages;
+    # It takes the god's colors, being told to read the stylesheets of its profile
+    assert reference'.systemd.user.services ? "${branding.id}-zen-colors";
+    assert reference'.systemd.user.paths ? "${branding.id}-zen-colors";
+    # and its shape and settings from the file the theme engine reads
+    assert lib.hasSuffix "browser.toml"
+      reference'.systemd.user.services."${branding.id}-theme-session".environment.BROWSER_BASE;
     assert reference'.${branding.id}.desktop.greeter == "strix";
     assert reference'.environment.sessionVariables.HYPRLAND_CONFIG == "/etc/xdg/${branding.id}/hypr/hyprland.lua";
     assert reference'.systemd.user.services ? "${branding.id}-theme-session";

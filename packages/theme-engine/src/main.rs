@@ -4,11 +4,13 @@
 //! program itself knows nothing about the distribution it runs in.
 
 mod adapters;
+mod browser;
 mod color;
 mod repos;
 mod session;
 mod system;
 mod theme;
+mod zen;
 
 use std::env;
 use std::fs;
@@ -865,6 +867,11 @@ fn session_settings(config: &Config) -> Result<session::Settings, String> {
         hook: text("SESSION_HOOK").map(PathBuf::from),
         pkexec: PathBuf::from(text("PKEXEC").unwrap_or_else(|| "pkexec".into())),
         command: text("THEME_COMMAND").map(PathBuf::from),
+        browser: ["BROWSER_BASE", "BROWSER_USER"]
+            .into_iter()
+            .filter_map(text)
+            .map(PathBuf::from)
+            .collect(),
     })
 }
 
