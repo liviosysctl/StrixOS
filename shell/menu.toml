@@ -189,6 +189,15 @@ run = ["qs", "-c", "{id}", "ipc", "call", "notifications", "quiet"]
 # ------------------------------------------------------------------ Learn
 
 [[action]]
+id = "all-hotkeys"
+title = "All hotkeys"
+group = "learn"
+symbol = "keyboard"
+words = ["cheat", "sheet", "shortcuts", "keybindings", "keys"]
+keys = "Super K"
+run = ["qs", "-c", "{id}", "ipc", "call", "cheatsheet", "toggle"]
+
+[[action]]
 id = "manual"
 title = "Manual"
 group = "learn"

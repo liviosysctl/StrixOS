@@ -94,7 +94,7 @@ hl.layer_rule({
     -- Smoked glass: what lies behind the surfaces of the shell is blurred. Their clear parts stay
     -- clear, so the bar is still only its buttons on the picture.
     name = "shell-glass",
-    match = { namespace = "^strix-(bar|search|notifications|osd)$" },
+    match = { namespace = "^strix-(bar|search|notifications|osd|cheatsheet)$" },
     blur = true,
     blur_popups = true,
     ignore_alpha = 0.3,
@@ -127,11 +127,11 @@ for _, part in ipairs({ "machine", "theme", "bindings" }) do
     end
 end
 
--- The person's own files in ~/.config/strix, read last: monitors.lua and keys.lua are written
--- by Settings (Display, Hotkeys), hyprland.lua is theirs to edit
+-- The person's own files in ~/.config/strix, read last: monitors.lua, input.lua and keys.lua are
+-- written by Settings (Display, Input, Hotkeys), hyprland.lua is theirs to edit
 local home = os.getenv("HOME")
 if home then
-    for _, name in ipairs({ "monitors", "keys", "hyprland" }) do
+    for _, name in ipairs({ "monitors", "input", "keys", "hyprland" }) do
         local own = home .. "/.config/strix/" .. name .. ".lua"
         local file = io.open(own, "r")
         if file then

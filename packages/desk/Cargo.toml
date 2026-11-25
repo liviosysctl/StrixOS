@@ -1,0 +1,22 @@
+[package]
+name = "desk"
+version = "0.6.3"
+edition = "2024"
+description = "The commands of the desktop: screenshots and recordings, what happens when nobody is at the machine, the system monitor"
+license = "MIT"
+publish = false
+
+# One program under three names, <id>-capture, <id>-idle and <id>-monitor: the name it is
+# started by says which command it is and what the distribution is called
+# (packages/desk/default.nix).
+[[bin]]
+name = "desk"
+path = "src/main.rs"
+
+[dependencies]
+libc = "0.2"
+serde_json = "1"
+
+[profile.release]
+lto = true
+codegen-units = 1

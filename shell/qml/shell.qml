@@ -1,5 +1,5 @@
 // The shell of Strix in the proof of concept, kept simple: wallpaper, top bar, lock screen, search,
-// notifications, the volume OSD, Settings and the Store, built from the QML module of StrixUI
+// notifications, the volume OSD, the cheat sheet, Settings and the Store, built from the QML module of StrixUI
 // (import Strix). One theme, Saturnus; it does not change by itself.
 //
 // Installed as /etc/xdg/quickshell/strix and started by the user service strix-shell:
@@ -25,6 +25,7 @@ ShellRoot {
     SearchPanel {}
     Notifications { id: notifications }
     VolumeOsd {}
+    Cheatsheet {}
     Settings {}
     Store {}
 }

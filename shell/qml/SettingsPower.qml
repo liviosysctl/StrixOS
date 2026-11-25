@@ -1,4 +1,5 @@
-// Settings › Power: the battery, the power profile (power-profiles-daemon through UPower), what
+// Settings › Power: the battery, the power profile (power-profiles-daemon through UPower), when
+// the screen dims, locks and goes off and the machine sleeps (strix-idle, on power and on battery), what
 // closing the lid does (strix.desktop.lid in machine.nix), suspend and hibernate now.
 import QtQuick
 import Quickshell
@@ -18,6 +19,36 @@ Column {
         : [PowerProfile.PowerSaver, PowerProfile.Balanced]
     readonly property var names: ["Power saver", "Balanced", "Performance"]
     property string lid: "suspend"
+
+    /// Reads the times while the page is shown
+    property bool active: false
+    /// What happens when nobody is at the machine (strix-idle): seconds for ac and battery, 0 never
+    property var idle: ({ ac: {}, battery: {} })
+    /// The set that is shown: "ac" or "battery"
+    property string source: "ac"
+    readonly property var steps: ({
+        dim: [0, 60, 120, 240, 600],
+        lock: [0, 120, 300, 600, 1800],
+        off: [0, 300, 600, 900, 1800],
+        sleep: [0, 900, 1800, 3600, 7200]
+    })
+    function label(seconds) {
+        return seconds === 0 ? "Never" : seconds < 3600 ? seconds / 60 + " min" : seconds / 3600 + " h"
+    }
+    function setIdle(action, seconds) {
+        const next = JSON.parse(JSON.stringify(page.idle))
+        next[page.source][action] = seconds
+        page.idle = next
+        Quickshell.execDetached(["strix-idle", "set", page.source, action, String(seconds)])
+    }
+    Process {
+        id: readIdle
+        command: ["strix-idle", "show"]
+        stdout: StdioCollector {
+            onStreamFinished: { try { page.idle = JSON.parse(text) } catch (e) {} }
+        }
+    }
+    onActiveChanged: if (active) readIdle.running = true
 
     FileView {
         path: "/etc/xdg/strix/lid"
@@ -57,6 +88,43 @@ Column {
             model: page.profiles.map(p => page.names[p])
             currentIndex: Math.max(0, page.profiles.indexOf(PowerProfiles.profile))
             onActivated: index => PowerProfiles.profile = page.profiles[index]
+        }
+    }
+
+    Label { textStyle: "heading"; color: Theme.text; text: "When nobody is there"; topPadding: Theme.space3 }
+    SettingRow {
+        visible: page.hasBattery
+        width: parent.width
+        title: "These times are for"
+        Segmented {
+            model: ["On power", "On battery"]
+            currentIndex: page.source === "battery" ? 1 : 0
+            onActivated: index => page.source = index === 1 ? "battery" : "ac"
+        }
+    }
+    Repeater {
+        model: [
+            { action: "dim", title: "Dim the screen" },
+            { action: "lock", title: "Lock" },
+            { action: "off", title: "Screen off" },
+            { action: "sleep", title: "Sleep" }
+        ]
+        SettingRow {
+            required property var modelData
+            width: page.width
+            title: modelData.title
+            Segmented {
+                model: page.steps[modelData.action].map(s => page.label(s))
+                currentIndex: {
+                    const now = (page.idle[page.source] || {})[modelData.action] || 0
+                    const steps = page.steps[modelData.action]
+                    let best = 0
+                    for (let i = 0; i < steps.length; i++)
+                        if (Math.abs(steps[i] - now) < Math.abs(steps[best] - now)) best = i
+                    return best
+                }
+                onActivated: index => page.setIdle(modelData.action, page.steps[modelData.action][index])
+            }
         }
     }
 

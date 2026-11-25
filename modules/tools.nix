@@ -1,5 +1,6 @@
-# The tools around /etc/nixos: rebuild, update (with the theme repositories), apps, and shell,
-# which tries packages without installing them.
+# The tools around /etc/nixos: rebuild, update (with the theme repositories), apps, generations
+# (the versions still installed, Settings › Versions), and shell, which tries packages without
+# installing them.
 # The names come from branding.nix (e.g. strix-rebuild).
 { config, lib, pkgs, ... }:
 
@@ -13,8 +14,9 @@ let
   };
 
   tool =
-    { name, runtimeInputs, extraEnv ? { }, common ? true }:
+    { name, runtimeInputs, extraEnv ? { }, common ? true, excludeShellChecks ? [ ] }:
     pkgs.writeShellApplication {
+      inherit excludeShellChecks;
       name = "${branding.id}-${name}";
       runtimeInputs = runtimeInputs ++ [ pkgs.coreutils pkgs.util-linux ];
       runtimeEnv = env // extraEnv;
@@ -43,6 +45,13 @@ let
     runtimeInputs = [ config.nix.package pkgs.jq ];
     extraEnv.REBUILD = lib.getExe rebuild;
   };
+  generations = tool {
+    name = "generations";
+    runtimeInputs = [ config.nix.package config.system.build.nixos-rebuild pkgs.dix ];
+    # It has nothing to do with /etc/nixos: config_dir of the shared start stays unused
+    excludeShellChecks = [ "SC2034" ];
+  };
+
   # nix-shell -p with flakes: the packages in a shell, from the nixpkgs the system is built from
   # (the registry entry nixosSystem sets), so they match what an install would bring
   # It does not touch /etc/nixos, so it needs nothing of common.sh
@@ -53,8 +62,8 @@ let
   };
 in
 {
-  environment.systemPackages = [ rebuild update apps shell ];
+  environment.systemPackages = [ rebuild update apps generations shell ];
 
   # Reachable for tests: nix build .#nixosConfigurations.<name>.config.system.build.distroTools.apps
-  system.build.distroTools = { inherit rebuild update apps shell; };
+  system.build.distroTools = { inherit rebuild update apps generations shell; };
 }

@@ -28,10 +28,28 @@ symbol = "monitor"
 words = ["screen", "monitor", "scale", "resolution", "hidpi"]
 
 [[page]]
+id = "input"
+title = "Input"
+symbol = "mouse"
+words = ["keyboard", "layout", "mouse", "touchpad", "pointer", "speed", "scroll", "tap"]
+
+[[page]]
 id = "power"
 title = "Power"
 symbol = "zap"
 words = ["battery", "energy", "lid", "suspend", "hibernate", "profile"]
+
+[[page]]
+id = "hotkeys"
+title = "Hotkeys"
+symbol = "keyboard"
+words = ["keys", "shortcuts", "bindings", "keyboard"]
+
+[[page]]
+id = "versions"
+title = "Versions"
+symbol = "history"
+words = ["generations", "rollback", "go back", "previous", "undo", "update"]
 
 [[page]]
 id = "about"
@@ -70,6 +88,13 @@ type = "choice"
 words = ["zoom", "size", "hidpi", "bigger", "smaller"]
 
 [[row]]
+id = "night-light"
+page = "display"
+title = "Night light"
+type = "switch"
+words = ["warm", "evening", "blue light", "sunset", "eyes"]
+
+[[row]]
 id = "profile"
 page = "power"
 title = "Power profile"
@@ -91,6 +116,14 @@ page = "bluetooth"
 title = "Bluetooth"
 type = "switch"
 words = ["headphones", "pair"]
+
+[[row]]
+id = "all"
+page = "hotkeys"
+title = "All hotkeys"
+description = "Every key of Strix; click one to change it"
+type = "keys"
+words = ["cheat sheet", "shortcuts", "bindings"]
 
 [[row]]
 id = "version"

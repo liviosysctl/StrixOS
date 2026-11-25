@@ -221,6 +221,11 @@ in
     assert reference'.${branding.id}.desktop.lid == "suspend";
     assert reference'.services.logind.settings.Login.HandleLidSwitch == "suspend";
     assert reference'.services.logind.settings.Login.HandleLidSwitchDocked == "ignore";
+    # Settings › Power and Display: hypridle with the times of strix-idle, the night light
+    assert lib.hasInfix "-idle" reference'.systemd.user.services.hypridle.serviceConfig.ExecStart;
+    assert reference'.systemd.user.services ? "${branding.id}-nightlight";
+    # The cheat sheet shows itself at the first login
+    assert reference'.systemd.user.services ? "${branding.id}-welcome";
     assert reference'.environment.etc."xdg/${branding.id}/lid".text == "suspend\n";
     # GTK apps take the god's colors
     assert reference'.systemd.user.services ? "${branding.id}-gtk-colors";
@@ -233,7 +238,7 @@ in
         export HOME=$TMPDIR XDG_RUNTIME_DIR=$TMPDIR/run
         mkdir -p -m 0700 $XDG_RUNTIME_DIR
         ${check "reference" reference'}
-        # Fewer keys than on main: no theme, clipboard or cheat sheet keys
+        # Fewer keys than on main: no theme or clipboard keys
         test "$(grep -c '^hl.bind' reference/bindings.lua)" -ge 30
         echo ok > $out
       '';

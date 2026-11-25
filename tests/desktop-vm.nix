@@ -158,9 +158,9 @@ pkgs.testers.runNixOSTest {
             raise
         targets = as_alice("qs -c ${id} ipc show")
         print(targets)
-        for target in ["bar", "lock", "search", "notifications", "settings", "store"]:
+        for target in ["bar", "lock", "search", "notifications", "cheatsheet", "settings", "store"]:
             assert f"target {target}" in targets, target
-        for gone in ["cheatsheet", "clipboard", "theme"]:
+        for gone in ["clipboard", "theme"]:
             assert f"target {gone}" not in targets, gone
         machine.wait_for_unit("${id}-search.service", "alice")
         machine.sleep(10)

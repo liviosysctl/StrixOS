@@ -1,6 +1,7 @@
 # The desktop (12-desktop in the plan): Hyprland as a systemd session through UWSM, the login of
 # Strix (shell/greeter, Quickshell in cage under greetd; tuigreet if chosen), PipeWire, and a
-# few apps. The proof of concept keeps it simple: one theme, no cheat sheet, no clipboard history.
+# few apps. The proof of concept keeps it simple: one theme, no clipboard history; the cheat sheet
+# (Super K) and Settings are those of main.
 #
 # Hyprland reads the configuration of Strix from /etc/xdg/strix/hypr (HYPRLAND_CONFIG):
 # shell/hypr/hyprland.lua, machine.lua from this module, bindings.lua made by strix-search from
@@ -12,7 +13,8 @@
 #
 # The shell is Quickshell with shell/qml, installed as /etc/xdg/quickshell/<id> and started by
 # the user service <id>-shell (`qs -c <id>`); it imports the QML module of StrixUI. hypridle
-# locks after five minutes and before sleep, through the shell's lock screen.
+# dims, locks and sleeps with the times of Settings › Power (<id>-idle, packages/desk), and locks
+# before sleep, through the shell's lock screen.
 { config, lib, pkgs, distroFlake, ... }:
 
 let
@@ -135,44 +137,85 @@ let
   ui = config.${id}.ui.package;
   sessionCommand = "uwsm start -e -D Hyprland hyprland.desktop";
 
+  # The commands of the desktop (packages/desk), as on main
+  desk = pkgs.callPackage ../packages/desk { };
+
   # Screenshots, a recording, the colour picker: <id>-capture region|window|screen|record|colour
-  captureCommand = pkgs.writeShellApplication {
-    name = "${id}-capture";
-    runtimeInputs = with pkgs; [
+  captureCommand = desk.command "capture" (
+    with pkgs;
+    [
       grim
       slurp
       wl-clipboard
-      jq
       libnotify
       wf-recorder
       hyprpicker
       procps
-      coreutils
       config.programs.hyprland.package
-    ];
-    text = builtins.readFile ../shell/bin/capture.sh;
-  };
+    ]
+  );
 
   # The system monitor of the bar's load figures: <id>-monitor (btop in Ghostty)
-  monitorCommand = pkgs.writeShellApplication {
-    name = "${id}-monitor";
-    runtimeInputs = with pkgs; [
+  monitorCommand = desk.command "monitor" (
+    with pkgs;
+    [
       btop
       ghostty
-      jq
-      coreutils
-      gnused
       uwsm
       config.programs.hyprland.package
+    ]
+  );
+
+  # What happens when nobody is at the machine: <id>-idle, which runs hypridle with the times of
+  # ~/.config/<id>/idle.json (Settings › Power), apart for power and battery, and keeps awake
+  idleCommand = desk.command "idle" (
+    with pkgs;
+    [
+      hypridle
+      brightnessctl
+      systemd
+      quickshell
+      config.programs.hyprland.package
+    ]
+  );
+
+  # The night light: warmer colors in the evening (hyprsunset, from 20:00 to 7:00), and by hand
+  # until the next of those hours: <id>-nightlight on|off|toggle|state
+  nightTemperature = 4500;
+  nightlightCommand = pkgs.writeShellApplication {
+    name = "${id}-nightlight";
+    runtimeInputs = [
+      config.programs.hyprland.package
+      pkgs.coreutils
     ];
-    runtimeEnv.ID = id;
-    text = builtins.readFile ../shell/bin/monitor.sh;
+    text = ''
+      state() {
+        now=$(hyprctl hyprsunset temperature 2>/dev/null | tr -dc '0-9' || true)
+        if [ -n "$now" ] && [ "$now" -lt 6000 ]; then echo on; else echo off; fi
+      }
+      case "''${1:-state}" in
+        state) state ;;
+        on) hyprctl hyprsunset temperature ${toString nightTemperature} >/dev/null ;;
+        off) hyprctl hyprsunset identity >/dev/null ;;
+        toggle) if [ "$(state)" = on ]; then "$0" off; else "$0" on; fi ;;
+        *) echo "Usage: $(basename "$0") on|off|toggle|state" >&2; exit 64 ;;
+      esac
+    '';
   };
 
   # Settings at a page and a row, for Search and people: <id>-settings [PAGE [ROW]]
   settingsCommand = pkgs.writeShellScriptBin "${id}-settings" ''
-    exec ${lib.getExe' pkgs.quickshell "qs"} -c ${id} ipc call settings open "''${1:-themes}" "''${2:-}"
+    exec ${lib.getExe' pkgs.quickshell "qs"} -c ${id} ipc call settings open "''${1:-home}" "''${2:-}"
   '';
+  # Settings among the apps, like any other
+  settingsEntry = pkgs.makeDesktopItem {
+    name = "${id}-settings";
+    desktopName = "Settings";
+    comment = "Network, sound, display, input, power, hotkeys, versions";
+    exec = "${id}-settings";
+    icon = "preferences-system";
+    categories = [ "Settings" ];
+  };
   greeterState = "/var/lib/${id}-greeter";
 
   # The login: Quickshell with shell/greeter in cage, as the user greeter
@@ -209,24 +252,6 @@ let
     "/run/wrappers/bin"
     "/run/current-system/sw/bin"
   ];
-
-  hypridleConfig = pkgs.writeText "hypridle.conf" ''
-    # Idle and sleep (modules/desktop.nix): lock through the shell of ${branding.name}
-    general {
-        lock_cmd = qs -c ${id} ipc call lock lock
-        before_sleep_cmd = loginctl lock-session
-        after_sleep_cmd = hyprctl dispatch 'hl.dsp.dpms({action = "on"})'
-    }
-    listener {
-        timeout = 300
-        on-timeout = loginctl lock-session
-    }
-    listener {
-        timeout = 330
-        on-timeout = hyprctl dispatch 'hl.dsp.dpms({action = "off"})'
-        on-resume = hyprctl dispatch 'hl.dsp.dpms({action = "on"})'
-    }
-  '';
 
   # Copied once into a new user's ~/.config/ghostty/config, then theirs to change
   ghosttyUser = pkgs.writeText "ghostty-config" ''
@@ -323,7 +348,6 @@ in
 
     environment.etc."xdg/${id}/hypr".source = hyprConfig;
     environment.etc."xdg/quickshell/${id}".source = ../shell/qml;
-    environment.etc."xdg/${id}/hypridle.conf".source = hypridleConfig;
     environment.etc."xdg/${id}/ghostty/defaults".source = ghosttyDefaults;
     environment.etc."xdg/${id}/ghostty/user".source = ghosttyUser;
     environment.sessionVariables = {
@@ -450,6 +474,7 @@ in
 
     environment.systemPackages = with pkgs; [
       settingsCommand
+      settingsEntry
       captureCommand
       monitorCommand
       btop
@@ -464,6 +489,8 @@ in
       zed-editor
       jq
       amberol
+      idleCommand
+      nightlightCommand
     ]
     ++ [
       adwaita-icon-theme
@@ -503,7 +530,7 @@ in
       wantedBy = [ "graphical-session.target" ];
       path = [ pkgs.quickshell config.programs.hyprland.package pkgs.systemd ];
       serviceConfig = {
-        ExecStart = "${lib.getExe pkgs.hypridle} -c /etc/xdg/${id}/hypridle.conf";
+        ExecStart = "${lib.getExe idleCommand} run";
         Restart = "on-failure";
       };
     };
@@ -517,6 +544,62 @@ in
         ExecStart = "${pkgs.hyprpolkitagent}/libexec/hyprpolkitagent";
         Restart = "on-failure";
       };
+    };
+
+    # The night light: hyprsunset with the hours of /etc/xdg/hypr/hyprsunset.conf, or the user's
+    # own ~/.config/hypr/hyprsunset.conf
+    environment.etc."xdg/hypr/hyprsunset.conf" = lib.mkIf (!cfg.live) {
+      text = ''
+        profile {
+            time = 7:00
+            identity = true
+        }
+
+        profile {
+            time = 20:00
+            temperature = ${toString nightTemperature}
+        }
+      '';
+    };
+    systemd.user.services."${id}-nightlight" = lib.mkIf (!cfg.live) {
+      description = "Warmer colors in the evening";
+      partOf = [ "graphical-session.target" ];
+      after = [ "graphical-session.target" ];
+      wantedBy = [ "graphical-session.target" ];
+      script = ''
+        if [ ! -e "''${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hyprsunset.conf" ]; then
+          export XDG_CONFIG_HOME=/etc/xdg
+        fi
+        exec ${lib.getExe pkgs.hyprsunset}
+      '';
+      serviceConfig = {
+        Restart = "on-failure";
+        RestartSec = 2;
+      };
+    };
+
+    # The first login shows the cheat sheet once: the keys are all one needs to know
+    systemd.user.services."${id}-welcome" = lib.mkIf (!cfg.live) {
+      description = "Show the cheat sheet at the first login";
+      partOf = [ "graphical-session.target" ];
+      after = [ "${id}-shell.service" ];
+      wantedBy = [ "graphical-session.target" ];
+      path = [ pkgs.quickshell pkgs.coreutils ];
+      serviceConfig.Type = "oneshot";
+      script = ''
+        seen="''${XDG_STATE_HOME:-$HOME/.local/state}/${id}/welcomed"
+        [ ! -e "$seen" ] || exit 0
+        for _ in $(seq 1 30); do
+          if [ "$(qs -c ${id} ipc call cheatsheet isOpen 2>/dev/null)" = false ]; then
+            sleep 3
+            qs -c ${id} ipc call cheatsheet toggle
+            mkdir -p "''${seen%/*}"
+            touch "$seen"
+            exit 0
+          fi
+          sleep 2
+        done
+      '';
     };
 
     # A new user gets the Ghostty config that follows the theme; an existing one stays. The link to
