@@ -1,0 +1,145 @@
+# The prompt of every shell in a terminal (modules/apps/prompt.nix): segments for time, user,
+# git and the path, as powerline bars. It needs a Nerd Font, which Ghostty has.
+#
+# The colors are the palette "strix" below. The theme engine writes this file again with the
+# palette in the colors of the session's god ($XDG_RUNTIME_DIR/<id>/theme/starship.toml): the
+# bars run from the surface to the accent, the path in the accent. The palette here is
+# Saturnus, the default, for shells without a graphical session.
+
+add_newline = true
+format = "[░▒▓](bar)$os$time[](fg:bar bg:host)$hostname$localip[](fg:host bg:user)$username[](fg:user bg:level)$shlvl$sudo[](fg:level bg:git)$git_branch$git_status$package$docker_context[](fg:git bg:path)$directory[](fg:path)$line_break$character[ ](fg:text)"
+palette = "strix"
+right_format = "$status$cmd_duration"
+
+[character]
+disabled = false
+error_symbol = "[❯](bold fg:error)"
+success_symbol = "[❯](bold fg:accent_text)"
+vimcmd_replace_one_symbol = "[▶](bold fg:mode)"
+vimcmd_replace_symbol = "[▶](bold fg:mode)"
+vimcmd_symbol = "[❮](bold fg:accent_text)"
+vimcmd_visual_symbol = "[V](bold fg:warning)"
+
+[cmd_duration]
+format = "[  $duration ]($style)"
+min_time = 3000
+show_milliseconds = false
+style = "fg:text"
+
+[directory]
+disabled = false
+format = "($style)[$read_only]($read_only_style)[ $path ]($style)"
+home_symbol = " "
+read_only = ""
+read_only_style = "fg:path_text bg:path"
+style = "fg:path_text bg:path"
+truncate_to_repo = true
+truncation_length = 6
+truncation_symbol = " /"
+
+[docker_context]
+format = "[[ $symbol( $context) ](fg:git_text bg:git)]($style)"
+style = "bg:git"
+symbol = ""
+
+[git_branch]
+format = "[[ $symbol $branch ](fg:git_text bg:git)]($style)"
+style = "bg:git"
+symbol = ""
+truncation_length = 32
+truncation_symbol = "…"
+
+[git_status]
+format = "[[($all_status$ahead_behind )](fg:git_text bg:git)]($style)"
+style = "bg:git"
+
+[hostname]
+disabled = false
+format = "[$ssh_symbol]($style)[ 󰍹  $hostname ]($style)"
+ssh_only = true
+ssh_symbol = " 󱘖 "
+style = "fg:host_text bg:host"
+
+[jobs]
+format = "[$symbol]($style)"
+number_threshold = 1
+style = "fg:text_muted bold"
+symbol = "⚙ "
+symbol_threshold = 1
+
+[line_break]
+disabled = false
+
+[localip]
+disabled = false
+format = "[ 󰩟 $localipv4 ]($style)"
+ssh_only = true
+style = "fg:host_text bg:host"
+
+[os]
+disabled = false
+format = "[ $symbol ]($style)"
+style = "fg:bar_text bg:bar"
+
+[os.symbols]
+# Strix (ID=strix) is not a name starship knows: it says Linux, and gets the NixOS snowflake
+Linux = "󱄅"
+NixOS = "󱄅"
+Unknown = "󱄅"
+
+[package]
+format = "[  $version ](fg:git_text bg:git)"
+
+[palettes.strix]
+# Written anew per god by the theme engine (adapters::starship); these are Saturnus
+accent_text = "#f2556a"
+bar = "#1b1917"
+bar_text = "#a09a8f"
+error = "#ff6b78"
+git = "#a50d26"
+git_text = "#ffffff"
+host = "#2f2c28"
+host_text = "#ece6da"
+level = "#d9a441"
+level_text = "#0b0a09"
+mode = "#f2556a"
+path = "#c8102e"
+path_text = "#ffffff"
+text = "#ece6da"
+text_muted = "#a09a8f"
+user = "#712829"
+user_text = "#ece6da"
+warning = "#d9a441"
+
+[shlvl]
+disabled = false
+format = "[ $symbol $shlvl ]($style)"
+style = "fg:level_text bg:level"
+symbol = ""
+threshold = 2
+
+[status]
+disabled = false
+format = "[$symbol$status ]($style)"
+signal_symbol = "✘ "
+style = "fg:error"
+symbol = "✘ "
+
+[sudo]
+disabled = false
+format = "[ $symbol ]($style)"
+style = "fg:level_text bg:level"
+symbol = "󰌆 "
+
+[time]
+disabled = false
+format = "[[   $time ](fg:bar_text bg:bar)]($style)"
+style = "bg:bar"
+time_format = "%H:%M"
+
+[username]
+disabled = false
+format = "[  ]($style)[ $user ](fg:user_text bg:user)"
+show_always = true
+style_root = "fg:accent_text bg:user"
+style_user = "fg:user_text bg:user"

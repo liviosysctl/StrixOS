@@ -13,6 +13,12 @@
       url = "github:liviosysctl/StrixUI";
       flake = false;
     };
+    # The index of every command in nixpkgs, built upstream every week: comma and "command not
+    # found" look things up in it (modules/terminal.nix)
+    nix-index-database = {
+      url = "github:nix-community/nix-index-database";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     # Zen, the browser of Strix (not in nixpkgs). Its Home Manager module is not used, so that
     # input points nowhere.
     zen-browser = {

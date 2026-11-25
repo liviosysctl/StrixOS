@@ -751,6 +751,8 @@ in
         SESSION_HOOK = "${sessionHook}";
         PKEXEC = "/run/wrappers/bin/pkexec";
         THEME_COMMAND = themeCommand;
+        # The prompt's configuration, written again in the colors of the god (modules/prompt.nix)
+        PROMPT_BASE = "${../shell/starship.toml}";
         # The shape and the settings of Zen: the file of ${branding.name}, then the user's own
         BROWSER_BASE = "${../shell/browser.toml}";
         BROWSER_USER = "%E/${id}/browser.toml";

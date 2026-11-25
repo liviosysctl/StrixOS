@@ -867,6 +867,7 @@ fn session_settings(config: &Config) -> Result<session::Settings, String> {
         hook: text("SESSION_HOOK").map(PathBuf::from),
         pkexec: PathBuf::from(text("PKEXEC").unwrap_or_else(|| "pkexec".into())),
         command: text("THEME_COMMAND").map(PathBuf::from),
+        prompt: text("PROMPT_BASE").map(PathBuf::from),
         browser: ["BROWSER_BASE", "BROWSER_USER"]
             .into_iter()
             .filter_map(text)

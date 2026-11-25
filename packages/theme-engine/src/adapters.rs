@@ -93,6 +93,86 @@ pub fn ghostty(theme: &Theme, variant: &Variant) -> String {
     out
 }
 
+/// lazygit.yml: the colors of lazygit, read after its settings. The frame of the active pane and
+/// the search stand in the accent, the chosen line on the raised surface.
+pub fn lazygit(theme: &Theme, variant: &Variant) -> String {
+    let accent_text = extra_or(variant, "accent-text", "accent").hex();
+    let row = |name: &str, color: Rgb, bold: bool| {
+        let bold = if bold { ", bold" } else { "" };
+        format!("    {name}: [\"{}\"{bold}]\n", color.hex())
+    };
+    let mut out = format!(
+        "# The colors of {} ({}:{}), written by the theme engine.\ngui:\n  theme:\n",
+        theme.name, theme.id, variant.id
+    );
+    out.push_str(&format!(
+        "    activeBorderColor: [\"{accent_text}\", bold]\n"
+    ));
+    out.push_str(&format!(
+        "    searchingActiveBorderColor: [\"{accent_text}\", bold]\n"
+    ));
+    out.push_str(&row("inactiveBorderColor", variant.color("border"), false));
+    out.push_str(&row("optionsTextColor", variant.color("text-muted"), false));
+    out.push_str(&row(
+        "selectedLineBgColor",
+        extra_or(variant, "surface-raised", "surface"),
+        false,
+    ));
+    out.push_str(&row(
+        "inactiveViewSelectedLineBgColor",
+        variant.color("surface"),
+        false,
+    ));
+    out.push_str(&row(
+        "cherryPickedCommitBgColor",
+        variant.color("accent"),
+        false,
+    ));
+    out.push_str(&row(
+        "cherryPickedCommitFgColor",
+        variant.color("on-accent"),
+        false,
+    ));
+    out.push_str(&row("unstagedChangesColor", variant.color("error"), false));
+    out.push_str(&row("defaultFgColor", variant.color("text"), false));
+    out
+}
+
+/// shell.sh: what the tools of the terminal take from the environment, read by the shells before
+/// every prompt. Folders in listings (eza, ls) and what fzf marks stand in the accent.
+pub fn shell_env(theme: &Theme, variant: &Variant) -> String {
+    let accent = extra_or(variant, "accent-text", "accent");
+    let muted = variant.color("text-muted");
+    let ansi = |c: Rgb| format!("38;2;{};{};{}", c.r, c.g, c.b);
+    let fzf = [
+        ("fg", variant.color("text-muted")),
+        ("fg+", variant.color("text")),
+        ("bg+", extra_or(variant, "surface-raised", "surface")),
+        ("hl", accent),
+        ("hl+", accent),
+        ("pointer", accent),
+        ("marker", accent),
+        ("prompt", accent),
+        ("spinner", accent),
+        ("info", extra_or(variant, "text-faint", "text-muted")),
+        ("border", variant.color("border")),
+        ("header", muted),
+    ]
+    .map(|(name, color)| format!("{name}:{}", color.hex()))
+    .join(",");
+    format!(
+        "# The colors of {} ({}:{}), written by the theme engine.\n\
+         export EZA_COLORS='di=1;{dir}:da={date}'\n\
+         export LS_COLORS='di=1;{dir}'\n\
+         export FZF_DEFAULT_OPTS='--color={fzf}'\n",
+        theme.name,
+        theme.id,
+        variant.id,
+        dir = ansi(accent),
+        date = ansi(muted),
+    )
+}
+
 /// btop.theme: the system monitor in the colors of the theme. The boxes and lines are the
 /// borders, figures that need attention the accent; loads run from quiet text to the accent,
 /// temperatures from success over warning to error.
@@ -163,6 +243,70 @@ pub fn btop(theme: &Theme, variant: &Variant) -> String {
     );
     for (name, color) in rows {
         out.push_str(&format!("theme[{name}]=\"{}\"\n", color.hex()));
+    }
+    out
+}
+
+/// The palette of the prompt (shell/starship.toml), by its names: the bars run from the surface
+/// to the accent, the path last and in the accent itself
+fn starship_colors(variant: &Variant) -> [(&'static str, Rgb); 18] {
+    let text = variant.color("text");
+    let on_accent = variant.color("on-accent");
+    let accent = variant.color("accent");
+    let warning = variant.color("warning");
+    [
+        ("accent_text", extra_or(variant, "accent-text", "accent")),
+        ("bar", extra_or(variant, "surface-raised", "surface")),
+        ("bar_text", variant.color("text-muted")),
+        ("error", variant.color("error")),
+        ("git", extra_or(variant, "accent-pressed", "accent")),
+        ("git_text", on_accent),
+        ("host", variant.color("border")),
+        ("host_text", text),
+        ("level", warning),
+        ("level_text", variant.color("background")),
+        ("mode", extra_or(variant, "accent-text", "accent")),
+        ("path", accent),
+        ("path_text", on_accent),
+        ("text", text),
+        ("text_muted", variant.color("text-muted")),
+        ("user", extra_or(variant, "border-active", "border")),
+        ("user_text", text),
+        ("warning", warning),
+    ]
+}
+
+/// starship.toml: the prompt's configuration `base` (shell/starship.toml) with its palette
+/// `strix` in the colors of the theme. The rest of `base` stays as it is.
+pub fn starship(theme: &Theme, variant: &Variant, base: &str) -> String {
+    let mut palette = format!(
+        "[palettes.strix]\n# The colors of {} ({}:{}), written by the theme engine\n",
+        theme.name, theme.id, variant.id
+    );
+    for (name, color) in starship_colors(variant) {
+        palette.push_str(&format!("{name} = \"{}\"\n", color.hex()));
+    }
+    let mut out = String::new();
+    let mut inside = false;
+    let mut written = false;
+    for line in base.lines() {
+        let header = line.trim_start().starts_with('[');
+        if header {
+            inside = line.trim() == "[palettes.strix]";
+            if inside {
+                out.push_str(&palette);
+                written = true;
+                continue;
+            }
+        }
+        if !inside {
+            out.push_str(line);
+            out.push('\n');
+        }
+    }
+    if !written {
+        out.push('\n');
+        out.push_str(&palette);
     }
     out
 }
@@ -815,5 +959,47 @@ mod tests {
         assert!(prefs.contains("user_pref(\"zen.widget.linux.transparency\", true);\n"));
         assert!(prefs.contains("user_pref(\"zen.watermark.enabled\", false);\n"));
         assert!(prefs.contains("user_pref(\"a.name\", \"x\");\n"));
+    }
+
+    #[test]
+    fn starship_replaces_only_the_palette() {
+        let theme = good();
+        let variant = theme.variant("dark").unwrap();
+        let base = "palette = \"strix\"\n\n[directory]\nstyle = \"fg:path_text bg:path\"\n\n[palettes.strix]\npath = \"#c8102e\"\nold = \"#123456\"\n\n[time]\nformat = \"x\"\n";
+        let toml = starship(&theme, variant, base);
+        assert!(
+            toml.starts_with("palette = \"strix\"\n\n[directory]\n"),
+            "{toml}"
+        );
+        assert!(toml.contains("path = \"#c8102e\"\n"), "{toml}");
+        assert!(toml.contains("path_text = \"#ffffff\"\n"), "{toml}");
+        assert!(!toml.contains("old ="), "{toml}");
+        assert!(toml.contains("[time]\nformat = \"x\"\n"), "{toml}");
+        assert_eq!(toml.matches("[palettes.strix]").count(), 1);
+        // a base without the palette gets it at the end
+        let bare = starship(&theme, variant, "palette = \"strix\"\n");
+        assert!(
+            bare.starts_with("palette = \"strix\"\n\n[palettes.strix]\n"),
+            "{bare}"
+        );
+    }
+
+    #[test]
+    fn lazygit_and_the_shell_take_the_accent() {
+        let theme = good();
+        let variant = &theme.variants["dark"];
+        let lazygit = lazygit(&theme, variant);
+        assert!(
+            lazygit.contains("gui:\n  theme:\n    activeBorderColor: [\"#"),
+            "{lazygit}"
+        );
+        assert!(lazygit.contains("    cherryPickedCommitBgColor: [\"#c8102e\"]\n"));
+        let shell = shell_env(&theme, variant);
+        assert!(shell.contains("export EZA_COLORS='di=1;38;2;"), "{shell}");
+        assert!(
+            shell.contains("export FZF_DEFAULT_OPTS='--color=fg:#"),
+            "{shell}"
+        );
+        assert!(!shell.contains('"'));
     }
 }

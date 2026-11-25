@@ -14,6 +14,8 @@
     ./desktop.nix
     ./tools.nix
     ./fastfetch.nix
+    ./terminal.nix
+    ./prompt.nix
     ./apps.nix
     ./store.nix
     ./secure-boot.nix
