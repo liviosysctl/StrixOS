@@ -5,7 +5,7 @@
 use nucleo_matcher::pattern::{CaseMatching, Normalization, Pattern};
 use nucleo_matcher::{Config as MatcherConfig, Matcher, Utf32Str};
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs;
 use std::io::Read;
 use std::path::Path;
@@ -130,6 +130,49 @@ pub fn load(path: &Path) -> Result<Index, String> {
     serde_json::from_str(&text).map_err(|e| format!("{} is not an index: {e}", path.display()))
 }
 
+/// What the system brings along (SYSTEM_FILE, written by the module from its packages): name,
+/// version, description and homepage of each. Their names mark the packages of the index that
+/// are built in; one the index does not have (Zen comes from its own flake) joins it.
+pub fn system(path: &Path) -> Result<Vec<Package>, String> {
+    #[derive(Deserialize)]
+    struct Entry {
+        name: String,
+        #[serde(default)]
+        version: String,
+        #[serde(default)]
+        description: String,
+        #[serde(default)]
+        homepage: Option<String>,
+    }
+    let text =
+        fs::read_to_string(path).map_err(|e| format!("cannot read {}: {e}", path.display()))?;
+    let entries: Vec<Entry> = serde_json::from_str(&text)
+        .map_err(|e| format!("{} is not a list of packages: {e}", path.display()))?;
+    Ok(entries
+        .into_iter()
+        .map(|e| Package {
+            attr: e.name.clone(),
+            pname: e.name,
+            version: e.version,
+            description: e.description.trim().to_string(),
+            unfree: false,
+            homepage: e.homepage,
+        })
+        .collect())
+}
+
+/// The sets of nixpkgs that hold apps rather than libraries
+const APP_SETS: [&str; 8] = [
+    "kdePackages",
+    "libsForQt5",
+    "gnome",
+    "xfce",
+    "mate",
+    "pantheon",
+    "cinnamon",
+    "lxqt",
+];
+
 /// One search result
 #[derive(Serialize, Debug, PartialEq)]
 pub struct Hit<'a> {
@@ -139,12 +182,15 @@ pub struct Hit<'a> {
     pub score: u32,
 }
 
-/// The packages that fit `text`, best first. The name counts fully, the attribute path a little
-/// less, the description at a third; an exact name wins. Without text: the installed ones.
+/// The packages that fit `text`, best first. The name counts fully (the package's, or the one
+/// `names` gives it by attribute: "Zen" for zen-beta), the attribute path a little less, the
+/// description at a third; an exact name wins, an app of the catalog comes early and a package
+/// in a set late. Without text: the installed ones.
 pub fn search<'a>(
     index: &'a Index,
     text: &str,
     installed: &HashSet<String>,
+    names: &HashMap<String, String>,
     limit: usize,
 ) -> Vec<Hit<'a>> {
     let text = text.trim();
@@ -172,7 +218,10 @@ pub fn search<'a>(
         .packages
         .iter()
         .filter_map(|p| {
-            let name = pattern.score(Utf32Str::new(&p.pname, &mut buf), &mut matcher);
+            let shown = names.get(&p.attr);
+            let name = pattern
+                .score(Utf32Str::new(&p.pname, &mut buf), &mut matcher)
+                .max(shown.and_then(|n| pattern.score(Utf32Str::new(n, &mut buf), &mut matcher)));
             let attr = pattern
                 .score(Utf32Str::new(&p.attr, &mut buf), &mut matcher)
                 .map(|s| s * 4 / 5);
@@ -184,8 +233,23 @@ pub fn search<'a>(
                     .map(|s| s / 3)
             };
             let mut score = name.max(attr).max(description)?;
-            if p.pname.to_lowercase() == lower {
+            // Packages in a set (rPackages.gim, python3Packages.x) are mostly libraries: they
+            // count half and an exact name does not lift them, unless the set holds apps or the
+            // catalog names them
+            let set = p.attr.split_once('.').map(|(set, _)| set);
+            let in_set = set.is_some_and(|set| !APP_SETS.contains(&set)) && shown.is_none();
+            if !in_set
+                && (p.pname.to_lowercase() == lower
+                    || shown.is_some_and(|n| n.to_lowercase() == lower))
+            {
                 score += 1000;
+            }
+            if in_set {
+                score /= 2;
+            }
+            // What the catalog names is what most people look for, when its name fits
+            if shown.is_some() && name.is_some() {
+                score += 600;
             }
             Some(Hit {
                 package: p,
@@ -289,18 +353,63 @@ mod tests {
     fn the_exact_name_comes_first() {
         let index = fixture();
         let none = HashSet::new();
-        let hits = search(&index, "firefox", &none, 10);
+        let hits = search(&index, "firefox", &none, &HashMap::new(), 10);
         assert_eq!(hits[0].package.attr, "firefox");
         assert_eq!(hits[1].package.attr, "firefox-esr");
         assert_eq!(
-            search(&index, "kate", &none, 10)[0].package.attr,
+            search(&index, "kate", &none, &HashMap::new(), 10)[0]
+                .package
+                .attr,
             "kdePackages.kate"
         );
         // The description finds it, below any name
-        let hits = search(&index, "image manipulation", &none, 10);
+        let hits = search(&index, "image manipulation", &none, &HashMap::new(), 10);
         assert_eq!(hits[0].package.attr, "gimp");
-        assert!(search(&index, "zzzzqqq", &none, 10).is_empty());
-        assert_eq!(search(&index, "e", &none, 2).len(), 2);
+        assert!(search(&index, "zzzzqqq", &none, &HashMap::new(), 10).is_empty());
+        // The catalog's name counts like the package's
+        let names = HashMap::from([("kdePackages.kate".to_string(), "Kate Editor".to_string())]);
+        assert_eq!(
+            search(&index, "kate editor", &none, &names, 10)[0]
+                .package
+                .attr,
+            "kdePackages.kate"
+        );
+        assert_eq!(search(&index, "e", &none, &HashMap::new(), 2).len(), 2);
+    }
+
+    #[test]
+    fn apps_before_libraries() {
+        let package = |attr: &str, pname: &str| Package {
+            attr: attr.into(),
+            pname: pname.into(),
+            version: "1".into(),
+            description: String::new(),
+            unfree: false,
+            homepage: None,
+        };
+        let index = Index {
+            source: "x".into(),
+            packages: vec![
+                package("rPackages.gim", "gim"),
+                package("gimp", "gimp"),
+                package("emacsPackages.python", "python"),
+                package("python3", "python3"),
+                package("kdePackages.kate", "kate"),
+                package("katex", "katex"),
+            ],
+        };
+        let none = HashSet::new();
+        let first = |text: &str, names: &HashMap<String, String>| {
+            search(&index, text, &none, names, 5)[0]
+                .package
+                .attr
+                .clone()
+        };
+        let names = HashMap::from([("gimp".to_string(), "GIMP".to_string())]);
+        assert_eq!(first("gim", &names), "gimp");
+        assert_eq!(first("python", &names), "python3");
+        // A set of apps is no set of libraries
+        assert_eq!(first("kate", &names), "kdePackages.kate");
     }
 
     #[test]
@@ -312,14 +421,14 @@ mod tests {
         fs::write(&apps, r#"{"version": 1, "packages": [{"attr": "gimp"}, {"attr": "spotify", "unfree": "spotify"}]}"#).unwrap();
         let installed = installed(&apps);
         assert_eq!(installed.len(), 2);
-        let hits = search(&index, "", &installed, 10);
+        let hits = search(&index, "", &installed, &HashMap::new(), 10);
         assert_eq!(
             hits.iter()
                 .map(|h| h.package.attr.as_str())
                 .collect::<Vec<_>>(),
             ["gimp", "spotify"]
         );
-        assert!(search(&index, "gimp", &installed, 10)[0].installed);
+        assert!(search(&index, "gimp", &installed, &HashMap::new(), 10)[0].installed);
         assert!(super::installed(&dir.join("missing.json")).is_empty());
     }
 

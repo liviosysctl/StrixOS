@@ -3,6 +3,8 @@
 //!
 //! ```text
 //! {"id": 1, "method": "search", "params": {"text": "gimp", "limit": 40}}  -> {"results": [...], "ready": true}
+//! {"id": 1, "method": "home"}        -> {"ready": true, "count": 152000, "featured": [...], "categories": [...]}
+//! {"id": 1, "method": "installed"}   -> {"store": [...], "system": [...]}
 //! {"id": 2, "method": "install", "params": {"attr": "gimp"}}              -> {"started": true}
 //! {"id": 2, "method": "install", "params": {"attr": "spotify", "proprietary": true}}
 //!   (a proprietary package is installed only when the user agreed to it, Q7)
@@ -12,14 +14,20 @@
 //! {"event": "done", "data": {"action": "install", "attr": "gimp", "ok": true, "code": 0}}
 //! ```
 //!
+//! Every package in an answer is a card: its fields of the index, `name` (the catalog's or the
+//! package's), `installed`, `builtIn` (it comes with the system: it is not installed or removed
+//! from here) and `icon`, the path of its icon when one was found.
+//!
 //! Installing and removing go through the apps tool (`<id>-apps add|remove`, which rebuilds the
 //! system) with pkexec; polkit lets the active local session do that without a password (Q4).
 //! One job at a time.
 
-use crate::index::{self, Index};
+use crate::catalog::Catalog;
+use crate::icons::Icons;
+use crate::index::{self, Index, Package};
 use serde::Serialize;
 use serde_json::{Value, json};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::io::{BufRead, BufReader, Write};
 use std::os::unix::fs::PermissionsExt;
@@ -41,6 +49,12 @@ pub struct Config {
     /// pkexec, or None to run the apps tool directly (tests)
     pub pkexec: Option<PathBuf>,
     pub socket: PathBuf,
+    /// shell/store.toml: suggestions, categories, names and icons
+    pub catalog_file: Option<PathBuf>,
+    /// The folders of app icons, the first one wins
+    pub icon_dirs: Vec<PathBuf>,
+    /// What the system brings along (index::system)
+    pub system_file: Option<PathBuf>,
 }
 
 #[derive(Serialize, Clone, Debug, Default)]
@@ -57,6 +71,16 @@ pub struct State {
     pub cfg: Config,
     index: Option<Index>,
     index_time: Option<SystemTime>,
+    /// The position of each attribute in the index
+    by_attr: HashMap<String, usize>,
+    catalog: Catalog,
+    icons: Icons,
+    /// The packages of the system
+    system: Vec<Package>,
+    /// Their names
+    built_in: HashSet<String>,
+    /// The catalog's names of apps by attribute, for the search
+    names: HashMap<String, String>,
     pub job: Option<Job>,
 }
 
@@ -74,14 +98,44 @@ pub fn valid_attr(attr: &str) -> bool {
 
 impl State {
     pub fn new(cfg: Config) -> State {
+        let catalog = match &cfg.catalog_file {
+            Some(path) => Catalog::load(path).unwrap_or_else(|e| {
+                eprintln!("store: {e}");
+                Catalog::default()
+            }),
+            None => Catalog::default(),
+        };
+        let system = match &cfg.system_file {
+            Some(path) => index::system(path).unwrap_or_else(|e| {
+                eprintln!("store: {e}");
+                Vec::new()
+            }),
+            None => Vec::new(),
+        };
+        let names = catalog
+            .apps
+            .iter()
+            .filter_map(|(attr, app)| Some((attr.clone(), app.name.clone()?)))
+            .collect();
         let mut state = State {
+            names,
+            icons: Icons::scan(&cfg.icon_dirs),
+            built_in: system.iter().map(|p| p.pname.clone()).collect(),
+            system,
+            catalog,
             cfg,
             index: None,
             index_time: None,
+            by_attr: HashMap::new(),
             job: None,
         };
         state.refresh();
         state
+    }
+
+    /// The icons again: an app that was just installed may have brought its own
+    pub fn rescan_icons(&mut self) {
+        self.icons = Icons::scan(&self.cfg.icon_dirs);
     }
 
     /// Reads the index again when the index service wrote a new one
@@ -93,7 +147,23 @@ impl State {
             return;
         }
         match index::load(&self.cfg.index_file) {
-            Ok(index) => {
+            Ok(mut index) => {
+                // What the system brings along and nixpkgs does not have joins the index
+                let names: HashSet<&str> =
+                    index.packages.iter().map(|p| p.pname.as_str()).collect();
+                let extra: Vec<Package> = self
+                    .system
+                    .iter()
+                    .filter(|p| !names.contains(p.pname.as_str()))
+                    .cloned()
+                    .collect();
+                index.packages.extend(extra);
+                self.by_attr = index
+                    .packages
+                    .iter()
+                    .enumerate()
+                    .map(|(i, p)| (p.attr.clone(), i))
+                    .collect();
                 self.index = Some(index);
                 self.index_time = time;
             }
@@ -103,8 +173,100 @@ impl State {
                 }
                 self.index = None;
                 self.index_time = None;
+                self.by_attr.clear();
             }
         }
+    }
+
+    /// A package as the window shows it (see the top of this file)
+    fn card(&self, p: &Package, installed: &HashSet<String>) -> Value {
+        let from_store = installed.contains(&p.attr);
+        let built_in = !from_store && self.built_in.contains(&p.pname);
+        let app = self.catalog.app(&p.attr);
+        let mut card = serde_json::to_value(p).unwrap_or_else(|_| json!({}));
+        card["name"] = json!(app.and_then(|a| a.name.as_deref()).unwrap_or(&p.pname));
+        card["installed"] = json!(from_store || built_in);
+        card["builtIn"] = json!(built_in);
+        if let Some(icon) = self
+            .icons
+            .find(app.and_then(|a| a.icon.as_deref()), &p.pname, &p.attr)
+        {
+            card["icon"] = json!(icon.to_string_lossy());
+        }
+        card
+    }
+
+    fn package(&self, attr: &str) -> Option<&Package> {
+        let index = self.index.as_ref()?;
+        self.by_attr.get(attr).map(|&i| &index.packages[i])
+    }
+
+    /// The cards of these attributes, leaving out what the index does not have
+    fn cards<'a>(
+        &self,
+        attrs: impl IntoIterator<Item = &'a String>,
+        installed: &HashSet<String>,
+    ) -> Vec<Value> {
+        attrs
+            .into_iter()
+            .filter_map(|attr| self.package(attr))
+            .map(|p| self.card(p, installed))
+            .collect()
+    }
+
+    /// The first page: the suggestions and every category with its apps
+    pub fn home(&mut self) -> Value {
+        self.refresh();
+        let installed = self.installed();
+        if self.index.is_none() {
+            return json!({ "ready": false, "featured": [], "categories": [] });
+        }
+        let categories: Vec<Value> = self
+            .catalog
+            .categories
+            .iter()
+            .map(|c| {
+                json!({
+                    "id": c.id,
+                    "name": c.name,
+                    "symbol": c.symbol,
+                    "about": c.about,
+                    "apps": self.cards(&c.apps, &installed),
+                })
+            })
+            .collect();
+        json!({
+            "ready": true,
+            "count": self.index.as_ref().map_or(0, |i| i.packages.len()),
+            "featured": self.cards(&self.catalog.featured, &installed),
+            "categories": categories,
+        })
+    }
+
+    /// What is installed from the Store, and the apps the system brings along that the catalog
+    /// knows (the rest of the system is tools and libraries)
+    pub fn installed_cards(&mut self) -> Value {
+        self.refresh();
+        let installed = self.installed();
+        let mut store: Vec<&String> = installed.iter().collect();
+        store.sort();
+        let known: HashSet<&str> = self.catalog.attrs().collect();
+        let system: Vec<Value> = self
+            .system
+            .iter()
+            .filter(|p| !installed.contains(&p.attr))
+            .filter_map(|p| {
+                // The index's entry where it has one: its description and its attribute
+                let found = self
+                    .index
+                    .as_ref()
+                    .and_then(|i| i.packages.iter().find(|q| q.pname == p.pname))
+                    .unwrap_or(p);
+                (known.contains(found.attr.as_str()) || known.contains(found.pname.as_str()))
+                    .then(|| self.card(found, &installed))
+            })
+            .collect();
+        json!({ "store": self.cards(store, &installed), "system": system })
     }
 
     fn installed(&self) -> HashSet<String> {
@@ -118,7 +280,10 @@ impl State {
             Some(index) => json!({
                 "ready": true,
                 "count": index.packages.len(),
-                "results": index::search(index, text, &installed, limit),
+                "results": index::search(index, text, &installed, &self.names, limit)
+                    .iter()
+                    .map(|hit| self.card(hit.package, &installed))
+                    .collect::<Vec<_>>(),
             }),
             None => json!({ "ready": false, "results": [] }),
         }
@@ -137,6 +302,15 @@ impl State {
             return Err("APPS_COMMAND is not set, this system cannot install from here".into());
         }
         let installed = self.installed().contains(attr);
+        if !installed
+            && self
+                .package(attr)
+                .is_some_and(|p| self.built_in.contains(&p.pname))
+        {
+            return Err(format!(
+                "{attr} comes with the system, it is not installed or removed here"
+            ));
+        }
         match action {
             "install" if installed => Err(format!("{attr} is already installed")),
             "remove" if !installed => Err(format!("{attr} is not installed")),
@@ -255,6 +429,7 @@ fn start(
         let code = status.as_ref().ok().and_then(|s| s.code()).unwrap_or(-1);
         let done = {
             let mut s = state.lock().unwrap_or_else(|p| p.into_inner());
+            s.rescan_icons();
             let job = s.job.get_or_insert_with(Job::default);
             job.running = false;
             job.code = Some(code);
@@ -294,12 +469,11 @@ pub fn answer(state: &Arc<Mutex<State>>, clients: &Clients, line: &str) -> Value
                 .unwrap_or_else(|p| p.into_inner())
                 .search(&text("text"), limit))
         }
-        "installed" => {
-            let s = state.lock().unwrap_or_else(|p| p.into_inner());
-            let mut list: Vec<String> = s.installed().into_iter().collect();
-            list.sort();
-            Ok(json!(list))
-        }
+        "home" => Ok(state.lock().unwrap_or_else(|p| p.into_inner()).home()),
+        "installed" => Ok(state
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .installed_cards()),
         "install" | "remove" => {
             let proprietary = params
                 .get("proprietary")
@@ -435,12 +609,29 @@ mod tests {
         )
         .unwrap();
         fs::set_permissions(&tool, fs::Permissions::from_mode(0o755)).unwrap();
+        fs::write(
+            dir.join("store.toml"),
+            "featured = [\"firefox\", \"gone\"]\n\n[[category]]\nid = \"internet\"\nname = \"Internet\"\nsymbol = \"globe\"\napps = [\"zen-beta\", \"firefox\", \"gimp\"]\n\n[apps]\nzen-beta = { name = \"Zen\", icon = \"zen-browser\" }\n",
+        )
+        .unwrap();
+        // The system brings Zen (not in nixpkgs) and Firefox ESR along, and a tool
+        fs::write(
+            dir.join("system.json"),
+            r#"[{"name": "zen-beta", "version": "1.0", "description": "Zen Browser"}, {"name": "firefox-esr", "version": "140"}, {"name": "jq"}]"#,
+        )
+        .unwrap();
+        fs::create_dir_all(dir.join("icons")).unwrap();
+        fs::write(dir.join("icons/zen-browser.svg"), "<svg/>").unwrap();
+        fs::write(dir.join("icons/org.mozilla.firefox.svg"), "<svg/>").unwrap();
         let cfg = Config {
             index_file: dir.join("index.json"),
             apps_file: dir.join("apps.json"),
             apps_command: Some(tool),
             pkexec: None,
             socket: dir.join("run/store.sock"),
+            catalog_file: Some(dir.join("store.toml")),
+            icon_dirs: vec![dir.join("icons")],
+            system_file: Some(dir.join("system.json")),
         };
         (dir, cfg)
     }
@@ -503,6 +694,74 @@ mod tests {
                 .unwrap_err()
                 .contains("still running")
         );
+    }
+
+    #[test]
+    fn the_first_page_and_what_is_installed() {
+        let (_, cfg) = setup("home");
+        let mut s = State::new(cfg);
+        let home = s.home();
+        assert_eq!(home["ready"], true);
+        // A featured app the index does not have is left out
+        let featured: Vec<&str> = home["featured"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|c| c["attr"].as_str().unwrap())
+            .collect();
+        assert_eq!(featured, ["firefox"]);
+        let firefox = &home["featured"][0];
+        assert_eq!(firefox["name"], "firefox");
+        assert_eq!(firefox["installed"], false);
+        assert!(
+            firefox["icon"]
+                .as_str()
+                .unwrap()
+                .ends_with("org.mozilla.firefox.svg")
+        );
+        let internet = &home["categories"][0];
+        assert_eq!(internet["symbol"], "globe");
+        // Zen is not in nixpkgs but comes with the system: built in, with its own name and icon
+        let zen = &internet["apps"][0];
+        assert_eq!(zen["name"], "Zen");
+        assert_eq!(zen["builtIn"], true);
+        assert_eq!(zen["installed"], true);
+        assert!(zen["icon"].as_str().unwrap().ends_with("zen-browser.svg"));
+        assert_eq!(internet["apps"][2]["attr"], "gimp");
+        assert_eq!(internet["apps"][2]["installed"], true);
+        assert_eq!(internet["apps"][2]["builtIn"], false);
+
+        // The search finds what the system brings along too, marked
+        let found = s.search("zen", 5);
+        assert_eq!(found["results"][0]["attr"], "zen-beta");
+        assert_eq!(found["results"][0]["builtIn"], true);
+        let esr = s.search("firefox-esr", 5);
+        assert_eq!(esr["results"][0]["builtIn"], true);
+
+        let installed = s.installed_cards();
+        assert_eq!(installed["store"][0]["attr"], "gimp");
+        // Only the apps the catalog knows: not firefox-esr or jq
+        let system: Vec<&str> = installed["system"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|c| c["attr"].as_str().unwrap())
+            .collect();
+        assert_eq!(system, ["zen-beta"]);
+
+        // Neither installed nor removed from here
+        for action in ["install", "remove"] {
+            assert!(
+                s.check(action, "zen-beta", false)
+                    .unwrap_err()
+                    .contains("comes with the system")
+            );
+            assert!(
+                s.check(action, "firefox-esr", false)
+                    .unwrap_err()
+                    .contains("comes with the system")
+            );
+        }
     }
 
     #[test]

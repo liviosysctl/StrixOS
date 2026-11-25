@@ -2,10 +2,13 @@
 //! removing apps through the apps tool. Every path comes from the environment, so the program
 //! knows nothing about the distribution (the same rule as the theme engine and Search).
 
+mod catalog;
+mod icons;
 mod index;
 mod server;
 
 use serde_json::{Value, json};
+use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::io::Write;
@@ -22,12 +25,14 @@ Usage: {name} <command>
                           Take the package list of a channel (packages.json, unpacked) or the
                           output of `nix-env -qaP --json --meta` from FILE (- for stdin)
   search TEXT             The packages that fit TEXT, best first
+  catalog FILE            Check a catalog (shell/store.toml) and print the apps it names
   serve                   The service for the Store window, on SOCKET
-  call METHOD [JSON]      One call to the service: search, installed, install, remove, job
+  call METHOD [JSON]      One call to the service: search, home, installed, install, remove, job
   follow METHOD JSON      Like call, then print the job's output until it is done
 
 Environment: INDEX_FILE, NIXPKGS, NIX_ENV, APPS_FILE, APPS_COMMAND, PKEXEC (\"none\": run the
-apps tool directly), SOCKET (default $XDG_RUNTIME_DIR/$STORE_ID/store.sock), STORE_ID.
+apps tool directly), SOCKET (default $XDG_RUNTIME_DIR/$STORE_ID/store.sock), STORE_ID,
+CATALOG_FILE, ICON_DIRS (folders of app icons, separated by :), SYSTEM_FILE.
 ";
 
 fn var(name: &str) -> Option<String> {
@@ -129,7 +134,7 @@ fn run(args: &[&str]) -> Result<(), String> {
             let installed = var("APPS_FILE")
                 .map(|f| index::installed(Path::new(&f)))
                 .unwrap_or_default();
-            for hit in index::search(&index, &text.join(" "), &installed, 20) {
+            for hit in index::search(&index, &text.join(" "), &installed, &HashMap::new(), 20) {
                 let p = hit.package;
                 let mark = if hit.installed { "*" } else { " " };
                 let unfree = if p.unfree { " (unfree)" } else { "" };
@@ -137,6 +142,16 @@ fn run(args: &[&str]) -> Result<(), String> {
                     "{mark} {:<32} {:<14} {}{unfree}",
                     p.attr, p.version, p.description
                 );
+            }
+            Ok(())
+        }
+        ["catalog", file] => {
+            let catalog = catalog::Catalog::load(Path::new(file))?;
+            let mut attrs: Vec<&str> = catalog.attrs().collect();
+            attrs.sort_unstable();
+            attrs.dedup();
+            for attr in attrs {
+                println!("{attr}");
             }
             Ok(())
         }
@@ -154,6 +169,11 @@ fn run(args: &[&str]) -> Result<(), String> {
                 apps_command: var("APPS_COMMAND").map(PathBuf::from),
                 pkexec,
                 socket: socket()?,
+                catalog_file: var("CATALOG_FILE").map(PathBuf::from),
+                icon_dirs: var("ICON_DIRS")
+                    .map(|dirs| env::split_paths(&dirs).collect())
+                    .unwrap_or_default(),
+                system_file: var("SYSTEM_FILE").map(PathBuf::from),
             })
         }
         ["call", method] => server::call(&socket()?, method, json!({}), false).map(|v| print(&v)),

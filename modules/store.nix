@@ -6,6 +6,11 @@
 # every channel update): reading all of nixpkgs with nix-env needs more memory than an old laptop
 # has. The index service fetches it after every switch that brings another nixpkgs and once a week.
 #
+# What the first page suggests and its categories come from shell/store.toml; the icons from the
+# apps of Papirus (nixpkgs has none), then from the icons the installed apps bring along. What the
+# system brings along by itself (Zen, Ghostty, Files...) is told to the service, so the Store shows
+# it as built in instead of offering it again.
+#
 # Q4: the active local session may run `<id>-apps add|remove <package>` without a password
 # (polkit); everything else of pkexec still asks.
 { config, lib, pkgs, ... }:
@@ -17,6 +22,44 @@ let
   store = pkgs.callPackage ../packages/store { };
   appsTool = lib.getExe config.system.build.distroTools.apps;
   cacheDir = "/var/cache/${id}/store";
+
+  # Only the app icons of Papirus, one size (they are vectors): a few links in that folder lead
+  # out of it, those become copies
+  papirus = "${pkgs.papirus-icon-theme}/share/icons/Papirus/64x64/apps";
+  appIcons = pkgs.runCommand "${id}-store-icons" { } ''
+    cp -r --no-preserve=mode ${papirus} $out
+    find $out -xtype l -print0 | while IFS= read -r -d "" link; do
+      rm "$link"
+      cp --no-preserve=mode -L "${papirus}/''${link#$out/}" "$link"
+    done
+  '';
+  iconDirs = [
+    appIcons
+    "/run/current-system/sw/share/icons/hicolor/scalable/apps"
+    "/run/current-system/sw/share/icons/hicolor/256x256/apps"
+    "/run/current-system/sw/share/icons/hicolor/128x128/apps"
+  ];
+
+  # What the system brings along, without what the Store installed
+  fromStore = map lib.getName config.${id}.apps.packages;
+  systemPackages = lib.filter (
+    p: lib.isDerivation p && !(builtins.elem (lib.getName p) fromStore)
+  ) config.environment.systemPackages;
+  systemFile = pkgs.writeText "${id}-store-system.json" (
+    builtins.toJSON (
+      map (
+        p:
+        {
+          name = lib.getName p;
+          version = lib.getVersion p;
+          description = p.meta.description or "";
+        }
+        // lib.optionalAttrs (builtins.isString (p.meta.homepage or null)) {
+          inherit (p.meta) homepage;
+        }
+      ) systemPackages
+    )
+  );
   indexFile = "${cacheDir}/index.json";
 in
 {
@@ -39,6 +82,13 @@ in
       default = store;
       readOnly = true;
       description = "The Store service and command.";
+    };
+
+    systemFile = lib.mkOption {
+      type = lib.types.path;
+      default = systemFile;
+      readOnly = true;
+      description = "What the system brings along, for the Store (name, version, description).";
     };
   };
 
@@ -97,6 +147,9 @@ in
         APPS_COMMAND = appsTool;
         PKEXEC = "/run/wrappers/bin/pkexec";
         SOCKET = "%t/${id}/store.sock";
+        CATALOG_FILE = "${../shell/store.toml}";
+        ICON_DIRS = lib.concatStringsSep ":" (map toString iconDirs);
+        SYSTEM_FILE = "${systemFile}";
       };
       serviceConfig = {
         ExecStart = "${lib.getExe cfg.package} serve";

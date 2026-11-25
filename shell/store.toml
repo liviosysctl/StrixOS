@@ -1,0 +1,147 @@
+# The catalog of the Store (packages/store/src/catalog.rs): the suggestions on its first page,
+# its categories, and the names and icons of apps where nixpkgs' own name does not say them.
+# nixpkgs has neither categories nor icons, so they are chosen here by hand; the search still
+# finds every package. Apps are named by their attribute in nixpkgs; one the system brings along
+# from elsewhere (Zen) by its package name. tests/eval.nix checks that every one exists.
+
+# The suggestions at the top of the first page: free apps worth having. Proprietary apps are not
+# in the channel's package list, so the Store cannot offer them anyway.
+featured = [
+  "obs-studio",
+  "gimp",
+  "libreoffice",
+  "vlc",
+  "blender",
+  "thunderbird",
+  "inkscape",
+  "signal-desktop",
+  "kdePackages.kdenlive",
+]
+
+[[category]]
+id = "internet"
+name = "Internet"
+symbol = "globe"
+about = "Browsers, mail and downloads"
+apps = ["zen-beta", "firefox", "chromium", "thunderbird", "qbittorrent", "filezilla", "localsend", "newsflash"]
+
+[[category]]
+id = "chat"
+name = "Chat"
+symbol = "inbox"
+about = "Messages, calls and meetings"
+apps = ["signal-desktop", "telegram-desktop", "element-desktop", "fractal", "dino"]
+
+[[category]]
+id = "office"
+name = "Office"
+symbol = "file"
+about = "Documents, notes and books"
+apps = ["libreoffice", "onlyoffice-desktopeditors", "joplin-desktop", "xournalpp", "calibre", "foliate", "papers"]
+
+[[category]]
+id = "graphics"
+name = "Graphics"
+symbol = "palette"
+about = "Drawing, photos and 3D"
+apps = ["gimp", "inkscape", "krita", "blender", "darktable", "pinta", "freecad", "upscayl"]
+
+[[category]]
+id = "media"
+name = "Music and video"
+symbol = "music"
+about = "Listening, watching, recording and cutting"
+apps = ["vlc", "mpv", "amberol", "obs-studio", "kdePackages.kdenlive", "audacity", "handbrake", "shortwave"]
+
+[[category]]
+id = "games"
+name = "Games"
+symbol = "disc-3"
+about = "Games and their launchers"
+apps = ["heroic", "lutris", "prismlauncher", "supertuxkart", "luanti", "retroarch"]
+
+[[category]]
+id = "learning"
+name = "Learning"
+symbol = "book-open"
+about = "For school and for finding things out"
+apps = ["anki", "stellarium", "gcompris", "kstars", "kdePackages.marble"]
+
+[[category]]
+id = "development"
+name = "Development"
+symbol = "square-terminal"
+about = "Editors, terminals and tools for code"
+apps = ["zed-editor", "vscodium", "ghostty", "github-desktop", "dbeaver-bin", "bruno", "meld"]
+
+[[category]]
+id = "tools"
+name = "Tools"
+symbol = "sliders-horizontal"
+about = "Files, passwords and the machine"
+apps = ["nautilus", "btop", "mission-center", "keepassxc", "bitwarden-desktop", "gnome-disk-utility", "baobab", "file-roller"]
+
+# Names and icons where the package does not carry them
+[apps]
+zen-beta = { name = "Zen", icon = "zen-browser" }
+chromium = { name = "Chromium" }
+thunderbird = { name = "Thunderbird" }
+qbittorrent = { name = "qBittorrent" }
+filezilla = { name = "FileZilla" }
+localsend = { name = "LocalSend" }
+newsflash = { name = "NewsFlash", icon = "com.gitlab.newsflash" }
+firefox = { name = "Firefox" }
+signal-desktop = { name = "Signal", icon = "signal-desktop" }
+telegram-desktop = { name = "Telegram", icon = "telegram" }
+element-desktop = { name = "Element", icon = "element-desktop" }
+fractal = { name = "Fractal", icon = "org.gnome.Fractal" }
+dino = { name = "Dino", icon = "im.dino.Dino" }
+libreoffice = { name = "LibreOffice", icon = "libreoffice-main" }
+onlyoffice-desktopeditors = { name = "ONLYOFFICE", icon = "onlyoffice-desktopeditors" }
+joplin-desktop = { name = "Joplin", icon = "joplin" }
+xournalpp = { name = "Xournal++", icon = "com.github.xournalpp.xournalpp" }
+calibre = { name = "calibre", icon = "calibre-gui" }
+foliate = { name = "Foliate", icon = "com.github.johnfactotum.Foliate" }
+papers = { name = "Papers", icon = "org.gnome.Papers" }
+gimp = { name = "GIMP" }
+inkscape = { name = "Inkscape" }
+krita = { name = "Krita" }
+blender = { name = "Blender" }
+darktable = { name = "darktable" }
+pinta = { name = "Pinta" }
+freecad = { name = "FreeCAD" }
+upscayl = { name = "Upscayl" }
+vlc = { name = "VLC" }
+mpv = { name = "mpv" }
+amberol = { name = "Amberol" }
+obs-studio = { name = "OBS Studio", icon = "com.obsproject.Studio" }
+"kdePackages.kdenlive" = { name = "Kdenlive" }
+audacity = { name = "Audacity" }
+handbrake = { name = "HandBrake", icon = "fr.handbrake.ghb" }
+shortwave = { name = "Shortwave", icon = "de.haeckerfelix.Shortwave" }
+heroic = { name = "Heroic", icon = "heroic" }
+lutris = { name = "Lutris" }
+prismlauncher = { name = "Prism Launcher", icon = "org.prismlauncher.PrismLauncher" }
+supertuxkart = { name = "SuperTuxKart" }
+luanti = { name = "Luanti", icon = "minetest" }
+retroarch = { name = "RetroArch" }
+anki = { name = "Anki" }
+stellarium = { name = "Stellarium" }
+gcompris = { name = "GCompris" }
+kstars = { name = "KStars" }
+"kdePackages.marble" = { name = "Marble" }
+zed-editor = { name = "Zed", icon = "zed" }
+vscodium = { name = "VSCodium" }
+ghostty = { name = "Ghostty" }
+github-desktop = { name = "GitHub Desktop" }
+dbeaver-bin = { name = "DBeaver", icon = "dbeaver" }
+bruno = { name = "Bruno" }
+meld = { name = "Meld" }
+nautilus = { name = "Files", icon = "org.gnome.Nautilus" }
+btop = { name = "btop" }
+mission-center = { name = "Mission Center", icon = "io.missioncenter.MissionCenter" }
+keepassxc = { name = "KeePassXC" }
+bitwarden-desktop = { name = "Bitwarden", icon = "bitwarden" }
+gnome-disk-utility = { name = "Disks", icon = "org.gnome.DiskUtility" }
+baobab = { name = "Disk Usage", icon = "org.gnome.baobab" }
+file-roller = { name = "File Roller", icon = "org.gnome.FileRoller" }

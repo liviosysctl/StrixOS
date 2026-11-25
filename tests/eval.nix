@@ -310,7 +310,31 @@ in
     assert lib.hasInfix "AUTH_ADMIN_KEEP" rule;
     # nixpkgs is named in the index unit, but not kept in the system
     assert !(builtins.hasContext cfg.systemd.services."${branding.id}-store-index".environment.NIXPKGS);
+    # The service knows what the system brings along, so it does not offer Zen or Ghostty again
+    assert lib.hasInfix "-store-system.json" cfg.systemd.user.services."${branding.id}-store".environment.SYSTEM_FILE;
+    assert lib.hasInfix "-store-icons" cfg.systemd.user.services."${branding.id}-store".environment.ICON_DIRS;
     cfg.${branding.id}.store.package;
+
+  # The catalog of the Store: every app it names is in nixpkgs or comes with the system (Zen,
+  # by its package name), and the service reads it (unique categories, none empty)
+  store-catalog =
+    let
+      catalog = builtins.fromTOML (builtins.readFile ../shell/store.toml);
+      attrs = lib.unique (
+        catalog.featured
+        ++ lib.concatMap (c: c.apps) catalog.category
+        ++ builtins.attrNames catalog.apps
+      );
+      system = map lib.getName reference.config.environment.systemPackages;
+      missing = lib.filter (
+        attr: !(lib.hasAttrByPath (lib.splitString "." attr) pkgs) && !(builtins.elem attr system)
+      ) attrs;
+      store = reference.config.${branding.id}.store.package;
+    in
+    assert lib.assertMsg (missing == [ ]) "store.toml names what is not there: ${toString missing}";
+    pkgs.runCommand "check-store-catalog" { } ''
+      ${lib.getExe store} catalog ${../shell/store.toml} > $out
+    '';
 
   # The search service with its unit tests (golden queries, the 5 ms budget, the socket), and the
   # system menu and command files checked by it: unique ids, groups that exist, no emoji

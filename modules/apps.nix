@@ -27,12 +27,23 @@ let
   # From the JSON file, not from pkgs: pkgs depends on nixpkgs.config,
   # looking into pkgs here would be an infinite recursion.
   unfreeNames = map (entry: entry.unfree) (lib.filter (entry: entry ? unfree) data.packages);
+
+  packages = lib.optionals ((data.version or 0) == 1) (lib.concatMap lookup data.packages);
 in
 {
-  options.${branding.id}.apps.file = lib.mkOption {
-    type = lib.types.nullOr lib.types.path;
-    default = null;
-    description = "apps.json from /etc/nixos.";
+  options.${branding.id}.apps = {
+    file = lib.mkOption {
+      type = lib.types.nullOr lib.types.path;
+      default = null;
+      description = "apps.json from /etc/nixos.";
+    };
+
+    packages = lib.mkOption {
+      type = lib.types.listOf lib.types.package;
+      default = packages;
+      readOnly = true;
+      description = "The packages of apps.json, installed from the Store.";
+    };
   };
 
   config = {
@@ -43,9 +54,7 @@ in
       }
     ];
 
-    environment.systemPackages = lib.optionals ((data.version or 0) == 1) (
-      lib.concatMap lookup data.packages
-    );
+    environment.systemPackages = packages;
 
     nixpkgs.config.allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) unfreeNames;
   };

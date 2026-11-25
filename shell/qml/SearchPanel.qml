@@ -103,7 +103,7 @@ Scope {
                     id: "package:" + p.attr,
                     attr: p.attr,
                     kind: "package",
-                    title: p.pname,
+                    title: p.name || p.pname,
                     path: ["Store", p.unfree ? "Proprietary" : p.version],
                     icon: "package",
                     hits: []
