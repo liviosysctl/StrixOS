@@ -1,6 +1,6 @@
 [package]
 name = "desk"
-version = "0.7.0"
+version = "0.8.0"
 edition = "2024"
 description = "The commands of the desktop: screenshots and recordings, what happens when nobody is at the machine, the system monitor, default apps, storage, printers and drives that are plugged in"
 license = "MIT"
