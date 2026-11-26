@@ -1,9 +1,11 @@
-// Settings (12-desktop, step 12): a window with a first page of cards and the pages Themes,
-// Network, Bluetooth, Sound, Display, Input, Power, Hotkeys, Account, Date and time, Default
-// apps, Storage, Printers, Versions and About; each page but About is its own file.
+// Settings (12-desktop, step 12): a window with a first page that lists every page in three groups
+// (Personal: Themes, Hotkeys, Default apps, Account; Devices: Network, Bluetooth, Display, Sound,
+// Input, Printers; System: Power, Date and time, Storage, Versions, About); each page but About is
+// its own file. The pages stand in a column of a readable width in the middle of the window.
 // Opened by strix-settings [PAGE [ROW]] (ipc: settings open), from Search or the system menu.
 // What needs root runs in Ghostty with sudo (asRoot), where the progress stays readable.
 import QtQuick
+import QtQuick.Templates as T
 import Quickshell
 import Quickshell.Io
 import Strix
@@ -21,23 +23,68 @@ Scope {
     /// The theme repositories, as the Themes page read them
     property var repos: []
     property string version: ""
-    readonly property var pages: [
-        { id: "themes", title: "Themes", icon: "palette", about: "The god of the session, the change every ten minutes, the clock of the desktop" },
-        { id: "network", title: "Network", icon: "wifi", about: "Wi-Fi and wired networks" },
-        { id: "bluetooth", title: "Bluetooth", icon: "bluetooth", about: "Devices to pair and connect" },
-        { id: "sound", title: "Sound", icon: "volume-2", about: "Outputs, inputs and their volume" },
-        { id: "display", title: "Display", icon: "monitor", about: "Screens, their size, place and scale, the night light" },
-        { id: "input", title: "Input", icon: "mouse", about: "Keyboard layouts, mouse and touchpad" },
-        { id: "power", title: "Power", icon: "zap", about: "What happens when nobody is at the machine, and the lid" },
-        { id: "hotkeys", title: "Hotkeys", icon: "keyboard", about: "Every key, and keys of your own" },
-        { id: "account", title: "Account", icon: "shield", about: "Your password, your name for Git, your SSH key" },
-        { id: "time", title: "Date and time", icon: "clock", about: "The time zone and the clock of the internet" },
-        { id: "apps", title: "Default apps", icon: "layout-grid", about: "Which app opens links, text, pictures, music" },
-        { id: "storage", title: "Storage", icon: "hard-drive", about: "What the disk holds, the trash, snapshots of your home" },
-        { id: "printers", title: "Printers", icon: "file", about: "The printers on this machine and the network" },
-        { id: "versions", title: "Versions", icon: "history", about: "The versions still installed, what they changed, going back" },
-        { id: "about", title: "About", icon: "info", about: "This machine and the distribution" }
+    /// The groups of the pages, in the order of the first page and the list at the side
+    readonly property var groups: [
+        { id: "personal", title: "Personal" },
+        { id: "devices", title: "Devices" },
+        { id: "system", title: "System" }
     ]
+    readonly property var pages: [
+        { id: "themes", group: "personal", title: "Themes", icon: "palette", about: "The god of the session, the terminal, the clock" },
+        { id: "hotkeys", group: "personal", title: "Hotkeys", icon: "keyboard", about: "Every key, and keys of your own" },
+        { id: "apps", group: "personal", title: "Default apps", icon: "layout-grid", about: "Which app opens links, text, pictures, music" },
+        { id: "account", group: "personal", title: "Account", icon: "shield", about: "Your password, your name for Git, your SSH key" },
+        { id: "network", group: "devices", title: "Network", icon: "wifi", about: "Wi-Fi and wired networks" },
+        { id: "bluetooth", group: "devices", title: "Bluetooth", icon: "bluetooth", about: "Devices to pair and connect" },
+        { id: "display", group: "devices", title: "Display", icon: "monitor", about: "Screens, size, place and scale, the night light" },
+        { id: "sound", group: "devices", title: "Sound", icon: "volume-2", about: "Outputs, inputs and their volume" },
+        { id: "input", group: "devices", title: "Input", icon: "mouse", about: "Keyboard layouts, mouse and touchpad" },
+        { id: "printers", group: "devices", title: "Printers", icon: "file", about: "Printers on this machine and the network" },
+        { id: "power", group: "system", title: "Power", icon: "zap", about: "When the screen dims and locks, and the lid" },
+        { id: "time", group: "system", title: "Date and time", icon: "clock", about: "The time zone and the clock of the internet" },
+        { id: "storage", group: "system", title: "Storage", icon: "hard-drive", about: "What the disk holds, the trash, home snapshots" },
+        { id: "versions", group: "system", title: "Versions", icon: "history", about: "Installed versions, what changed, going back" },
+        { id: "about", group: "system", title: "About", icon: "info", about: "This machine and the distribution" }
+    ]
+    /// The widest the pages get: lines stay short enough to read and a switch stays near its words
+    readonly property int measure: 720
+
+    /// A page on the first page: its symbol, its name and a line about it
+    component PageLink: T.ItemDelegate {
+        id: link
+        required property var page
+
+        // The hand over what can be pressed, as on every clickable part of the shell
+        HoverHandler { cursorShape: Qt.PointingHandCursor }
+
+        implicitHeight: Theme.control + 2 * Theme.space3
+        padding: Theme.space3
+        hoverEnabled: true
+        focusPolicy: Qt.StrongFocus
+
+        contentItem: Row {
+            spacing: Theme.space3
+            Icon {
+                name: link.page.icon
+                color: link.hovered || link.visualFocus ? Theme.text : Theme.textMuted
+                hovered: link.hovered
+                anchors.verticalCenter: parent.verticalCenter
+            }
+            Column {
+                width: parent.width - Theme.icon - parent.spacing
+                anchors.verticalCenter: parent.verticalCenter
+                Label { width: parent.width; textStyle: "heading"; color: Theme.text; text: link.page.title; elide: Text.ElideRight }
+                Label { width: parent.width; textStyle: "caption"; color: Theme.textMuted; text: link.page.about; elide: Text.ElideRight }
+            }
+        }
+
+        background: Rectangle {
+            radius: Theme.radiusMd
+            color: link.down ? Theme.surfaceSunken : link.hovered ? Theme.surfaceRaised : "transparent"
+            Behavior on color { ColorAnimation { duration: Theme.durFast } }
+            FocusRing { target: link }
+        }
+    }
 
     function show(page, row) {
         root.page = root.pages.some(p => p.id === page) ? page : "home"
@@ -117,12 +164,22 @@ Scope {
                             HoverHandler { cursorShape: Qt.PointingHandCursor }
                             TapHandler { onTapped: root.page = "home" }
                         }
-                        // The selection glides from page to page
+                        // The selection glides from page to page; a gap parts the groups
                         Item {
                             width: parent.width
                             height: nav.height
+                            // Where the row of the page is, below the gap that may open its group.
                             // count: the rows are made after this binding is first read
-                            Glide { target: navRows.count > 0 ? navRows.itemAt(root.pages.findIndex(p => p.id === root.page)) : null }
+                            Item {
+                                id: spot
+                                readonly property Item at: navRows.count > 0 ? navRows.itemAt(root.pages.findIndex(p => p.id === root.page)) : null
+                                x: at ? at.x : 0
+                                y: at ? at.y + at.gap : 0
+                                width: at ? at.width : 0
+                                height: Theme.control
+                                visible: !!at
+                            }
+                            Glide { target: spot }
                             Column {
                                 id: nav
                                 width: parent.width
@@ -130,14 +187,22 @@ Scope {
                                 Repeater {
                                     id: navRows
                                     model: root.pages
-                                    ListRow {
+                                    Item {
+                                        id: navItem
                                         required property var modelData
+                                        required property int index
+                                        readonly property int gap: index > 0 && root.pages[index - 1].group !== modelData.group ? Theme.space4 : 0
                                         width: parent.width
-                                        text: modelData.title
-                                        iconName: modelData.icon
-                                        selected: root.page === modelData.id
-                                        glide: true
-                                        onClicked: root.page = modelData.id
+                                        height: gap + Theme.control
+                                        ListRow {
+                                            y: navItem.gap
+                                            width: parent.width
+                                            text: navItem.modelData.title
+                                            iconName: navItem.modelData.icon
+                                            selected: root.page === navItem.modelData.id
+                                            glide: true
+                                            onClicked: root.page = navItem.modelData.id
+                                        }
                                     }
                                 }
                             }
@@ -153,7 +218,7 @@ Scope {
 
                     Column {
                         id: content
-                        x: Theme.space5
+                        x: (parent.width - width) / 2
                         y: Theme.space5
                         // A new page comes in from the side it lies on in the list
                         transform: Translate { id: pageShift }
@@ -173,47 +238,50 @@ Scope {
                             NumberAnimation { target: pageShift; property: "y"; from: pageIn.direction * Theme.space3; to: 0; duration: Theme.durBase; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOut }
                             NumberAnimation { target: content; property: "opacity"; from: 0; to: 1; duration: Theme.durBase; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOut }
                         }
-                        width: parent.width - 2 * Theme.space5
+                        width: Math.min(parent.width - 2 * Theme.space5, root.measure)
                         spacing: Theme.space4
 
                         // ------------------------------------------------ the first page
+                        // The text stands on the line of the symbols; the ground of a page under the
+                        // pointer reaches out to the left of it
                         Column {
                             visible: root.page === "home"
                             width: parent.width
-                            spacing: Theme.space1
+                            spacing: Theme.space5
 
-                            Label { textStyle: "title"; color: Theme.text; text: "Settings" }
-                            Label {
-                                width: parent.width
-                                textStyle: "caption"
-                                color: Theme.textFaint
-                                bottomPadding: Theme.space3
-                                text: root.version + ". Search finds every single setting by its name."
+                            Column {
+                                x: Theme.space3
+                                width: parent.width - Theme.space3
+                                Label { textStyle: "title"; color: Theme.text; text: "Settings" }
+                                Label {
+                                    width: parent.width
+                                    textStyle: "caption"
+                                    color: Theme.textMuted
+                                    text: root.version + ". Search finds every single setting by its name."
+                                }
                             }
-                            // A card for every page
-                            Grid {
-                                id: cards
-                                width: parent.width
-                                columns: 3
-                                spacing: Theme.space3
-                                Repeater {
-                                    model: root.pages
-                                    Item {
-                                        id: tile
-                                        required property var modelData
-                                        width: (cards.width - 2 * cards.spacing) / 3
-                                        height: 96
-                                        Card {
-                                            anchors.fill: parent
-                                            interactive: true
-                                            title: tile.modelData.title
-                                            text: tile.modelData.about
-                                            onClicked: root.page = tile.modelData.id
-                                        }
-                                        Icon {
-                                            anchors { right: parent.right; rightMargin: Theme.space3; top: parent.top; topMargin: Theme.space3 }
-                                            name: tile.modelData.icon
-                                            color: Theme.textMuted
+
+                            Repeater {
+                                model: root.groups
+                                Column {
+                                    id: group
+                                    required property var modelData
+                                    width: parent.width
+                                    spacing: Theme.space1
+                                    Label { x: Theme.space3; textStyle: "aside"; color: Theme.textMuted; text: group.modelData.title }
+                                    Grid {
+                                        id: links
+                                        width: parent.width
+                                        columns: 2
+                                        columnSpacing: Theme.space3
+                                        Repeater {
+                                            model: root.pages.filter(p => p.group === group.modelData.id)
+                                            PageLink {
+                                                required property var modelData
+                                                width: (links.width - links.columnSpacing) / 2
+                                                page: modelData
+                                                onClicked: root.page = modelData.id
+                                            }
                                         }
                                     }
                                 }
