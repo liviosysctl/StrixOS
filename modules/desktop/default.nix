@@ -27,6 +27,7 @@ in
     ./ghostty.nix
     ./browser.nix
     ./default-apps.nix
+    ./flatpak.nix
   ];
 
   options.${id}.desktop = {

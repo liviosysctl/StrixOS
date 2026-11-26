@@ -4,7 +4,8 @@
 #                    name), as "Update now" in Settings › Themes
 # If the build fails, the old flake.lock stays, and with it the old version. The same when the
 # desktop does not come up with the new version: the system goes back by itself (exit 7).
-# At the end it says whether there is new firmware (fwupd).
+# At the end it updates the apps from Flathub, when Flatpak is on, and says whether there is new
+# firmware (fwupd).
 # A theme repository that fails keeps its commit and never stops the update.
 usage() {
   echo "Usage: $(basename "$0") [--themes [REPO]]"
@@ -84,6 +85,14 @@ firmware() {
   fi
 }
 
+# The apps from Flathub (Flatpak) go with the system: they are outside of Nix and would else
+# never be updated. One that fails stays as it was and does not stop the update.
+flatpaks() {
+  [ -n "${FLATPAK:-}" ] || return 0
+  echo "Apps from Flathub:"
+  "$FLATPAK" update --system --noninteractive || echo "Not every app from Flathub could be updated." >&2
+}
+
 # What the shell of USER (with the id UID) says to "is the screen locked": true, false, or nothing
 # when it does not run or does not work
 shell_says() {
@@ -151,6 +160,7 @@ fi
 if cmp -s "$lock" "$lock.prev" && ! $themes_changed; then
   rm -f "$lock.prev"
   echo "Already up to date."
+  flatpaks
   firmware
   exit 0
 fi
@@ -172,4 +182,5 @@ if ! shell_works; then
 fi
 
 rm -f "$lock.prev"
+flatpaks
 firmware

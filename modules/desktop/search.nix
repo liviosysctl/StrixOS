@@ -43,12 +43,18 @@ in
         ]
       );
       # where NixOS puts desktop entries: the user's profiles first, then the system
-      environment.XDG_DATA_DIRS = lib.concatStringsSep ":" [
-        "%h/.nix-profile/share"
-        "/etc/profiles/per-user/%u/share"
-        "/nix/var/nix/profiles/default/share"
-        "/run/current-system/sw/share"
-      ];
+      environment.XDG_DATA_DIRS = lib.concatStringsSep ":" (
+        lib.optionals config.services.flatpak.enable [
+          "%h/.local/share/flatpak/exports/share"
+          "/var/lib/flatpak/exports/share"
+        ]
+        ++ [
+          "%h/.nix-profile/share"
+          "/etc/profiles/per-user/%u/share"
+          "/nix/var/nix/profiles/default/share"
+          "/run/current-system/sw/share"
+        ]
+      );
       serviceConfig = {
         ExecStart = "${lib.getExe cfg.package} serve";
         Restart = "on-failure";
