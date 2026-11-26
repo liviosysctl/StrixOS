@@ -107,14 +107,16 @@ Commit and push before building a release ISO. Only an ISO from a clean tree wit
 
 ## Installing
 
-Boot the ISO: the installer's window opens by itself. Language and keyboard, the network (Wi-Fi right there if there is no cable), time zone, disk with encryption and hibernation, you and the computer, a summary; it only starts after you tick that the disk will be erased. The whole disk is used. The window shows each step, and at the end the code for Secure Boot when it is on.
+Boot the ISO: the installer's window opens by itself. Language and keyboard, the network (Wi-Fi right there if there is no cable), time zone, disk, encryption and hibernation, you and the computer, a summary; it only starts after you tick what will be erased. The window shows each step, and at the end the code for Secure Boot when it is on.
+
+Strix takes the whole disk, or one partition or free space on it, next to Windows: shrink C: in Windows first (Disk Management), leave the space free or make it a D:, then pick that in the installer. Only the chosen partition is deleted; Strix makes its own ESP and system partition there, and Windows keeps its own ESP. Windows itself, its ESP, recovery and reserved partitions, BitLocker volumes and anything in use show in the list but cannot be picked. GRUB finds Windows and shows its menu for a few seconds at every start.
 
 The window speaks German, French, Italian and English. Underneath it runs `strix-install --core`, which installs from an answers file without asking; the log ends up in `/var/log/strix-install.log` on the installed system.
 
 Without a screen, over SSH (set a password with `passwd`, find the address with `ip -4 addr`, connect with `ssh nixos@<address>`), the core runs on its own. The answers are the window's, the password goes into `/run/strix-install/user.pass` and, with encryption, the passphrase into `/tmp/strix-luks.key`:
 
 ```sh
-strix-install --facts                       # the disks, memory and Secure Boot of this computer
+sudo strix-install --facts                  # the disks with their partitions, memory, Secure Boot
 sudo strix-install --core --answers answers.json
 ```
 
@@ -125,6 +127,8 @@ sudo strix-install --core --answers answers.json
   "disk": "/dev/disk/by-id/nvme-...", "encrypt": true, "hibernation": false
 }
 ```
+
+Without `space` the whole disk is used. Next to Windows, `"space": { "start": ..., "end": ... }` names a partition or free space by its first and last sector, as `--facts` lists them under the disk's `spaces`.
 
 ## Development
 

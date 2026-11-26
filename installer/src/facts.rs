@@ -1,8 +1,11 @@
-//! What the installer knows about this computer: memory, disks, firmware.
+//! What the installer knows about this computer: memory, disks, their partitions, firmware.
+//! The partitions are only known as root.
 
 use crate::checks::{MIN_DISK_BYTES, MIN_FREE_GIB, MIN_RAM_GIB};
+use crate::layout::{ESP_TYPE, MSR_TYPE, RECOVERY_TYPE, Table};
 use serde::Serialize;
 use serde_json::Value;
+use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 use std::process::Command;
@@ -17,6 +20,152 @@ pub struct Disk {
     pub bytes: u64,
     pub model: String,
     pub transport: String,
+    /// Its partitions and free space in the order on the disk, to install into one of them
+    /// instead of the whole disk. Empty without a GPT, or when not read as root.
+    pub spaces: Vec<Space>,
+    /// A partition is encrypted with BitLocker: Windows may ask for its recovery key once the
+    /// machine starts through another boot loader
+    pub bitlocker: bool,
+}
+
+/// Free space smaller than this is left out of the list (the gaps alignment leaves)
+const MIN_SHOWN_FREE_BYTES: u64 = 1 << 30;
+
+/// A part of a disk the system could go into: a partition (deleted for it) or free space
+#[derive(Serialize, Debug, Clone, PartialEq)]
+pub struct Space {
+    /// "partition" or "free"
+    pub kind: String,
+    /// The partition's device, e.g. /dev/nvme0n1p5; empty for free space
+    pub path: String,
+    /// First and last sector; the answers name the space by these
+    pub start: u64,
+    pub end: u64,
+    pub bytes: u64,
+    #[serde(rename = "fsType")]
+    pub fs_type: String,
+    pub label: String,
+    /// Empty when the system can go here, else why not: esp, msr, recovery, bitlocker, windows,
+    /// unreadable, busy, small
+    pub blocked: String,
+}
+
+/// File system, label and whether it is in use, of each partition in `lsblk --json` of one disk
+fn partition_details(lsblk: &Value) -> HashMap<String, (String, String, bool)> {
+    let s = |v: &Value, k: &str| v.get(k).and_then(Value::as_str).unwrap_or("").to_string();
+    lsblk
+        .get("blockdevices")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .flat_map(|disk| disk.get("children").and_then(Value::as_array))
+        .flatten()
+        .map(|p| {
+            let mounted = p
+                .get("mountpoints")
+                .and_then(Value::as_array)
+                .is_some_and(|m| m.iter().any(|m| !m.is_null()));
+            // An opened LUKS container or an active LVM volume sits on top of it
+            let holders = p
+                .get("children")
+                .and_then(Value::as_array)
+                .is_some_and(|c| !c.is_empty());
+            (
+                s(p, "path"),
+                (s(p, "fstype"), s(p, "label"), mounted || holders),
+            )
+        })
+        .collect()
+}
+
+/// The partitions and the free space of a disk. `windows` tells whether an NTFS partition holds
+/// Windows: Some(true) or Some(false), None when it cannot be read.
+pub fn spaces(table: &Table, lsblk: &Value, windows: &dyn Fn(&str) -> Option<bool>) -> Vec<Space> {
+    let details = partition_details(lsblk);
+    let small = |bytes: u64| bytes < MIN_DISK_BYTES;
+    let mut list: Vec<Space> = table
+        .partitions
+        .iter()
+        .map(|p| {
+            let (fs_type, label, busy) = details.get(&p.path).cloned().unwrap_or_default();
+            let bytes = table.bytes(p.start, p.end);
+            let blocked = match p.type_guid.as_str() {
+                ESP_TYPE => "esp",
+                MSR_TYPE => "msr",
+                RECOVERY_TYPE => "recovery",
+                _ if fs_type == "BitLocker" => "bitlocker",
+                _ if busy => "busy",
+                _ => match (fs_type == "ntfs").then(|| windows(&p.path)) {
+                    Some(Some(true)) => "windows",
+                    Some(None) => "unreadable",
+                    _ if small(bytes) => "small",
+                    _ => "",
+                },
+            };
+            Space {
+                kind: "partition".into(),
+                path: p.path.clone(),
+                start: p.start,
+                end: p.end,
+                bytes,
+                fs_type,
+                label,
+                blocked: blocked.into(),
+            }
+        })
+        .collect();
+    for (start, end) in table.free() {
+        let bytes = table.bytes(start, end);
+        if bytes >= MIN_SHOWN_FREE_BYTES {
+            list.push(Space {
+                kind: "free".into(),
+                path: String::new(),
+                start,
+                end,
+                bytes,
+                fs_type: String::new(),
+                label: String::new(),
+                blocked: if small(bytes) { "small" } else { "" }.into(),
+            });
+        }
+    }
+    list.sort_by_key(|s| s.start);
+    list
+}
+
+/// Whether an NTFS partition holds Windows (\Windows\System32), read without mounting it, so a
+/// hibernated Windows is left as it is. None when it cannot be read.
+fn holds_windows(device: &str) -> Option<bool> {
+    let names = |dir: &str| {
+        output("ntfsls", &["--force", "--path", dir, device]).map(|out| {
+            out.lines()
+                .map(|l| l.trim().to_ascii_lowercase())
+                .collect::<Vec<_>>()
+        })
+    };
+    if !names("/")?.iter().any(|n| n == "windows") {
+        return Some(false);
+    }
+    Some(names("/Windows")?.iter().any(|n| n == "system32"))
+}
+
+/// The GPT of a disk and what could be installed into, if it has one and it can be read
+pub fn disk_spaces(device: &str) -> Option<(Table, Vec<Space>)> {
+    let table = Table::read(device)?;
+    let lsblk = output(
+        "lsblk",
+        &[
+            "--json",
+            "--bytes",
+            "--output",
+            "PATH,FSTYPE,LABEL,MOUNTPOINTS",
+            device,
+        ],
+    )
+    .and_then(|o| serde_json::from_str(&o).ok())
+    .unwrap_or(Value::Null);
+    let list = spaces(&table, &lsblk, &holds_windows);
+    Some((table, list))
 }
 
 /// The firmware variable that says whether Secure Boot is on
@@ -137,6 +286,8 @@ pub fn candidate_disks(lsblk_json: &Value, boot: Option<&str>) -> Vec<Disk> {
                         model.into()
                     },
                     transport: s("tran"),
+                    spaces: Vec::new(),
+                    bitlocker: false,
                 }
             })
         })
@@ -204,6 +355,10 @@ pub fn facts(name: &str, id: &str, version: &str) -> Value {
         .into_iter()
         .map(|mut d| {
             d.stable_path = stable_disk_path(&d.path);
+            if let Some((_, spaces)) = disk_spaces(&d.path) {
+                d.bitlocker = spaces.iter().any(|s| s.blocked == "bitlocker");
+                d.spaces = spaces;
+            }
             d
         })
         .collect();
@@ -237,6 +392,61 @@ mod tests {
         assert_eq!(disks[0].model, "VMware Virtual S");
         assert_eq!(disks[1].model, "Disk");
         assert_eq!(disks[1].transport, "nvme");
+    }
+
+    fn windows_lsblk(c: &str, d: &str, d_mounted: bool) -> Value {
+        let part = |n: &str, fstype: &str, label: &str, mounted: bool| {
+            json!({"path": format!("/dev/nvme0n1p{n}"), "fstype": if fstype.is_empty() { Value::Null } else { json!(fstype) },
+                   "label": label, "mountpoints": [if mounted { json!("/mnt") } else { Value::Null }]})
+        };
+        json!({"blockdevices": [{"path": "/dev/nvme0n1", "fstype": null, "label": null, "mountpoints": [null], "children": [
+            part("1", "vfat", "", false), part("2", "", "", false), part("3", c, "OS", false),
+            part("5", d, "Daten", d_mounted), part("4", "ntfs", "WinRE", false)
+        ]}]})
+    }
+
+    #[test]
+    fn spaces_next_to_windows() {
+        let table = Table::parse(&crate::layout::tests::windows_disk()).unwrap();
+        let blocked = |list: &[Space]| {
+            list.iter()
+                .map(|s| (s.path.clone(), s.blocked.clone()))
+                .collect::<Vec<_>>()
+        };
+        let windows = |path: &str| Some(path == "/dev/nvme0n1p3");
+        let list = spaces(&table, &windows_lsblk("ntfs", "ntfs", false), &windows);
+        let expected = |c: &str, d: &str| {
+            [
+                ("1", "esp"),
+                ("2", "msr"),
+                ("3", c),
+                ("5", d),
+                ("4", "recovery"),
+            ]
+            .map(|(n, b)| (format!("/dev/nvme0n1p{n}"), b.to_string()))
+        };
+        assert_eq!(blocked(&list), expected("windows", ""));
+        assert_eq!(
+            (list[3].label.as_str(), list[3].fs_type.as_str()),
+            ("Daten", "ntfs")
+        );
+        assert_eq!(list[3].bytes, 499908608 * 512);
+
+        // C: with BitLocker, D: mounted in the live session
+        let list = spaces(&table, &windows_lsblk("BitLocker", "ntfs", true), &windows);
+        assert_eq!(blocked(&list), expected("bitlocker", "busy"));
+        // An NTFS partition that cannot be read might be Windows
+        let list = spaces(&table, &windows_lsblk("ntfs", "ntfs", false), &|_| None);
+        assert_eq!(blocked(&list), expected("unreadable", "unreadable"));
+
+        // D: deleted in Windows: free space in its place, ready to use
+        let mut table = table;
+        table.partitions.retain(|p| p.number != 5);
+        let list = spaces(&table, &windows_lsblk("ntfs", "ntfs", false), &windows);
+        let free = &list[3];
+        assert_eq!((free.kind.as_str(), free.blocked.as_str()), ("free", ""));
+        assert_eq!((free.start, free.end), (498313216, 998221823));
+        assert_eq!(list.len(), 5);
     }
 
     #[test]

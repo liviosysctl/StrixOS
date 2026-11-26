@@ -4,7 +4,8 @@
 //! <id>-install --core --answers FILE [--secrets FILE] [--hardware-nix FILE] [--no-unmount]
 //!                                  install without asking (as root): the graphical installer
 //!                                  and the automated test
-//! <id>-install --facts             the computer as JSON (memory, disks, Secure Boot)
+//! <id>-install --facts             the computer as JSON (memory, disks and, as root, their
+//!                                  partitions, Secure Boot)
 //! <id>-install --serve             the back end of the graphical installer on $SOCKET
 //! <id>-install --version
 //! ```
@@ -15,6 +16,7 @@
 mod checks;
 mod core;
 mod facts;
+mod layout;
 mod serve;
 
 use std::path::PathBuf;
