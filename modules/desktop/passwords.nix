@@ -3,7 +3,6 @@
 {
   config,
   lib,
-  pkgs,
   ...
 }:
 
@@ -20,17 +19,8 @@ in
     security.pam.services.greetd.enableGnomeKeyring = lib.mkIf (!cfg.live) true;
     programs.ssh.extraConfig = lib.mkIf (!cfg.live) "AddKeysToAgent yes";
 
+    # The window that asks for the password when an app needs more rights is the shell's
+    # (shell/qml/Authenticate.qml): Quickshell is the polkit agent of the session
     security.polkit.enable = true;
-
-    systemd.user.services.hyprpolkitagent = {
-      description = "Asks for the password when an app needs more rights";
-      partOf = [ "graphical-session.target" ];
-      after = [ "graphical-session.target" ];
-      wantedBy = [ "graphical-session.target" ];
-      serviceConfig = {
-        ExecStart = "${pkgs.hyprpolkitagent}/libexec/hyprpolkitagent";
-        Restart = "on-failure";
-      };
-    };
   };
 }

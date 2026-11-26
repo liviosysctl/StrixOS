@@ -106,7 +106,7 @@ hl.layer_rule({
     -- clear, so the bar is still only its buttons on the picture.
     name = "shell-glass",
     match = {
-        namespace = "^strix-(bar|dock|search|notifications|osd|clipboard|cheatsheet|switcher|theme-picker)$",
+        namespace = "^strix-(bar|dock|search|notifications|osd|clipboard|cheatsheet|switcher|theme-picker|authenticate|overview)$",
     },
     blur = true,
     blur_popups = true,
