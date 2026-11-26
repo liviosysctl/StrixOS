@@ -3,7 +3,7 @@
 Strix is a NixOS-based desktop distribution: Hyprland with a shell of its own in Quickshell, own services in Rust, and one theme that reaches every part of the system, from the boot splash to the terminal. The machine is described in `/etc/nixos`, three commands rebuild, update and add apps, and Neovim is the editor for all of it.
 
 ```
-Version :: 0.6.0
+Version :: 0.8.0
 Base :: NixOS unstable
 Desktop :: Hyprland, the shell in Quickshell
 Themes :: the eight Roman gods of StrixUI, each dark and light, Saturnus first
@@ -12,31 +12,18 @@ State :: work in progress, tested on an old laptop
 
 ## The look
 
-![The desktop under Saturnus](docs/images/desktop.jpg)
+![Desktop](docs/images/desktop.jpg)
 
-*Saturnus devours one of his children, his scythe beside him in the niche. Jacob Binck after Rosso Fiorentino, 1530*
-
-The look comes from [StrixUI](https://github.com/liviosysctl/StrixUI), the design system of Strix: near-black surfaces, old engravings of Roman gods as the ground, one accent colour that belongs to the god on the wallpaper and is used sparingly, floating surfaces of smoked glass, an old-style serif for titles beside a plain grotesque. Each god is a theme with a dark and a light variant: the dark plate is almost black with a glow around a ring on the head of the god, the light one is lit from the middle. Another god comes every 10 minutes unless you keep the one you have, and the lock screen shows a new one at every lock.
+The look comes from [StrixUI](https://github.com/liviosysctl/StrixUI), the design system of Strix. Every Roman god is a theme with a dark and a light variant. Another god comes every 10 minutes unless you keep the one you have, and the lock screen shows a new one at every lock.
 
 | | |
 |---|---|
-| ![The lock screen](docs/images/lock-screen.jpg) | ![The theme picker](docs/images/theme-picker.jpg) |
-| *The lock screen* | *The theme picker* |
+| ![Lock screen](docs/images/lock-screen.jpg) | ![Theme picker](docs/images/theme-picker.jpg) |
 | ![Search](docs/images/search.jpg) | ![The eight gods](docs/images/gods.jpg) |
-| *Search, one field for everything* | *Saturnus, Janus, Apollo, Mars, Vulcanus, Neptunus, Pluto and Bacchus* |
+| ![Dock](docs/images/dock.jpg) | ![Cheat sheet](docs/images/cheat-sheet.jpg) |
+| ![Settings](docs/images/settings.jpg) | ![Boot splash](docs/images/boot-splash.jpg) |
 
-### More screens
-
-| | |
-|---|---|
-| ![The dock](docs/images/dock.jpg) | ![The terminal](docs/images/terminal.jpg) |
-| *The dock* | *The terminal, Ghostty in the theme's colours* |
-| ![The cheat sheet](docs/images/cheat-sheet.jpg) | ![Settings, hotkeys](docs/images/settings-hotkeys.jpg) |
-| *The cheat sheet, Super K* | *Settings, hotkeys* |
-| ![The boot splash](docs/images/boot-splash.jpg) | |
-| *The boot splash* | |
-
-These are renderings of the design from StrixUI; the shell in this repository is built from the same components. Sources and licences of every picture are in [docs/images/README.md](docs/images/README.md).
+Sources and licences of every picture are in [docs/images/README.md](docs/images/README.md).
 
 ## Branches
 
