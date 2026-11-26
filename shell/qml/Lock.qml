@@ -237,7 +237,7 @@ Scope {
                             anchors.right: parent.right
                             width: Math.min(implicitWidth, 320)
                             horizontalAlignment: Text.AlignRight
-                            elide: Text.ElideLeft
+                            elide: Text.ElideRight
                             textStyle: "aside"
                             color: Theme.text
                             text: root.player ? root.player.trackTitle || root.player.identity : ""
@@ -246,7 +246,7 @@ Scope {
                             anchors.right: parent.right
                             width: Math.min(implicitWidth, 320)
                             horizontalAlignment: Text.AlignRight
-                            elide: Text.ElideLeft
+                            elide: Text.ElideRight
                             visible: text !== ""
                             textStyle: "caption"
                             color: Theme.textMuted

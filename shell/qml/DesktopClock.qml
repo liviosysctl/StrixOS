@@ -48,7 +48,8 @@ Item {
         Item {
             id: playing
             anchors.right: parent.right
-            width: 280
+            // Room for a title in the 22 px of aside
+            width: 360
             property real shown: root.player ? 1 : 0
             height: (Theme.space5 + bars.height + Theme.space2 + track.implicitHeight) * shown
             opacity: shown
@@ -69,7 +70,7 @@ Item {
                 Label {
                     width: parent.width
                     horizontalAlignment: Text.AlignRight
-                    elide: Text.ElideLeft
+                    elide: Text.ElideRight
                     textStyle: "aside"
                     color: Theme.text
                     text: root.player ? root.player.trackTitle || root.player.identity : ""
@@ -77,7 +78,7 @@ Item {
                 Label {
                     width: parent.width
                     horizontalAlignment: Text.AlignRight
-                    elide: Text.ElideLeft
+                    elide: Text.ElideRight
                     textStyle: "caption"
                     color: Theme.textMuted
                     text: root.player ? root.player.trackArtist || "" : ""
