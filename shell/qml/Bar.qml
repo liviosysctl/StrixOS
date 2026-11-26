@@ -1,5 +1,5 @@
-// The top bar (TopBar in StrixUI): no surface of its own. Every part is a button on its own plate
-// of smoked glass, straight on the wallpaper, and none needs a hint.
+// The top bar (TopBar in StrixUI): no band of its own, its buttons on the wallpaper, those that
+// belong together on one plate of smoked glass (ChipGroup). None needs a hint.
 // Left: search, the clock (a click shows the month under it), CPU and memory (the system
 // monitor), then what is playing (a click on the title opens the media player under it).
 // Middle: the workspaces of Hyprland. Right: the network, the volume (scrolling turns it) and the
@@ -139,44 +139,53 @@ Scope {
             exclusiveZone: Theme.barHeight
             color: "transparent"
 
-            // Every part of the bar is a button on its own plate of smoked glass, as high as every
-            // control, a step from its neighbour and two from the edge of the screen
+            // Every part of the bar is a button on smoked glass, as high as every control, two steps
+            // from the edge of the screen. Buttons that belong together share one plate, parted by
+            // hair lines (ChipGroup): fewer plates, and every plate draws a shadow
             Row {
                 anchors { left: parent.left; leftMargin: Theme.space2; bottom: parent.bottom }
                 spacing: Theme.space1
 
-                Chip {
-                    iconName: "search"
-                    onClicked: Quickshell.execDetached(["qs", "-c", "strix", "ipc", "call", "search", "toggle"])
-                }
-                Chip {
-                    id: clockButton
-                    open: bar.calendarHere
-                    text: Qt.formatDateTime(clock.date, "ddd d MMM  HH:mm")
-                    onClicked: root.calendarOn = bar.calendarHere ? "" : bar.modelData.name
-                }
-                // CPU and memory are one button: the system monitor (btop, strix-monitor)
-                Chip {
-                    id: load
-                    onClicked: Quickshell.execDetached(["strix-monitor"])
-                    Icon { name: "cpu"; color: load.symbolInk; hovered: load.hovered; anchors.verticalCenter: parent.verticalCenter }
-                    Label { textStyle: "value"; text: root.figure(root.cpu); anchors.verticalCenter: parent.verticalCenter }
-                    Icon { name: "memory-stick"; color: load.symbolInk; hovered: load.hovered; anchors.verticalCenter: parent.verticalCenter }
-                    Label { textStyle: "value"; text: root.figure(root.memory); anchors.verticalCenter: parent.verticalCenter }
+                ChipGroup {
+                    Chip {
+                        plate: false
+                        iconName: "search"
+                        onClicked: Quickshell.execDetached(["qs", "-c", "strix", "ipc", "call", "search", "toggle"])
+                    }
+                    Chip {
+                        id: clockButton
+                        plate: false
+                        open: bar.calendarHere
+                        text: Qt.formatDateTime(clock.date, "ddd d MMM  HH:mm")
+                        onClicked: root.calendarOn = bar.calendarHere ? "" : bar.modelData.name
+                    }
+                    // CPU and memory are one button: the system monitor (btop, strix-monitor)
+                    Chip {
+                        id: load
+                        plate: false
+                        onClicked: Quickshell.execDetached(["strix-monitor"])
+                        Icon { name: "cpu"; color: load.symbolInk; hovered: load.hovered; anchors.verticalCenter: parent.verticalCenter }
+                        Label { textStyle: "value"; text: root.figure(root.cpu); anchors.verticalCenter: parent.verticalCenter }
+                        Icon { name: "memory-stick"; color: load.symbolInk; hovered: load.hovered; anchors.verticalCenter: parent.verticalCenter }
+                        Label { textStyle: "value"; text: root.figure(root.memory); anchors.verticalCenter: parent.verticalCenter }
+                    }
                 }
                 // What is playing: the symbol pauses and plays, the title opens the player
-                Chip {
+                ChipGroup {
                     visible: !!root.player
-                    iconName: root.player && root.player.isPlaying ? "pause" : "play"
-                    enabled: !!root.player && root.player.canTogglePlaying
-                    onClicked: root.player.togglePlaying()
-                }
-                Chip {
-                    id: playing
-                    visible: !!root.player
-                    open: bar.mediaHere
-                    text: root.short(!root.player ? "" : [root.player.trackTitle, root.player.trackArtist].filter(t => t).join("  ") || root.player.identity, 36)
-                    onClicked: root.mediaOn = bar.mediaHere ? "" : bar.modelData.name
+                    Chip {
+                        plate: false
+                        iconName: root.player && root.player.isPlaying ? "pause" : "play"
+                        enabled: !!root.player && root.player.canTogglePlaying
+                        onClicked: root.player.togglePlaying()
+                    }
+                    Chip {
+                        id: playing
+                        plate: false
+                        open: bar.mediaHere
+                        text: root.short(!root.player ? "" : [root.player.trackTitle, root.player.trackArtist].filter(t => t).join("  ") || root.player.identity, 36)
+                        onClicked: root.mediaOn = bar.mediaHere ? "" : bar.modelData.name
+                    }
                 }
             }
 
@@ -257,42 +266,53 @@ Scope {
                 anchors { right: parent.right; rightMargin: Theme.space2; bottom: parent.bottom }
                 spacing: Theme.space1
 
-                Chip {
-                    iconName: "wifi"
-                    text: root.short(root.network, 20)
-                    faint: root.network === "Offline"
-                    onClicked: root.settings("network")
-                }
-                Chip {
-                    iconName: root.muted ? "volume-x" : "volume-2"
-                    text: root.muted ? "" : Math.round(root.volume * 100) + "%"
-                    faint: root.muted
-                    onClicked: root.settings("sound")
-                    // Scrolling turns the volume in steps of 5 %
-                    WheelHandler {
-                        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
-                        onWheel: event => {
-                            if (!root.sink || !root.sink.audio) return
-                            const step = event.angleDelta.y > 0 ? 0.05 : event.angleDelta.y < 0 ? -0.05 : 0
-                            root.sink.audio.muted = false
-                            root.sink.audio.volume = Math.max(0, Math.min(1, root.sink.audio.volume + step))
+                // The state of the machine
+                ChipGroup {
+                    Chip {
+                        plate: false
+                        iconName: "wifi"
+                        text: root.short(root.network, 20)
+                        faint: root.network === "Offline"
+                        onClicked: root.settings("network")
+                    }
+                    Chip {
+                        plate: false
+                        iconName: root.muted ? "volume-x" : "volume-2"
+                        text: root.muted ? "" : Math.round(root.volume * 100) + "%"
+                        faint: root.muted
+                        onClicked: root.settings("sound")
+                        // Scrolling turns the volume in steps of 5 %
+                        WheelHandler {
+                            acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                            onWheel: event => {
+                                if (!root.sink || !root.sink.audio) return
+                                const step = event.angleDelta.y > 0 ? 0.05 : event.angleDelta.y < 0 ? -0.05 : 0
+                                root.sink.audio.muted = false
+                                root.sink.audio.volume = Math.max(0, Math.min(1, root.sink.audio.volume + step))
+                            }
                         }
                     }
+                    Chip {
+                        plate: false
+                        visible: root.hasBattery
+                        iconName: root.charging ? "battery-charging" : "battery-medium"
+                        text: Math.round(root.charge * 100) + "%"
+                        onClicked: root.settings("power")
+                    }
                 }
-                Chip {
-                    visible: root.hasBattery
-                    iconName: root.charging ? "battery-charging" : "battery-medium"
-                    text: Math.round(root.charge * 100) + "%"
-                    onClicked: root.settings("power")
-                }
-                Chip {
-                    iconName: "bell"
-                    text: Notifs.count > 0 ? String(Notifs.count) : ""
-                    onClicked: Quickshell.execDetached(["qs", "-c", "strix", "ipc", "call", "notifications", "toggle"])
-                }
-                Chip {
-                    iconName: "power"
-                    onClicked: Quickshell.execDetached(["qs", "-c", "strix", "ipc", "call", "search", "open", "menu:system"])
+                // The messages and the way out
+                ChipGroup {
+                    Chip {
+                        plate: false
+                        iconName: "bell"
+                        text: Notifs.count > 0 ? String(Notifs.count) : ""
+                        onClicked: Quickshell.execDetached(["qs", "-c", "strix", "ipc", "call", "notifications", "toggle"])
+                    }
+                    Chip {
+                        plate: false
+                        iconName: "power"
+                        onClicked: Quickshell.execDetached(["qs", "-c", "strix", "ipc", "call", "search", "open", "menu:system"])
+                    }
                 }
             }
         }
