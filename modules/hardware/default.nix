@@ -2,5 +2,8 @@
 {
   imports = [
     ./firmware.nix
+    ./kernel.nix
+    ./memory.nix
+    ./thermal.nix
   ];
 }
