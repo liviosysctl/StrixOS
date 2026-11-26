@@ -89,9 +89,17 @@ Scope {
         id: sessionLock
 
         WlSessionLockSurface {
+            id: surface
             color: Theme.background
 
-            Wallpaper { anchors.fill: parent; dim: true }
+            // Decoded at the size of the screen, as behind the desktop (Background): the two
+            // share one picture
+            Wallpaper {
+                anchors.fill: parent
+                dim: true
+                sourceSize: Qt.size(Math.ceil(surface.screen.width * surface.screen.devicePixelRatio),
+                    Math.ceil(surface.screen.height * surface.screen.devicePixelRatio))
+            }
 
             Column {
                 anchors { left: parent.left; leftMargin: Theme.space8 * 2; verticalCenter: parent.verticalCenter }
