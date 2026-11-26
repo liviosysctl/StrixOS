@@ -106,13 +106,13 @@ Scope {
                 spacing: Theme.space3
                 width: 320
 
-                Label { textStyle: "clock"; color: Theme.text; text: Qt.formatDateTime(clock.date, "HH") }
-                Label { textStyle: "clock"; color: Theme.textMuted; text: Qt.formatDateTime(clock.date, "mm") }
+                // Hour over minute, as close as the lines of the clock style
+                Ticker { textStyle: "clock"; color: Theme.text; text: Qt.formatDateTime(clock.date, "HH") }
+                Ticker { textStyle: "clock"; color: Theme.textMuted; text: Qt.formatDateTime(clock.date, "mm") }
                 Label { textStyle: "subtitle"; color: Theme.text; text: Qt.formatDateTime(clock.date, "dddd, d MMMM") }
                 Label {
                     textStyle: "aside"
                     color: Theme.textMuted
-                    font.letterSpacing: 1.6
                     readonly property int hour: clock.date.getHours()
                     text: (hour < 5 ? "good night" : hour < 12 ? "good morning" : hour < 18 ? "good afternoon" : "good evening")
                         + (Quickshell.env("USER") ? ", " + Quickshell.env("USER") : "")
