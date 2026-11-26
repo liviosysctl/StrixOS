@@ -44,17 +44,22 @@ Scope {
     readonly property string pictures: Quickshell.env("XDG_RUNTIME_DIR") + "/strix/clipboard"
 
     // cliphist shows a picture as "[[ binary data 12 KiB png 640x480 ]]": the newest 40 are
-    // unpacked once, by their id, so the rows can show them
+    // unpacked once, by their id, so the rows can show them. The folder is in memory (a tmpfs):
+    // a picture that is no longer among them goes
     Process {
         id: list
-        command: ["sh", "-c", `mkdir -p "$1" && cliphist list | { n=0; t=$(printf '\\t'); while IFS= read -r line; do
+        command: ["sh", "-c", `mkdir -p "$1" && cliphist list | { n=0; keep=" "; t=$(printf '\\t'); while IFS= read -r line; do
             id=\${line%%"$t"*}
             case "$line" in *"$t[[ binary data "*)
                 n=$((n + 1))
-                if [ "$n" -le 40 ] && [ ! -s "$1/$id" ]; then printf '%s' "$line" | cliphist decode >"$1/$id"; fi ;;
+                if [ "$n" -le 40 ]; then
+                    keep="$keep$id "
+                    [ -s "$1/$id" ] || printf '%s' "$line" | cliphist decode >"$1/$id"
+                fi ;;
             esac
             printf '%s\\n' "$line"
-        done; }`, "sh", root.pictures]
+        done
+        for f in "$1"/*; do case "$keep" in *" \${f##*/} "*) ;; *) rm -f "$f" ;; esac; done; }`, "sh", root.pictures]
         stdout: StdioCollector {
             onStreamFinished: {
                 root.entries = text.split("\n").filter(l => l.indexOf("\t") > 0).map(l => {
@@ -76,6 +81,7 @@ Scope {
         function toggle(): void { if (root.open) root.open = false; else root.show() }
         function clear(): void {
             Quickshell.execDetached(["cliphist", "wipe"])
+            Quickshell.execDetached(["rm", "-rf", root.pictures])
             root.entries = []
         }
         function isOpen(): bool { return root.open }
@@ -150,7 +156,8 @@ Scope {
                     width: parent.width
                     height: Math.min(contentHeight, 10 * Theme.control)
                     clip: true
-                    model: root.shown
+                    // Closed, the rows and their pictures go; the entries stay for the next time
+                    model: presence.present ? root.shown : []
                     currentIndex: root.selected
                     delegate: ListRow {
                         required property var modelData
