@@ -1,5 +1,6 @@
-// The top bar (TopBar in StrixUI): no surface of its own, small text and symbols straight on the
-// wallpaper. Everything in it is a button that answers the pointer, and none needs a hint.
+// The top bar (TopBar in StrixUI): no band of its own, its buttons on the wallpaper, those that
+// belong together on one plate of smoked glass (ChipGroup). Everything in it is a button that
+// answers the pointer, and none needs a hint.
 // Left: search, the clock (a click shows the month under it), CPU and memory (the system
 // monitor). While the clock of the desktop is in view (no window on the workspace), the bar leaves
 // the time to it and keeps only the symbol of the calendar. What is playing is in the dock.
@@ -215,32 +216,38 @@ Scope {
                     onPressed: Popups.close()
                 }
 
-                // Every part of the bar is a button on its own plate of smoked glass, as high as every
-                // control, a step from its neighbour and two from the edge of the screen
+                // Every part of the bar is a button on smoked glass, as high as every control, two
+                // steps from the edge of the screen. Buttons that belong together share one plate,
+                // parted by hair lines (ChipGroup): fewer plates, and every plate draws a shadow
                 Row {
                     anchors { left: parent.left; leftMargin: Theme.space2; bottom: parent.bottom }
                     spacing: Theme.space1
 
-                    Chip {
-                        iconName: "search"
-                        onClicked: { Popups.close(); Quickshell.execDetached(["qs", "-c", "strix", "ipc", "call", "search", "toggle"]) }
-                    }
-                    Chip {
-                        id: clockButton
-                        open: bar.calendarHere
-                        iconName: bar.clockOnDesktop ? "calendar" : ""
-                        text: bar.clockOnDesktop ? "" : Qt.formatDateTime(clock.date, "ddd d MMM  HH:mm")
-                        onClicked: Popups.toggle("calendar", bar.modelData.name)
-                        Behavior on implicitWidth { NumberAnimation { duration: Theme.durBase; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOut } }
-                    }
-                    // CPU and memory are one button: the system monitor (btop, strix-monitor)
-                    Chip {
-                        id: load
-                        onClicked: { Popups.close(); Quickshell.execDetached(["strix-monitor"]) }
-                        Icon { name: "cpu"; color: load.symbolInk; hovered: load.hovered; anchors.verticalCenter: parent.verticalCenter }
-                        Label { textStyle: "value"; text: root.figure(root.cpu); anchors.verticalCenter: parent.verticalCenter }
-                        Icon { name: "memory-stick"; color: load.symbolInk; hovered: load.hovered; anchors.verticalCenter: parent.verticalCenter }
-                        Label { textStyle: "value"; text: root.figure(root.memory); anchors.verticalCenter: parent.verticalCenter }
+                    ChipGroup {
+                        Chip {
+                            plate: false
+                            iconName: "search"
+                            onClicked: { Popups.close(); Quickshell.execDetached(["qs", "-c", "strix", "ipc", "call", "search", "toggle"]) }
+                        }
+                        Chip {
+                            id: clockButton
+                            plate: false
+                            open: bar.calendarHere
+                            iconName: bar.clockOnDesktop ? "calendar" : ""
+                            text: bar.clockOnDesktop ? "" : Qt.formatDateTime(clock.date, "ddd d MMM  HH:mm")
+                            onClicked: Popups.toggle("calendar", bar.modelData.name)
+                            Behavior on implicitWidth { NumberAnimation { duration: Theme.durBase; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOut } }
+                        }
+                        // CPU and memory are one button: the system monitor (btop, strix-monitor)
+                        Chip {
+                            id: load
+                            plate: false
+                            onClicked: { Popups.close(); Quickshell.execDetached(["strix-monitor"]) }
+                            Icon { name: "cpu"; color: load.symbolInk; hovered: load.hovered; anchors.verticalCenter: parent.verticalCenter }
+                            Label { textStyle: "value"; text: root.figure(root.cpu); anchors.verticalCenter: parent.verticalCenter }
+                            Icon { name: "memory-stick"; color: load.symbolInk; hovered: load.hovered; anchors.verticalCenter: parent.verticalCenter }
+                            Label { textStyle: "value"; text: root.figure(root.memory); anchors.verticalCenter: parent.verticalCenter }
+                        }
                     }
                 }
 
@@ -264,129 +271,147 @@ Scope {
                     anchors { right: parent.right; rightMargin: Theme.space2; bottom: parent.bottom }
                     spacing: Theme.space1
 
-                    // The keyboard layout, when there is more than one to tell apart
-                    Chip {
-                        visible: root.layout !== ""
-                        text: root.layout.slice(0, 2).toUpperCase()
-                        onClicked: root.settings("input")
-                    }
-                    // A newer version is there: the mark drops what changed and installs it
-                    Chip {
-                        id: upd
-                        visible: root.updateReady
-                        iconName: "download"
-                        on: true
-                        open: bar.dropHere === "update"
-                        onClicked: Popups.toggle("update", bar.modelData.name)
-                    }
-                    Chip {
-                        id: net
-                        iconName: "wifi"
-                        text: root.network.length > 20 ? root.network.slice(0, 19) + "…" : root.network
-                        faint: root.network === "Offline"
-                        open: bar.dropHere === "wifi"
-                        onClicked: Popups.toggle("wifi", bar.modelData.name)
-                    }
-                    Chip {
-                        id: bt
-                        visible: root.adapter !== null
-                        iconName: "bluetooth"
-                        text: root.btConnected > 0 ? String(root.btConnected) : ""
-                        faint: !(root.adapter && root.adapter.enabled)
-                        open: bar.dropHere === "bluetooth"
-                        onClicked: Popups.toggle("bluetooth", bar.modelData.name)
-                    }
-                    Chip {
-                        id: vol
-                        iconName: root.muted ? "volume-x" : "volume-2"
-                        text: root.muted ? "" : Math.round(root.volume * 100) + "%"
-                        faint: root.muted
-                        open: bar.dropHere === "sound"
-                        onClicked: Popups.toggle("sound", bar.modelData.name)
-                        // The middle button mutes, scrolling turns the volume in steps of 5 %
-                        TapHandler {
-                            acceptedButtons: Qt.MiddleButton
-                            onTapped: if (root.sink && root.sink.audio) root.sink.audio.muted = !root.sink.audio.muted
+                    // The state of the machine
+                    ChipGroup {
+                        // The keyboard layout, when there is more than one to tell apart
+                        Chip {
+                            plate: false
+                            visible: root.layout !== ""
+                            text: root.layout.slice(0, 2).toUpperCase()
+                            onClicked: root.settings("input")
                         }
-                        WheelHandler {
-                            acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
-                            onWheel: event => {
-                                if (!root.sink || !root.sink.audio) return
-                                const step = event.angleDelta.y > 0 ? 0.05 : event.angleDelta.y < 0 ? -0.05 : 0
-                                root.sink.audio.muted = false
-                                root.sink.audio.volume = Math.max(0, Math.min(1, root.sink.audio.volume + step))
+                        // A newer version is there: the mark drops what changed and installs it
+                        Chip {
+                            id: upd
+                            plate: false
+                            visible: root.updateReady
+                            iconName: "download"
+                            on: true
+                            open: bar.dropHere === "update"
+                            onClicked: Popups.toggle("update", bar.modelData.name)
+                        }
+                        Chip {
+                            id: net
+                            plate: false
+                            iconName: "wifi"
+                            text: root.network.length > 20 ? root.network.slice(0, 19) + "…" : root.network
+                            faint: root.network === "Offline"
+                            open: bar.dropHere === "wifi"
+                            onClicked: Popups.toggle("wifi", bar.modelData.name)
+                        }
+                        Chip {
+                            id: bt
+                            plate: false
+                            visible: root.adapter !== null
+                            iconName: "bluetooth"
+                            text: root.btConnected > 0 ? String(root.btConnected) : ""
+                            faint: !(root.adapter && root.adapter.enabled)
+                            open: bar.dropHere === "bluetooth"
+                            onClicked: Popups.toggle("bluetooth", bar.modelData.name)
+                        }
+                        Chip {
+                            id: vol
+                            plate: false
+                            iconName: root.muted ? "volume-x" : "volume-2"
+                            text: root.muted ? "" : Math.round(root.volume * 100) + "%"
+                            faint: root.muted
+                            open: bar.dropHere === "sound"
+                            onClicked: Popups.toggle("sound", bar.modelData.name)
+                            // The middle button mutes, scrolling turns the volume in steps of 5 %
+                            TapHandler {
+                                acceptedButtons: Qt.MiddleButton
+                                onTapped: if (root.sink && root.sink.audio) root.sink.audio.muted = !root.sink.audio.muted
+                            }
+                            WheelHandler {
+                                acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                                onWheel: event => {
+                                    if (!root.sink || !root.sink.audio) return
+                                    const step = event.angleDelta.y > 0 ? 0.05 : event.angleDelta.y < 0 ? -0.05 : 0
+                                    root.sink.audio.muted = false
+                                    root.sink.audio.volume = Math.max(0, Math.min(1, root.sink.audio.volume + step))
+                                }
                             }
                         }
-                    }
-                    Chip {
-                        id: bat
-                        visible: root.hasBattery
-                        iconName: root.charging ? "battery-charging" : "battery-medium"
-                        text: Math.round(root.charge * 100) + "%"
-                        open: bar.dropHere === "power"
-                        onClicked: Popups.toggle("power", bar.modelData.name)
-                        // Scrolling turns the brightness of the screen, with its mark on the screen
-                        WheelHandler {
-                            acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
-                            onWheel: event => {
-                                if (event.angleDelta.y !== 0)
-                                    Quickshell.execDetached(["qs", "-c", "strix", "ipc", "call", "osd", "brightness", event.angleDelta.y > 0 ? "5%+" : "5%-"])
+                        Chip {
+                            id: bat
+                            plate: false
+                            visible: root.hasBattery
+                            iconName: root.charging ? "battery-charging" : "battery-medium"
+                            text: Math.round(root.charge * 100) + "%"
+                            open: bar.dropHere === "power"
+                            onClicked: Popups.toggle("power", bar.modelData.name)
+                            // Scrolling turns the brightness of the screen, with its mark on the screen
+                            WheelHandler {
+                                acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                                onWheel: event => {
+                                    if (event.angleDelta.y !== 0)
+                                        Quickshell.execDetached(["qs", "-c", "strix", "ipc", "call", "osd", "brightness", event.angleDelta.y > 0 ? "5%+" : "5%-"])
+                                }
                             }
                         }
-                    }
-                    // While a recording runs: a pulsing dot and the time; a click stops it
-                    Chip {
-                        id: rec
-                        visible: root.recording
-                        onClicked: { Popups.close(); Quickshell.execDetached(["strix-capture", "stop"]) }
-                        Rectangle {
-                            width: Theme.space2
-                            height: Theme.space2
-                            radius: width / 2
-                            color: Theme.error
-                            anchors.verticalCenter: parent.verticalCenter
-                            SequentialAnimation on opacity {
-                                running: root.recording
-                                loops: Animation.Infinite
-                                NumberAnimation { to: 0.35; duration: 700; easing.type: Easing.InOutSine }
-                                NumberAnimation { to: 1; duration: 700; easing.type: Easing.InOutSine }
+                        // While a recording runs: a pulsing dot and the time; a click stops it
+                        Chip {
+                            id: rec
+                            plate: false
+                            visible: root.recording
+                            onClicked: { Popups.close(); Quickshell.execDetached(["strix-capture", "stop"]) }
+                            Rectangle {
+                                width: Theme.space2
+                                height: Theme.space2
+                                radius: width / 2
+                                color: Theme.error
+                                anchors.verticalCenter: parent.verticalCenter
+                                SequentialAnimation on opacity {
+                                    running: root.recording
+                                    loops: Animation.Infinite
+                                    NumberAnimation { to: 0.35; duration: 700; easing.type: Easing.InOutSine }
+                                    NumberAnimation { to: 1; duration: 700; easing.type: Easing.InOutSine }
+                                }
+                            }
+                            Label {
+                                textStyle: "value"
+                                color: rec.hovered ? Theme.text : Theme.error
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: rec.hovered ? "Stop"
+                                    : Math.floor(root.recordingSeconds / 60) + ":" + ("0" + root.recordingSeconds % 60).slice(-2)
                             }
                         }
-                        Label {
-                            textStyle: "value"
-                            color: rec.hovered ? Theme.text : Theme.error
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: rec.hovered ? "Stop"
-                                : Math.floor(root.recordingSeconds / 60) + ":" + ("0" + root.recordingSeconds % 60).slice(-2)
+                        // An app listens to the microphone: the mark says so, a click shows the sound panel
+                        Chip {
+                            plate: false
+                            visible: root.listening
+                            iconName: "mic"
+                            on: true
+                            onClicked: Popups.toggle("sound", bar.modelData.name)
                         }
                     }
-                    // An app listens to the microphone: the mark says so, a click shows the sound panel
-                    Chip {
-                        visible: root.listening
-                        iconName: "mic"
-                        on: true
-                        onClicked: Popups.toggle("sound", bar.modelData.name)
-                    }
-                    Tray {
-                        window: bar
-                        screenName: bar.modelData.name
-                    }
-                    Chip {
-                        iconName: "coffee"
-                        on: root.awake
-                        onClicked: { Popups.close(); root.stayAwake(!root.awake) }
-                    }
-                    Chip {
-                        iconName: "bell"
-                        text: Notifs.count > 0 ? String(Notifs.count) : ""
-                        open: bar.messagesHere
-                        onClicked: Popups.toggle("notifications", bar.modelData.name)
-                    }
-                    Chip {
-                        id: powerButton
-                        iconName: "power"
-                        open: bar.dropHere === "session"
-                        onClicked: Popups.toggle("session", bar.modelData.name)
+                    // The tray, staying awake, the messages and the way out
+                    ChipGroup {
+                        Tray {
+                            plate: false
+                            window: bar
+                            screenName: bar.modelData.name
+                        }
+                        Chip {
+                            plate: false
+                            iconName: "coffee"
+                            on: root.awake
+                            onClicked: { Popups.close(); root.stayAwake(!root.awake) }
+                        }
+                        Chip {
+                            plate: false
+                            iconName: "bell"
+                            text: Notifs.count > 0 ? String(Notifs.count) : ""
+                            open: bar.messagesHere
+                            onClicked: Popups.toggle("notifications", bar.modelData.name)
+                        }
+                        Chip {
+                            id: powerButton
+                            plate: false
+                            iconName: "power"
+                            open: bar.dropHere === "session"
+                            onClicked: Popups.toggle("session", bar.modelData.name)
+                        }
                     }
                 }
             }
