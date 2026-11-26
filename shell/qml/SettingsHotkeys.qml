@@ -1,5 +1,6 @@
 // Settings › Hotkeys: every key of Strix, filtered, and changed one by one: click a key, press the
-// new combination (Esc stops, Backspace takes the key away). The search service keeps own keys in
+// new combination (Esc stops, Backspace takes the key away). A key of the mouse (Drag, RightDrag)
+// takes a click with the modifiers held, in its own row. The search service keeps own keys in
 // ~/.config/strix/keys.json and writes keys.lua for Hyprland, which reloads. A key that is taken
 // is refused with what has it.
 import QtQuick
@@ -114,6 +115,23 @@ Column {
                 catcher.forceActiveFocus()
             }
             onReset: search.call("reset_key", { id: modelData.id }, page.done)
+
+            // Moving and resizing with the mouse take a mouse button: held modifiers and a click
+            MouseArea {
+                anchors.fill: parent
+                enabled: page.recording === modelData.id && (modelData.keys || "").indexOf("Drag") >= 0
+                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                onPressed: mouse => {
+                    const mods = []
+                    if (mouse.modifiers & Qt.MetaModifier) mods.push("Super")
+                    if (mouse.modifiers & Qt.ShiftModifier) mods.push("Shift")
+                    if (mouse.modifiers & Qt.ControlModifier) mods.push("Ctrl")
+                    if (mouse.modifiers & Qt.AltModifier) mods.push("Alt")
+                    // Without a modifier every click would move windows
+                    if (mods.length === 0) { page.error = "Hold a modifier while clicking"; return }
+                    page.setKeys(modelData.id, mods.concat([mouse.button === Qt.RightButton ? "RightDrag" : "Drag"]).join(" "))
+                }
+            }
         }
     }
 
@@ -122,6 +140,6 @@ Column {
         wrapMode: Text.WordWrap
         textStyle: "caption"
         color: Theme.textFaint
-        text: "Click a key and press the new one; Esc stops, Backspace takes the key away. Keys that Hyprland already uses never reach this window: those are taken."
+        text: "Click a key and press the new one; Esc stops, Backspace takes the key away. A key of the mouse takes a click with the modifiers held. Keys that Hyprland already uses never reach this window: those are taken."
     }
 }

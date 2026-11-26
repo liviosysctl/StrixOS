@@ -15,7 +15,8 @@
 # id, title, group and target as on the cheat sheet, keys, and either run (a command line) or
 # hypr (a Hyprland Lua dispatcher; `{key}` stands for the key, a list gives one per key).
 # `strix-search bindings` makes the Hyprland keybindings from the actions with keys and these;
-# see packages/search/src/bindings.rs for the short forms "Super 1–9", "Super Arrows", "Super = -".
+# see packages/search/src/bindings.rs for the short forms "Super 1–0", "Super Arrows", "Super Wheel",
+# "Super = -" and the mouse buttons "Drag" and "RightDrag".
 
 [[group]]
 id = "apps"
@@ -348,6 +349,14 @@ run = ["xdg-open", "https://github.com/liviosysctl/StrixOS/releases"]
 # ------------------------------------------------------------------ System
 
 [[action]]
+id = "overview"
+title = "Overview of the workspaces"
+group = "system"
+symbol = "layout-grid"
+words = ["workspaces", "windows", "expose", "all", "move"]
+run = ["qs", "-c", "{id}", "ipc", "call", "overview", "toggle"]
+
+[[action]]
 id = "lock"
 title = "Lock"
 group = "system"
@@ -455,9 +464,9 @@ run = ["ghostty"]
 id = "browser"
 title = "Browser"
 group = "Apps"
-target = "Zen"
+target = "The one of Settings › Default apps"
 keys = "Super Shift Return"
-run = ["zen-beta"]
+run = ["{id}-defaults", "run", "browser"]
 
 [[binding]]
 id = "files"
@@ -544,20 +553,52 @@ hypr = [
 repeat = true
 
 [[binding]]
+id = "drag-window"
+title = "Move with the mouse"
+group = "Windows"
+target = "Window"
+keys = "Super Drag"
+hypr = "hl.dsp.window.drag()"
+
+[[binding]]
+id = "resize-window"
+title = "Resize with the mouse"
+group = "Windows"
+target = "Window"
+keys = "Super RightDrag"
+hypr = "hl.dsp.window.resize()"
+
+[[binding]]
+id = "pin-window"
+title = "Keep on every workspace"
+group = "Windows"
+target = "Window"
+keys = "Super P"
+hypr = "hl.dsp.window.pin()"
+
+[[binding]]
 id = "go-to-workspace"
 title = "Go to workspace"
 group = "Workspaces"
 target = "Workspace"
-keys = "Super 1–9"
-hypr = "hl.dsp.focus({ workspace = {key} })"
+keys = "Super 1–0"
+hypr = "hl.dsp.focus({ workspace = {number} })"
 
 [[binding]]
 id = "move-window-there"
 title = "Move window there"
 group = "Workspaces"
 target = "Workspace"
-keys = "Super Shift 1–9"
-hypr = "hl.dsp.window.move({ workspace = {key} })"
+keys = "Super Shift 1–0"
+hypr = "hl.dsp.window.move({ workspace = {number} })"
+
+[[binding]]
+id = "scroll-workspaces"
+title = "Scroll through the workspaces"
+group = "Workspaces"
+target = "Workspace"
+keys = "Super Wheel"
+hypr = ['hl.dsp.focus({ workspace = "e+1" })', 'hl.dsp.focus({ workspace = "e-1" })']
 
 [[binding]]
 id = "switch-window"
@@ -584,12 +625,36 @@ keys = "Super Tab"
 hypr = 'hl.dsp.focus({ workspace = "e+1" })'
 
 [[binding]]
+id = "overview-key"
+title = "Overview"
+group = "Workspaces"
+target = "Every workspace and its windows"
+keys = "Super O"
+run = ["qs", "-c", "{id}", "ipc", "call", "overview", "toggle"]
+
+[[binding]]
+id = "last-workspace"
+title = "Back to the last workspace"
+group = "Workspaces"
+target = "Workspace"
+keys = "Super Shift Tab"
+hypr = 'hl.dsp.focus({ workspace = "previous" })'
+
+[[binding]]
 id = "scratchpad"
 title = "Scratchpad"
 group = "Workspaces"
 target = "Special workspace"
 keys = "Super S"
 hypr = 'hl.dsp.workspace.toggle_special("scratchpad")'
+
+[[binding]]
+id = "to-scratchpad"
+title = "Put in the scratchpad"
+group = "Workspaces"
+target = "Window"
+keys = "Super Shift S"
+hypr = 'hl.dsp.window.move({ workspace = "special:scratchpad", follow = false })'
 
 # The keys of a laptop or a media keyboard. They work on the lock screen too (locked) and repeat
 # while held; the OSD of the shell shows volume and brightness.

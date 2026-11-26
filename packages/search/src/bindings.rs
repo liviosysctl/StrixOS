@@ -3,17 +3,21 @@
 //! One file for Search, the cheat sheet and Hyprland, so a key shown is a key bound.
 //!
 //! Keys are written as on the cheat sheet: modifiers first, then one key, separated by spaces.
-//! Three short forms stand for several bindings:
+//! `Drag` and `RightDrag` are the left and the right mouse button held down (a binding of the
+//! mouse, for moving and resizing windows). Four short forms stand for several bindings:
 //!
 //! | Written | Bindings | `{key}` becomes |
 //! |---|---|---|
 //! | `Super 1–9` | Super 1 to Super 9 | `1` to `9` |
+//! | `Super 1–0` | Super 1 to Super 9, then Super 0 | `1` to `9`, `0` |
 //! | `Super Arrows` | the four arrow keys | `left`, `right`, `up`, `down` |
+//! | `Super Wheel` | the wheel turned down, then up | `mouse_down`, `mouse_up` |
 //! | `Super = -` | one per key after the modifiers | the Hyprland name of the key |
 //!
 //! A binding does one of: `run` (a command line, started with `uwsm app` so it gets its own
 //! scope) or `hypr` (a Hyprland Lua dispatcher such as `hl.dsp.window.close()`, a list with one
-//! per key for the third form, `{key}` replaced).
+//! per key for the last two forms, `{key}` replaced). `{number}` is the number a digit key
+//! stands for, with 0 as 10: Super 0 is the tenth workspace.
 
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -144,6 +148,9 @@ fn key_name(key: &str) -> Option<String> {
         "Play" => "XF86AudioPlay",
         "Next" => "XF86AudioNext",
         "Previous" => "XF86AudioPrev",
+        // The mouse: a button held down while the pointer moves
+        "Drag" => "mouse:272",
+        "RightDrag" => "mouse:273",
         _ => "",
     };
     if !named.is_empty() {
@@ -179,13 +186,30 @@ pub fn expand(keys: &str) -> Result<(String, Vec<String>), String> {
     let keys_out: Vec<String> = match rest.as_slice() {
         [] => return Err(format!("\"{keys}\" has no key")),
         ["1–9"] | ["1-9"] => (1..=9).map(|n| n.to_string()).collect(),
+        ["1–0"] | ["1-0"] => (1..=9).chain([0]).map(|n| n.to_string()).collect(),
         ["Arrows"] => ["left", "right", "up", "down"].map(String::from).to_vec(),
+        ["Wheel"] => ["mouse_down", "mouse_up"].map(String::from).to_vec(),
         words => words
             .iter()
             .map(|w| key_name(w).ok_or_else(|| format!("\"{keys}\": unknown key \"{w}\"")))
             .collect::<Result<_, _>>()?,
     };
     Ok((mods.join(" + "), keys_out))
+}
+
+/// The number a digit key stands for, 0 as 10 (the tenth workspace); other keys as they are
+fn number(key: &str) -> &str {
+    if key == "0" { "10" } else { key }
+}
+
+/// `{key}` and `{number}` of a dispatcher filled for one key
+fn fill_key(lua: &str, key: &str) -> String {
+    lua.replace("{key}", key).replace("{number}", number(key))
+}
+
+/// A combination of a mouse button held down: Hyprland binds it with `mouse = true`
+pub fn is_mouse(combo: &str) -> bool {
+    combo.contains("mouse:")
 }
 
 fn combo(mods: &str, key: &str) -> String {
@@ -300,11 +324,11 @@ pub fn read(path: &Path, distro: &str) -> Result<Vec<Bound>, String> {
                 problems.push(format!("{at}: run takes one key, use hypr for several"));
                 continue;
             }
-            (None, Some(Hypr::One(lua))) => list.iter().map(|k| lua.replace("{key}", k)).collect(),
+            (None, Some(Hypr::One(lua))) => list.iter().map(|k| fill_key(lua, k)).collect(),
             (None, Some(Hypr::Each(each))) if each.len() == list.len() => each
                 .iter()
                 .zip(&list)
-                .map(|(lua, k)| lua.replace("{key}", k))
+                .map(|(lua, k)| fill_key(lua, k))
                 .collect(),
             (None, Some(Hypr::Each(each))) => {
                 problems.push(format!(
@@ -455,6 +479,9 @@ pub fn lua(bound: &[Bound]) -> String {
 /// One `hl.bind` of a binding, on `combo`
 pub fn bind_line(b: &Bound, combo: &str) -> String {
     let mut opts = format!("description = {}", lua_string(&b.description));
+    if is_mouse(combo) {
+        opts.push_str(", mouse = true");
+    }
     if b.locked {
         opts.push_str(", locked = true");
     }
@@ -495,6 +522,11 @@ mod tests {
             ["left", "right", "up", "down"]
         );
         assert_eq!(expand("Super = -").unwrap().1, ["equal", "minus"]);
+        assert_eq!(expand("Super Shift 1–0").unwrap().1.last().unwrap(), "0");
+        assert_eq!(expand("Super Shift 1–0").unwrap().1.len(), 10);
+        assert_eq!(expand("Super Wheel").unwrap().1, ["mouse_down", "mouse_up"]);
+        assert_eq!(expand("Super Drag").unwrap().1, ["mouse:272"]);
+        assert_eq!(expand("Super RightDrag").unwrap().1, ["mouse:273"]);
         assert_eq!(expand("Super .").unwrap().1, ["period"]);
         assert_eq!(expand("Super Shift Ü").unwrap().1, ["udiaeresis"]);
         assert_eq!(expand("Ctrl Alt Delete").unwrap().1, ["Delete"]);
@@ -609,6 +641,47 @@ repeat = true
         let text = lua(&bound);
         assert!(text.contains("hl.bind(\"SUPER + equal\", hl.dsp.window.resize({ x = 40, y = 40, relative = true }), { description = \"Grow or shrink\", repeating = true })"));
         assert!(!text.contains("theme keep"));
+    }
+
+    #[test]
+    fn the_mouse_and_the_tenth_workspace() {
+        let p = file(
+            r#"
+[[binding]]
+id = "go"
+title = "Go to workspace"
+group = "Workspaces"
+keys = "Super 1–0"
+hypr = "hl.dsp.focus({ workspace = {number} })"
+
+[[binding]]
+id = "drag"
+title = "Move with the mouse"
+group = "Windows"
+keys = "Super Drag"
+hypr = "hl.dsp.window.drag()"
+
+[[binding]]
+id = "wheel"
+title = "Scroll through the workspaces"
+group = "Workspaces"
+keys = "Super Wheel"
+hypr = ['hl.dsp.focus({ workspace = "e+1" })', 'hl.dsp.focus({ workspace = "e-1" })']
+"#,
+        );
+        let bound = read(&p, "strix").unwrap();
+        assert_eq!(bound.len(), 10 + 1 + 2);
+        assert_eq!(bound[9].combo, "SUPER + 0");
+        assert_eq!(bound[9].dispatcher, "hl.dsp.focus({ workspace = 10 })");
+        assert_eq!(bound[0].dispatcher, "hl.dsp.focus({ workspace = 1 })");
+        let text = lua(&bound);
+        assert!(text.contains(
+            "hl.bind(\"SUPER + mouse:272\", hl.dsp.window.drag(), { description = \"Move with the mouse\", mouse = true })"
+        ));
+        assert!(
+            text.contains("hl.bind(\"SUPER + mouse_down\", hl.dsp.focus({ workspace = \"e+1\" })")
+        );
+        assert!(!text.contains("mouse_down\", hl.dsp.focus({ workspace = \"e+1\" }), { description = \"Scroll through the workspaces\", mouse"));
     }
 
     #[test]

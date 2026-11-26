@@ -83,6 +83,19 @@ pub fn set(bound: &[Bound], dir: &Path, id: &str, keys: Option<&str>) -> Result<
         Some(keys) => {
             let combo = bindings::single_combo(keys)?;
             let original = &bound.iter().find(|b| b.id == id).expect("counted").combo;
+            // Moving a window by dragging needs a mouse button, a key cannot drag
+            if bindings::is_mouse(&combo) != bindings::is_mouse(original) {
+                return Err(if bindings::is_mouse(original) {
+                    format!("{keys} is no mouse button: this one is Drag or RightDrag")
+                } else {
+                    format!("{keys} is a mouse button: this one needs a key")
+                });
+            }
+            if bindings::is_mouse(&combo) && !combo.contains(" + ") {
+                return Err(format!(
+                    "{keys} alone would move windows on every click: hold a modifier"
+                ));
+            }
             if combo.eq_ignore_ascii_case(original) {
                 own.remove(id);
             } else {
@@ -192,6 +205,25 @@ mod tests {
         // A key set free elsewhere can be taken
         set(&all(), &dir, "all-hotkeys", Some("Super H")).unwrap();
         set(&all(), &dir, "terminal", Some("Super K")).unwrap();
+    }
+
+    #[test]
+    fn a_mouse_binding_stays_one() {
+        let dir = scratch("mouse");
+        let all = vec![
+            bound("drag-window", "SUPER + mouse:272"),
+            bound("a", "SUPER + A"),
+        ];
+        assert!(set(&all, &dir, "drag-window", Some("Super Alt Drag")).is_ok());
+        assert!(set(&all, &dir, "drag-window", Some("Super D")).is_err());
+        assert!(set(&all, &dir, "a", Some("Super RightDrag")).is_err());
+        assert!(set(&all, &dir, "drag-window", Some("Drag")).is_err());
+        let text = fs::read_to_string(dir.join("keys.lua")).unwrap();
+        assert!(
+            text.contains("hl.bind(\"SUPER + ALT + mouse:272\""),
+            "{text}"
+        );
+        assert!(text.contains("mouse = true"), "{text}");
     }
 
     #[test]
