@@ -42,8 +42,11 @@ in
     # after the install. Logging in needs the user's password, root cannot log
     # in. NixOS opens port 22 in the firewall for it.
     # Turn it off in machine.nix with:  services.openssh.enable = false;
+    # systemd listens on the port and starts sshd for each connection, so nothing waits in
+    # memory while nobody logs in.
     services.openssh = {
       enable = lib.mkDefault true;
+      startWhenNeeded = lib.mkDefault true;
       settings = {
         PermitRootLogin = lib.mkDefault "no";
         PasswordAuthentication = lib.mkDefault true;
