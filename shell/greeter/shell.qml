@@ -6,10 +6,13 @@
 //   cage -s -- qs -c strix-greeter
 //
 // Enter in the name goes to the password, Enter in the password logs in. The last name is kept
-// in GREETER_STATE (a folder of the greeter user).
+// in GREETER_STATE (a folder of the greeter user). Five minutes without a key or a movement
+// and the screen goes black, with the backlight off (GREETER_BRIGHTNESSCTL); the first key or
+// movement brings both back.
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Quickshell.Wayland
 import Quickshell.Services.Greetd
 import Strix
 import Strix.Shell
@@ -81,6 +84,17 @@ ShellRoot {
 
     SystemClock { id: clock; precision: SystemClock.Minutes }
 
+    // Nobody at the machine: dark until someone is (cage tells idle like any compositor)
+    IdleMonitor {
+        id: idle
+        timeout: 300
+        onIsIdleChanged: {
+            const tool = Quickshell.env("GREETER_BRIGHTNESSCTL") || ""
+            if (tool !== "")
+                Quickshell.execDetached(isIdle ? [tool, "--quiet", "--save", "set", "0"] : [tool, "--quiet", "--restore"])
+        }
+    }
+
     FloatingWindow {
         id: window
         color: Theme.background
@@ -115,7 +129,7 @@ ShellRoot {
                 height: 128
                 Timer {
                     interval: 6000 + Math.random() * 6000
-                    running: true
+                    running: !idle.isIdle
                     repeat: true
                     onTriggered: { owl.blink(); interval = 6000 + Math.random() * 6000 }
                 }
@@ -176,6 +190,15 @@ ShellRoot {
         Column {
             anchors { right: parent.right; bottom: parent.bottom; margins: Theme.space8 }
             Wordmark { anchors.right: parent.right }
+        }
+
+        // Black over everything while nobody is there; it fades, so waking up is not a flash
+        Rectangle {
+            anchors.fill: parent
+            color: "black"
+            opacity: idle.isIdle ? 1 : 0
+            visible: opacity > 0
+            Behavior on opacity { NumberAnimation { duration: Theme.durReveal; easing.type: Easing.InOutQuad } }
         }
     }
 }

@@ -29,6 +29,7 @@ let
     export STRIX_LOGOS=${config.${id}.theme.logos}
     export XKB_DEFAULT_LAYOUT=${lib.escapeShellArg xkb.layout} XKB_DEFAULT_VARIANT=${lib.escapeShellArg xkb.variant}
     export XKB_DEFAULT_OPTIONS=${lib.escapeShellArg xkb.options}
+    export GREETER_BRIGHTNESSCTL=${lib.getExe pkgs.brightnessctl}
     export XCURSOR_THEME=${config.environment.sessionVariables.XCURSOR_THEME} XCURSOR_SIZE=24
     # cage does not scale: a laptop's own Full HD screen gets the 125 % of the desktop
     # (shell/hypr/hyprland.lua), so the login is as large as what follows it
