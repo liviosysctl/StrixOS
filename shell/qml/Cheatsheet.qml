@@ -16,6 +16,29 @@ Scope {
     property var rows: []
     property string filter: ""
 
+    /// The groups in `count` columns, in their order: a column ends once it holds its share of what
+    /// is left, a heading weighing about two rows
+    function split(groups, count) {
+        const weight = g => g.rows.length + 2
+        let left = groups.reduce((sum, g) => sum + weight(g), 0)
+        const out = []
+        let column = []
+        let held = 0
+        for (const g of groups) {
+            const share = left / (count - out.length)
+            if (column.length > 0 && out.length < count - 1 && held + weight(g) / 2 > share) {
+                out.push(column)
+                left -= held
+                column = []
+                held = 0
+            }
+            column.push(g)
+            held += weight(g)
+        }
+        if (column.length > 0) out.push(column)
+        return out
+    }
+
     readonly property var groups: {
         const words = root.filter.toLowerCase().split(/\s+/).filter(w => w)
         const out = []
@@ -118,27 +141,42 @@ Scope {
                     clip: true
                     boundsBehavior: Flickable.StopAtBounds
 
-                    Flow {
+                    // Columns that fill from the top in the order of the sheet: a long group
+                    // beside a short one leaves no hole under the short one
+                    Row {
                         id: flow
                         width: scroll.width
                         spacing: Theme.space5
                         // Three columns, two where a row would get too narrow for its keys
                         readonly property int columns: width >= 960 ? 3 : 2
                         Repeater {
-                            model: root.groups
+                            model: root.split(root.groups, flow.columns)
                             Column {
+                                id: column
                                 required property var modelData
                                 width: (flow.width - Theme.space5 * (flow.columns - 1)) / flow.columns
-                                spacing: Theme.space1
-                                Label { textStyle: "aside"; color: Theme.accentText; text: modelData.name }
+                                spacing: Theme.space5
                                 Repeater {
-                                    model: modelData.rows
-                                    HotkeyRow {
+                                    model: column.modelData
+                                    Column {
+                                        id: group
                                         required property var modelData
-                                        width: parent.width
-                                        action: modelData.title
-                                        target: modelData.scope === "picker" ? "In the theme picker" : modelData.target
-                                        keys: modelData.keys
+                                        width: column.width
+                                        spacing: Theme.space1
+                                        Label { textStyle: "aside"; color: Theme.accentText; text: group.modelData.name }
+                                        Repeater {
+                                            model: group.modelData.rows
+                                            HotkeyRow {
+                                                required property var modelData
+                                                width: group.width
+                                                action: modelData.title
+                                                // The heading says it already: "Window" under Windows
+                                                target: modelData.scope === "picker" ? "In the theme picker"
+                                                    : group.modelData.name.toLowerCase().startsWith(modelData.target.toLowerCase()) ? ""
+                                                    : modelData.target
+                                                keys: modelData.keys
+                                            }
+                                        }
                                     }
                                 }
                             }
