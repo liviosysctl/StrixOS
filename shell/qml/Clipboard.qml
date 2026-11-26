@@ -111,6 +111,8 @@ Scope {
 
         Surface {
             elevation: "panel"
+            // The field and the rows stand one step inside: corners parallel to theirs
+            inset: Theme.space2
             // Opening: drops 8px into place from 97% while the scrim fades (motion.md)
             opacity: presence.shown
             scale: 0.97 + 0.03 * presence.shown

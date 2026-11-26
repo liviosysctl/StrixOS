@@ -359,6 +359,8 @@ Scope {
                     width: Math.min(parent.width - 2 * Theme.space6, 640)
                     height: foot.implicitHeight + 2 * Theme.space3
                     elevation: "panel"
+                    // Dark or light and the switch stand one step and a half inside
+                    inset: Theme.space3
 
                     // A click on the plate is not a click beside the picker
                     MouseArea { anchors.fill: parent }

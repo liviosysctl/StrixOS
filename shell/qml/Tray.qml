@@ -65,6 +65,7 @@ Chip {
             width: parent.width
             height: parent.height - Theme.space2
             elevation: "panel"
+            inset: Theme.space2
             opacity: presence.shown
             transform: Translate { y: -Theme.space2 * (1 - presence.shown) }
             focus: true

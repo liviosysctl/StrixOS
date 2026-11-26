@@ -17,6 +17,7 @@ Surface {
     signal settings(string page)
 
     elevation: "panel"
+    inset: Theme.space2
     width: 280
     height: list.y + list.implicitHeight + Theme.space2
 

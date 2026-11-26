@@ -87,6 +87,7 @@ Scope {
             width: Math.min(parent.width - 2 * Theme.space6, 520)
             height: rows.implicitHeight + 2 * Theme.space2
             elevation: "panel"
+            inset: Theme.space2
             opacity: presence.shown
             scale: 0.98 + 0.02 * presence.shown
 

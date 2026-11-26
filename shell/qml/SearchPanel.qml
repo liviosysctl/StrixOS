@@ -178,6 +178,9 @@ Scope {
         Surface {
             id: panel
             elevation: "panel"
+            // The field and the rows stand one step inside; grown into the browser it has the
+            // corners of a window
+            inset: Theme.space2 * (1 - root.grown)
             opacity: presence.shown
             scale: 0.97 + 0.03 * presence.shown
             transformOrigin: Item.Top

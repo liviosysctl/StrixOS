@@ -108,6 +108,7 @@ PanelWindow {
             width: column.width
             height: earlier.implicitHeight + 2 * Theme.space2
             elevation: "panel"
+            inset: Theme.space2
 
             Column {
                 id: earlier
