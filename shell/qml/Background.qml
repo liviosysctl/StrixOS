@@ -1,6 +1,7 @@
 // The engraving of the current theme behind everything, on every screen. When the theme changes,
 // the new engraving grows as a circle from the middle of the screen (motion.md); while something
-// covers the desktop (the lock screen, the theme picker) it changes at once.
+// covers the desktop (the lock screen, the theme picker) it changes at once. The clock of the
+// desktop stands on it (DesktopClock).
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
@@ -57,6 +58,7 @@ Variants {
         CircleReveal {
             id: reveal
             anchors.fill: parent
+            z: 1
             onFinished: {
                 base.source = reveal.source
                 if (base.status === Image.Ready) reveal.clear()
@@ -66,6 +68,12 @@ Variants {
                     window.change(picture)
                 }
             }
+        }
+
+        // Over the picture, under the circle of a new one, which takes it along
+        DesktopClock {
+            anchors.fill: parent
+            screen: window.modelData
         }
     }
 }

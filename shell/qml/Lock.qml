@@ -1,11 +1,13 @@
 // The lock screen (LockScreen in StrixUI, left layout). Every lock shows another god than the
 // desktop and the lock before; after unlocking the desktop's theme comes back from ThemeFile.
 // Locked by `loginctl lock-session` (Super Escape, hypridle) through ipc: lock lock.
+// What plays can be paused or skipped from the corner without unlocking.
 // The password goes to PAM, service strix-lock.
 import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
+import Quickshell.Services.Mpris
 import Quickshell.Services.Pam
 import Strix
 
@@ -101,6 +103,9 @@ Scope {
     }
 
     SystemClock { id: clock; precision: SystemClock.Minutes }
+
+    /// What plays, or played last: it can be paused or skipped without unlocking
+    readonly property var player: Mpris.players.values.find(p => p.isPlaying) || Mpris.players.values[0] || null
 
     WlSessionLock {
         id: sessionLock
@@ -218,6 +223,54 @@ Scope {
                 Column {
                     anchors { right: parent.right; bottom: parent.bottom; margins: Theme.space8 }
                     spacing: Theme.space2
+
+                    // The music, quietly in the corner: title, artist and the three controls
+                    Column {
+                        visible: !!root.player
+                        anchors.right: parent.right
+                        spacing: Theme.space1
+                        Entrance { delay: Theme.stagger * 6 }
+                        Label {
+                            anchors.right: parent.right
+                            width: Math.min(implicitWidth, 320)
+                            horizontalAlignment: Text.AlignRight
+                            elide: Text.ElideLeft
+                            textStyle: "aside"
+                            color: Theme.text
+                            text: root.player ? root.player.trackTitle || root.player.identity : ""
+                        }
+                        Label {
+                            anchors.right: parent.right
+                            width: Math.min(implicitWidth, 320)
+                            horizontalAlignment: Text.AlignRight
+                            elide: Text.ElideLeft
+                            visible: text !== ""
+                            textStyle: "caption"
+                            color: Theme.textMuted
+                            text: root.player ? root.player.trackArtist || "" : ""
+                        }
+                        Row {
+                            anchors.right: parent.right
+                            spacing: Theme.space1
+                            IconButton {
+                                iconName: "skip-back"
+                                enabled: !!root.player && root.player.canGoPrevious
+                                onClicked: root.player.previous()
+                            }
+                            IconButton {
+                                iconName: root.player && root.player.isPlaying ? "pause" : "play"
+                                enabled: !!root.player && root.player.canTogglePlaying
+                                onClicked: root.player.togglePlaying()
+                            }
+                            IconButton {
+                                iconName: "skip-forward"
+                                enabled: !!root.player && root.player.canGoNext
+                                onClicked: root.player.next()
+                            }
+                        }
+                        Item { width: 1; height: Theme.space4 }
+                    }
+
                     Wordmark { anchors.right: parent.right }
                 }
             }

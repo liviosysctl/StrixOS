@@ -105,8 +105,30 @@ in
         hyprpicker
         brightnessctl
         playerctl
+        cava
       ]
       ++ lib.optionals (!cfg.live) [ cliphist ];
+
+    # The sound as bars for the clock of the desktop and the media player (Spectrum.qml): cava
+    # reads PipeWire and writes one line of 48 numbers (0 to 100) per frame
+    environment.etc."xdg/${id}/cava.conf".text = ''
+      [general]
+      bars = 48
+      framerate = 30
+      autosens = 1
+      [input]
+      method = pipewire
+      source = auto
+      [output]
+      method = raw
+      raw_target = /dev/stdout
+      data_format = ascii
+      ascii_max_range = 100
+      bar_delimiter = 59
+      frame_delimiter = 10
+      [smoothing]
+      noise_reduction = 77
+    '';
 
     systemd.user.services."${id}-shell" = {
       description = "The shell of ${branding.name}: wallpaper, bar, lock screen, search, notifications";

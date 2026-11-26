@@ -5,7 +5,7 @@
 // region, a recording of a region (red while one runs, a click stops it), the colour picker; the clipboard history and the theme picker;
 // the night light, in the accent while it is on.
 // Then what is playing, the only place for it: play or pause, and the title, which opens the
-// media player above it. The player is one of Popups, which folds it back, and while it is
+// media player above it, with the sound as bars on top (Spectrum). The player is one of Popups, which folds it back, and while it is
 // open the dock stays out.
 // ipc: dock open media, dock close.
 import QtQuick
@@ -221,7 +221,7 @@ Scope {
 
                 visible: presence.present
                 width: mediaPanel.width
-                height: mediaPanel.height
+                height: mediaPanel.height + sound.height
                 x: Math.round(Math.max(0, Math.min(win.width - width, sourceX - width / 2)))
                 y: win.height - dock.openHeight - Theme.space2 - height
                 opacity: presence.shown
@@ -237,8 +237,18 @@ Scope {
                 focus: true
                 Keys.onPressed: event => Popups.key(event)
 
+                // The sound as bars, standing on the player like hatching on a plate
+                Visualizer {
+                    id: sound
+                    width: mediaPanel.width
+                    height: Theme.space6
+                    values: Spectrum.values
+                }
+                Binding { target: Spectrum; property: "forDock"; value: win.open; when: win.open }
+
                 MediaPlayer {
                     id: mediaPanel
+                    y: sound.height
                     width: implicitWidth
                     height: implicitHeight
                     title: root.player ? root.player.trackTitle : ""
