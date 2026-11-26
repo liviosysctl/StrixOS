@@ -431,9 +431,8 @@ Scope {
                         x: Theme.space2
                         topPadding: Theme.space4
                         bottomPadding: Theme.space1
-                        textStyle: "micro"
-                        color: Theme.textFaint
-                        font.capitalization: Font.AllUppercase
+                        textStyle: "caption"
+                        color: Theme.textMuted
                         text: "Categories"
                     }
                     Repeater {

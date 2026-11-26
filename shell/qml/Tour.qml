@@ -233,9 +233,8 @@ Scope {
                     width: parent.width
                     spacing: Theme.space2
                     Label {
-                        textStyle: "micro"
-                        color: Theme.textFaint
-                        font.capitalization: Font.AllUppercase
+                        textStyle: "caption"
+                        color: Theme.textMuted
                         text: "Tour, " + (root.step + 1) + " of " + root.steps.length
                     }
                     Label { textStyle: "subtitle"; color: Theme.text; text: root.current ? root.current.title : "" }
