@@ -10,7 +10,8 @@
 # a start page and a cheat sheet (Space ?). The Nix configuration of the
 # machine is a key away (Space n), and saving a file of root asks for the
 # password. That part steps aside as soon as there is an init.lua in
-# ~/.config/nvim.
+# ~/.config/nvim. plugin/languages.lua sets up the language servers: Nix with
+# the options of the machine, Lua with Hyprland's functions, TOML.
 {
   config,
   lib,
@@ -49,6 +50,14 @@ in
           # Where the tools keep the machine's configuration (modules/core/tools.nix)
           names // { configDir = "/etc/nixos"; }
         );
+        # The language servers: Nix, Lua (with the descriptions of Hyprland's functions), TOML
+        "plugin/${id}-languages.lua".source = pkgs.replaceVars ../../shell/nvim/plugin/languages.lua {
+          inherit id;
+          configDir = "/etc/nixos";
+          hyprStubs =
+            lib.optionalString config.${id}.desktop.enable
+              "${config.programs.hyprland.package}/share/hypr/stubs";
+        };
         "${id}/cheatsheet.txt".source = ../../shell/nvim/cheatsheet.txt;
       };
       # Only plugins and no customRC: the wrapper then leaves the user's init alone
@@ -97,6 +106,8 @@ in
     environment.systemPackages = [
       pkgs.nixd
       pkgs.nixfmt
+      pkgs.lua-language-server
+      pkgs.taplo
     ];
   };
 }

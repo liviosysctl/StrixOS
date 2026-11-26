@@ -334,34 +334,6 @@ vim.api.nvim_create_autocmd("FileType", {
   end,
 })
 
--- Nix: mistakes underlined while typing, the options of NixOS and of the distribution suggested
--- with what they do (nixd reads them from the configuration of this machine), and the file
--- formatted on saving
-if vim.fn.executable("nixd") == 1 and vim.lsp.config then
-  local machine = '(builtins.getFlake "' .. config_dir .. '")'
-  vim.lsp.config("nixd", {
-    cmd = { "nixd" },
-    filetypes = { "nix" },
-    root_markers = { "flake.nix", ".git" },
-    settings = {
-      nixd = {
-        nixpkgs = { expr = "import " .. machine .. ".inputs.@id@.inputs.nixpkgs { }" },
-        options = { nixos = { expr = machine .. ".nixosConfigurations.@id@.options" } },
-        formatting = { command = { "nixfmt" } },
-      },
-    },
-  })
-  vim.lsp.enable("nixd")
-  vim.api.nvim_create_autocmd("BufWritePre", {
-    pattern = "*.nix",
-    callback = function(event)
-      if #vim.lsp.get_clients({ bufnr = event.buf, name = "nixd" }) > 0 then
-        vim.lsp.buf.format({ bufnr = event.buf, timeout_ms = 2000 })
-      end
-    end,
-  })
-end
-
 -- The start page, when Neovim opens without a file
 with("alpha", function(alpha)
   local page = require("alpha.themes.dashboard")
