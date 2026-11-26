@@ -81,13 +81,15 @@ in
     assert !iso.virtualisation.virtualbox.guest.enable;
     ok "iso-clean";
 
-  # SSH is on, with a password but never for root. On the live system it runs
-  # too (nixpkgs installer profile), logging in needs a password set with passwd.
+  # SSH is on, with a password but never for root, started by systemd for each
+  # connection. On the live system it runs too (nixpkgs installer profile), logging
+  # in needs a password set with passwd.
   ssh-on =
     let
       cfg = reference.config.services.openssh;
     in
     assert cfg.enable;
+    assert cfg.startWhenNeeded;
     assert cfg.openFirewall;
     assert cfg.settings.PermitRootLogin == "no";
     assert cfg.settings.PasswordAuthentication;
