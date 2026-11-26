@@ -15,7 +15,11 @@ in
   config = lib.mkIf cfg.enable {
     # Printers: CUPS, with printers on the network found by themselves (IPP Everywhere through
     # Avahi), so most need no driver. "Print Settings" in Search adds one that is not found.
+    # CUPS finds them itself and makes a queue for one when something is printed on it, so
+    # cups-browsed, which would make queues for them ahead and keep CUPS running for good, stays
+    # off: CUPS starts when it is asked and goes again when it has nothing to do.
     services.printing.enable = lib.mkIf (!cfg.live) true;
+    services.printing.browsed.enable = lib.mkIf (!cfg.live) false;
     services.avahi = lib.mkIf (!cfg.live) {
       enable = true;
       nssmdns4 = true;
