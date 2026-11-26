@@ -303,15 +303,6 @@ Scope {
                 width: parent.width
                 transform: Translate { y: Theme.space3 * (1 - presence.shown) }
 
-                Label {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    textStyle: "micro"
-                    color: Theme.textFaint
-                    font.capitalization: Font.AllUppercase
-                    font.letterSpacing: 1.2
-                    text: "Theme"
-                }
-
                 // The carousel of StrixUI: the track slides so the chosen plate stays in the middle,
                 // while it widens and its neighbours narrow (geometry of .k-carousel in bundle.css)
                 Item {
