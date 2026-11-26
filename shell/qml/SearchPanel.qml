@@ -188,6 +188,9 @@ Scope {
         Surface {
             id: panel
             elevation: "panel"
+            // The field and the rows stand one step inside; grown into the browser it has the
+            // corners of a window
+            inset: Theme.space2 * (1 - root.grown)
             // The search: 640 wide, near the top. The browser: where a tiled window stands, a
             // gap of two steps from the bar and the edges of the screen
             readonly property int gap: 2 * Theme.space1

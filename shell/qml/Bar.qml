@@ -234,6 +234,8 @@ Scope {
                     width: parent.width
                     height: parent.height - Theme.space2
                     elevation: "panel"
+                    // The month stands one step and a half inside, its arrows near the corner
+                    inset: Theme.space3
                     Calendar {
                         id: month
                         x: Theme.space3
