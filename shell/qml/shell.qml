@@ -1,6 +1,7 @@
-// The shell of Strix (12-desktop): wallpaper, top bar, dock, lock screen, search, cheat sheet,
-// notifications, the OSD, the battery warning, the clipboard history, the theme picker,
-// Settings and the password window of polkit, built from the QML module of StrixUI (import Strix).
+// The shell of Strix (12-desktop): wallpaper with the clock, top bar, dock, lock screen, search,
+// cheat sheet, the overview of the workspaces, notifications, the OSD, the battery warning, the
+// clipboard history, the theme picker, Settings and the password window of polkit, built from
+// the QML module of StrixUI (import Strix).
 // The colors are the session's theme (strix-theme session), which changes every 10 minutes.
 //
 // Installed as /etc/xdg/quickshell/strix and started by the user service strix-shell:
@@ -37,6 +38,7 @@ ShellRoot {
     BatteryWatch {}
     Clipboard {}
     Switcher {}
+    Overview {}
     ThemePicker { id: picker }
     Settings { picker: picker }
     Authenticate {}
