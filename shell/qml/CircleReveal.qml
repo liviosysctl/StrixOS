@@ -9,7 +9,8 @@ Item {
     id: root
 
     property url source
-    /// Decodes the picture smaller than the file, where it is only seen dimmed
+    /// Decodes the picture smaller than the file: at the size of the screen, or where it is only
+    /// seen dimmed
     property alias sourceSize: image.sourceSize
     property point origin: Qt.point(width / 2, height / 2)
     property real progress: 0
@@ -54,31 +55,38 @@ Item {
         onStatusChanged: if (status === Image.Ready && root.waiting) root.start()
     }
 
-    Item {
-        id: mask
+    // The circle and the effect exist only while the circle is seen: at rest the reveal holds no
+    // texture of the screen's size
+    Loader {
         anchors.fill: parent
-        visible: false
-        layer.enabled: true
-        Rectangle {
-            readonly property real r: root.progress * root.reach
-            x: root.origin.x - r
-            y: root.origin.y - r
-            width: 2 * r
-            height: 2 * r
-            radius: r
-            antialiasing: true
-            color: "white"
-        }
-    }
+        active: root.progress > 0
+        sourceComponent: Item {
+            Item {
+                id: mask
+                anchors.fill: parent
+                visible: false
+                layer.enabled: true
+                Rectangle {
+                    readonly property real r: root.progress * root.reach
+                    x: root.origin.x - r
+                    y: root.origin.y - r
+                    width: 2 * r
+                    height: 2 * r
+                    radius: r
+                    antialiasing: true
+                    color: "white"
+                }
+            }
 
-    MultiEffect {
-        anchors.fill: parent
-        visible: root.progress > 0
-        source: image
-        maskEnabled: true
-        maskSource: mask
-        maskThresholdMin: 0.5
-        maskSpreadAtMin: 0.1
+            MultiEffect {
+                anchors.fill: parent
+                source: image
+                maskEnabled: true
+                maskSource: mask
+                maskThresholdMin: 0.5
+                maskSpreadAtMin: 0.1
+            }
+        }
     }
 
     NumberAnimation {

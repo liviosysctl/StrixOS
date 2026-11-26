@@ -28,6 +28,10 @@ Variants {
         /// The picture the theme wants, and the next one when it changed during a reveal
         readonly property url wanted: Theme.wallpaper()
         property url next: ""
+        /// The screen in its pixels: the picture is decoded no larger than it is seen. The lock
+        /// screen asks for the same size and shares it (Lock)
+        readonly property size pixels: Qt.size(Math.ceil(modelData.width * modelData.devicePixelRatio),
+            Math.ceil(modelData.height * modelData.devicePixelRatio))
 
         function change(picture) {
             if (picture.toString() === base.source.toString()) return
@@ -49,6 +53,7 @@ Variants {
             id: base
             anchors.fill: parent
             fillMode: Image.PreserveAspectCrop
+            sourceSize: window.pixels
             asynchronous: true
             Component.onCompleted: source = window.wanted
             // The grown circle covers everything until the picture below shows the same
@@ -59,6 +64,7 @@ Variants {
             id: reveal
             anchors.fill: parent
             z: 1
+            sourceSize: window.pixels
             onFinished: {
                 base.source = reveal.source
                 if (base.status === Image.Ready) reveal.clear()

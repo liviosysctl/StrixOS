@@ -128,10 +128,14 @@ Scope {
                     }
                 }
 
-                // The wallpaper settles from a little closer while the lock appears
+                // The wallpaper settles from a little closer while the lock appears. Decoded at
+                // the size of the screen, as behind the desktop (Background), which shows the
+                // same god meanwhile: the two share one picture
                 Wallpaper {
                     anchors.fill: parent
                     dim: true
+                    sourceSize: Qt.size(Math.ceil(surface.screen.width * surface.screen.devicePixelRatio),
+                        Math.ceil(surface.screen.height * surface.screen.devicePixelRatio))
                     NumberAnimation on scale { from: 1.04; to: 1; duration: Theme.durReveal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOut }
                 }
 
