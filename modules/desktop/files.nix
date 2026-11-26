@@ -12,6 +12,14 @@ let
   inherit (branding) id;
   cfg = config.${id}.desktop;
 
+  # Drives that are plugged in are mounted by themselves (packages/desk); a locked one asks for
+  # its passphrase in a terminal (udisksctl)
+  automountCommand = (pkgs.callPackage ../../packages/desk { }).command "automount" [
+    pkgs.libnotify
+    pkgs.udisks
+    pkgs.uwsm
+  ];
+
   # Files › Scripts › Open in Ghostty: a terminal in the folder shown, or in the folder of the
   # first selected item. Nautilus gives the selection as paths, the folder only as a URI
   openInGhostty = pkgs.writeShellApplication {
@@ -62,14 +70,22 @@ in
     };
 
     # A stick or a card that is plugged in is mounted by itself; the notification opens it in
-    # Files
+    # the file manager that is chosen. A small program that waits on the system bus
     systemd.user.services."${id}-automount" = lib.mkIf (!cfg.live) {
       description = "Mount drives that are plugged in";
       partOf = [ "graphical-session.target" ];
       after = [ "graphical-session.target" ];
       wantedBy = [ "graphical-session.target" ];
+      # <id>-defaults and the terminal come from the system
+      environment.PATH = lib.mkForce (
+        lib.concatStringsSep ":" [
+          "/etc/profiles/per-user/%u/bin"
+          "/run/wrappers/bin"
+          "/run/current-system/sw/bin"
+        ]
+      );
       serviceConfig = {
-        ExecStart = "${lib.getExe' pkgs.udiskie "udiskie"} --no-tray --automount --notify --file-manager ${lib.getExe pkgs.nautilus}";
+        ExecStart = lib.getExe automountCommand;
         Restart = "on-failure";
         RestartSec = 2;
       };

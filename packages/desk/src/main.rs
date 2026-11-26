@@ -1,8 +1,9 @@
 //! The commands of the desktop that the shell, Settings and the keys start. One program under
-//! several names: `<id>-capture`, `<id>-idle`, `<id>-monitor`, `<id>-defaults`, `<id>-storage`
-//! and `<id>-printers`. The name it is started by says which command it is and what the
-//! distribution is called, so nothing here knows that name.
+//! several names: `<id>-capture`, `<id>-idle`, `<id>-monitor`, `<id>-defaults`, `<id>-storage`,
+//! `<id>-printers` and `<id>-automount`. The name it is started by says which command it is and
+//! what the distribution is called, so nothing here knows that name.
 
+mod automount;
 mod capture;
 mod defaults;
 mod idle;
@@ -50,7 +51,7 @@ fn main() -> ExitCode {
     let args: Vec<String> = args.collect();
     let Some(call) = Call::parse(&program) else {
         eprintln!(
-            "{program}: started under a name that is not <id>-capture, <id>-idle, <id>-monitor, <id>-defaults, <id>-storage or <id>-printers"
+            "{program}: started under a name that is not <id>-capture, <id>-idle, <id>-monitor, <id>-defaults, <id>-storage, <id>-printers or <id>-automount"
         );
         return ExitCode::from(64);
     };
@@ -61,6 +62,7 @@ fn main() -> ExitCode {
         "defaults" => defaults::run(&call, &args),
         "storage" => storage::run(&call, &args),
         "printers" => printers::run(&call, &args),
+        "automount" => automount::run(&call, &args),
         _ => {
             eprintln!("{program}: no such command");
             return ExitCode::from(64);
