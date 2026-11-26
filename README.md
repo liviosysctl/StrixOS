@@ -3,7 +3,7 @@
 Strix is a NixOS-based system for people coming from Windows: NixOS without the terminal. You create the install stick on Windows with one click, install apps from the Store with one click. The proof of concept keeps the desktop simple: one theme, a top bar, Search, Settings with only what is needed, the Store and the lock screen.
 
 ```
-Version :: 0.1.0, the desktop comes with 0.2.0
+Version :: 1.2.0
 Base :: NixOS unstable
 Desktop :: Hyprland, the shell in Quickshell
 Theme :: Saturnus, from StrixUI (main has all eight gods)
@@ -12,25 +12,16 @@ State :: work in progress, tested on an old laptop
 
 ## The look
 
-![The desktop under Saturnus](docs/images/desktop.jpg)
+![Desktop](docs/images/desktop.jpg)
 
-*Saturnus devours one of his children, his scythe beside him in the niche. Jacob Binck after Rosso Fiorentino, 1530*
-
-The look comes from [StrixUI](https://github.com/liviosysctl/StrixUI), the design system of Strix: near-black surfaces, an old engraving as the ground, one accent colour that is used sparingly, floating surfaces of smoked glass, an old-style serif for titles beside a plain grotesque for everything else. The proof of concept has a single theme, Saturnus; nothing changes by itself.
+The look comes from [StrixUI](https://github.com/liviosysctl/StrixUI), the design system of Strix. The proof of concept has a single theme, Saturnus; nothing changes by itself.
 
 | | |
 |---|---|
-| ![The lock screen](docs/images/lock-screen.jpg) | ![Search](docs/images/search.jpg) |
-| *The lock screen* | *Search, one field for everything* |
+| ![Lock screen](docs/images/lock-screen.jpg) | ![Search](docs/images/search.jpg) |
+| ![Settings](docs/images/settings.jpg) | ![Boot splash](docs/images/boot-splash.jpg) |
 
-### More screens
-
-| | |
-|---|---|
-| ![The terminal](docs/images/terminal.jpg) | ![The boot splash](docs/images/boot-splash.jpg) |
-| *The terminal, Ghostty in the theme's colours* | *The boot splash* |
-
-These are renderings of the design from StrixUI; the shell in this repository is built from the same components. Sources and licences of every picture are in [docs/images/README.md](docs/images/README.md).
+Sources and licences of every picture are in [docs/images/README.md](docs/images/README.md).
 
 ## Branches
 
@@ -53,7 +44,7 @@ These are renderings of the design from StrixUI; the shell in this repository is
 | `themes/` | `default.nix`, the theme a new installation starts with (`saturnus`). `lib/builtin-themes.nix` takes only Saturnus from [StrixUI](https://github.com/liviosysctl/StrixUI), a flake input. [themes/README.md](themes/README.md) describes the format and the theme repositories. |
 | `packages/theme-engine/` | The theme engine in Rust: reads and checks themes, switches them at runtime, fetches and checks theme repositories, writes the colours for Hyprland, Ghostty and GTK. |
 | `packages/search/`, `modules/search.nix` | The search service behind Search: apps, the actions of `menu.toml`, every row of Settings, commands; it also makes the Hyprland keys and keeps the user's own keys. |
-| `packages/store/`, `modules/store.nix` | The Store (`main` only): an index of the channel's packages, search, install and remove through `strix-apps`, or try in a shell with `strix-shell`; proprietary apps ask first. |
+| `packages/store/`, `modules/store.nix` | The Store (this branch only): an index of the channel's packages, search, install and remove through `strix-apps`, or try in a shell with `strix-shell`; proprietary apps ask first. |
 | `packages/ui/`, `modules/ui.nix` | The design system of StrixUI on the machine: the QML module for Quickshell, the wallpapers, the fonts. |
 | `modules/desktop.nix` | The desktop: Hyprland as a UWSM session, the login of Strix under greetd (or tuigreet), PipeWire, a few apps, the shell as a user service, hypridle, and the session's theme service, which writes the colours for Hyprland and Ghostty. |
 | `shell/hypr/hyprland.lua` | The Hyprland configuration (Lua, Hyprland 0.55 and later): measures and motion of StrixUI; it requires `machine.lua`, `theme.lua` and `bindings.lua`, which Nix and the theme engine write. |
