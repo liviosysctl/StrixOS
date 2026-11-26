@@ -18,11 +18,13 @@
 //! {"id": 4, "method": "keep", "params": {"keep": true}}
 //! {"id": 5, "method": "next"}
 //! {"id": 6, "method": "variant", "params": {"variant": "light"}}  light or dark, for every theme
+//! {"id": 7, "method": "effect", "params": {"effect": false}}  the hatching of the terminal
 //! {"event": "changed", "data": <state>}                after every change
 //! ```
 
 use crate::adapters;
 use crate::browser::Browser;
+use crate::shader;
 use crate::system;
 use crate::theme::{Catalog, Selection, Theme, Variant};
 use serde_json::{Value, json};
@@ -146,12 +148,14 @@ pub struct Session {
     /// The variant the user asked for (light or dark): every theme that has it is shown in it
     pub wish: Option<String>,
     pub cycle: Cycle,
+    /// The effect of the terminal (the hatching behind the text) is on
+    pub effect: bool,
 }
 
 impl Session {
     pub fn new(settings: Settings) -> Result<Session, String> {
         let catalog = Catalog::load(&settings.themes_dir)?;
-        let (kept, wish) = read_state(&settings.state_file);
+        let (kept, wish, effect) = read_state(&settings.state_file);
         let cycle = Cycle::new(settings.period, kept);
         let mut session = Session {
             settings,
@@ -161,6 +165,7 @@ impl Session {
             system: String::new(),
             wish,
             cycle,
+            effect,
         };
         let system = session.system_choice();
         session.adopt(&system)?;
@@ -200,6 +205,7 @@ impl Session {
             variant,
             self.settings.prompt.as_deref(),
             &self.settings.browser,
+            self.effect,
         )?;
         let (theme_id, variant_id) = (theme.id.clone(), variant.id.clone());
         self.theme = theme_id;
@@ -303,11 +309,30 @@ impl Session {
         self.store()
     }
 
-    /// Writes what the session remembers: the keep flag and the variant the user asked for
+    /// The effect of the terminal on or off: the files of the theme shown are written again,
+    /// without starting a new period
+    pub fn set_effect(&mut self, on: bool) -> Result<(), String> {
+        self.effect = on;
+        self.store()?;
+        let (theme, variant) = self.resolve(&format!("{}:{}", self.theme, self.variant))?;
+        write_output(
+            &self.settings.dir,
+            theme,
+            variant,
+            self.settings.prompt.as_deref(),
+            &self.settings.browser,
+            self.effect,
+        )?;
+        self.run_hook();
+        Ok(())
+    }
+
+    /// Writes what the session remembers: the keep flag, the variant the user asked for and
+    /// whether the terminal has its effect
     fn store(&self) -> Result<(), String> {
         let text = format!(
             "{}\n",
-            json!({ "keep": self.cycle.kept, "variant": self.wish })
+            json!({ "keep": self.cycle.kept, "variant": self.wish, "effect": self.effect })
         );
         if let Some(dir) = self.settings.state_file.parent() {
             fs::create_dir_all(dir).map_err(|e| format!("cannot create {}: {e}", dir.display()))?;
@@ -391,6 +416,7 @@ impl Session {
             "variant": self.variant,
             "system": self.system,
             "keep": self.cycle.kept,
+            "effect": self.effect,
             "remaining": self.cycle.remaining().as_secs(),
             "period": self.cycle.period.as_secs(),
             "themes": themes,
@@ -427,6 +453,14 @@ impl Session {
                 self.variant(text("variant")?)?;
                 true
             }
+            "effect" => {
+                let on = params
+                    .get("effect")
+                    .and_then(Value::as_bool)
+                    .ok_or("effect needs effect (true or false)")?;
+                self.set_effect(on)?;
+                true
+            }
             "next" => self.next(&mut random_below)?,
             "version" => return Ok((json!(env!("CARGO_PKG_VERSION")), false)),
             _ => return Err(format!("unknown method \"{method}\"")),
@@ -435,8 +469,9 @@ impl Session {
     }
 }
 
-/// The keep flag and the wished variant from the state file
-fn read_state(file: &Path) -> (bool, Option<String>) {
+/// The keep flag, the wished variant and the effect of the terminal (on unless turned off) from
+/// the state file
+fn read_state(file: &Path) -> (bool, Option<String>, bool) {
     let state = fs::read_to_string(file)
         .ok()
         .and_then(|text| serde_json::from_str::<Value>(&text).ok());
@@ -444,28 +479,35 @@ fn read_state(file: &Path) -> (bool, Option<String>) {
     (
         get("keep").and_then(Value::as_bool).unwrap_or(false),
         get("variant").and_then(Value::as_str).map(String::from),
+        get("effect").and_then(Value::as_bool).unwrap_or(true),
     )
 }
 
-/// tokens.json, hyprland.lua, ghostty, btop.theme, the GTK and Zen files, mpv.conf, lazygit.yml, the
-/// palettes of Qt (qt6.conf, qt5.conf), shell.sh
-/// and, with the prompt's
-/// configuration `prompt`, starship.toml for one theme; tokens.json last, so whoever watches it
-/// finds the others already new
+/// tokens.json, hyprland.lua, ghostty (with the effect of the terminal, ghostty.glsl, when
+/// `effect`), btop.theme, the GTK and Zen files, mpv.conf, lazygit.yml, the palettes of Qt
+/// (qt6.conf, qt5.conf), shell.sh and, with the prompt's configuration `prompt`, starship.toml
+/// for one theme; tokens.json last, so whoever watches it finds the others already new
 pub fn write_output(
     dir: &Path,
     theme: &Theme,
     variant: &Variant,
     prompt: Option<&Path>,
     browser: &[PathBuf],
+    effect: bool,
 ) -> Result<(), String> {
     let browser = Browser::read(browser);
     let tokens = serde_json::to_string_pretty(&adapters::tokens(theme, variant))
         .map_err(|e| e.to_string())?
         + "\n";
+    let shader = dir.join("ghostty.glsl");
+    let mut ghostty = adapters::ghostty(theme, variant);
+    if effect {
+        ghostty.push_str(&shader::ghostty_lines(&shader));
+    }
     let files = [
         ("hyprland.lua", adapters::hyprland(theme, variant)),
-        ("ghostty", adapters::ghostty(theme, variant)),
+        ("ghostty.glsl", shader::GHOSTTY.to_string()),
+        ("ghostty", ghostty),
         ("btop.theme", adapters::btop(theme, variant)),
         ("gtk3.css", adapters::gtk3(theme, variant)),
         ("gtk4.css", adapters::gtk4(theme, variant)),
@@ -851,6 +893,40 @@ mod tests {
                 & 0o777,
             0o600
         );
+    }
+
+    #[test]
+    fn the_effect_of_the_terminal_is_on_until_turned_off() {
+        let base = scratch("effect");
+        let mut session = Session::new(settings(&base)).unwrap();
+        assert!(session.effect);
+        let dir = session.settings.dir.clone();
+        let ghostty = fs::read_to_string(dir.join("ghostty")).unwrap();
+        assert!(ghostty.contains(&format!(
+            "custom-shader = {}",
+            dir.join("ghostty.glsl").display()
+        )));
+        assert!(
+            fs::read_to_string(dir.join("ghostty.glsl"))
+                .unwrap()
+                .contains("mainImage")
+        );
+        let remaining = session.cycle.remaining();
+        session
+            .handle("effect", &json!({ "effect": false }))
+            .unwrap();
+        assert!(
+            !fs::read_to_string(dir.join("ghostty"))
+                .unwrap()
+                .contains("custom-shader")
+        );
+        // The god stays and so does the time until the next one
+        assert_eq!(session.theme, "saturnus");
+        assert!(session.cycle.remaining() <= remaining);
+        assert_eq!(session.state()["effect"], false);
+        // A new session reads it
+        assert!(!Session::new(settings(&base)).unwrap().effect);
+        assert!(session.handle("effect", &json!({})).is_err());
     }
 
     #[test]

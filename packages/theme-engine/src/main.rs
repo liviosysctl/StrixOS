@@ -6,10 +6,12 @@
 mod adapters;
 mod browser;
 mod color;
+mod cursor;
 mod draw;
 mod owl;
 mod repos;
 mod session;
+mod shader;
 mod system;
 mod theme;
 mod zen;
@@ -54,6 +56,10 @@ Build and boot:
                           (wordmark.svg for rsvg-convert, accent.png, ID.script,
                           ID.plymouth)
   boot-select             In the initrd: pick the boot splash of the stored theme
+  cursor THEME SOURCE TARGET --themes DIR --name NAME
+                          Write the Xcursor theme SOURCE (Bibata) into TARGET in the
+                          colours of THEME: a deep shade of the accent for the body,
+                          the text colour for the rim; only the sizes screens use
 
 Theme repositories (themes from outside, layout 1):
   repos list [--json]     Connected repositories, their commit and themes
@@ -71,7 +77,8 @@ The theme of a desktop session (a user service):
   session                 Serve: its own theme on top of the machine's, another
                           god every CYCLE_PERIOD unless kept, on SESSION_SOCKET
   session call METHOD [JSON]
-                          One call to it: state, preview, set, keep, next, variant
+                          One call to it: state, preview, set, keep, next, variant,
+                          effect
 
 Environment: THEMES_DIR, STATE_DIR, RUNTIME_DIR, DEFAULT_THEME, PLYMOUTH_PREFIX,
 PLYMOUTH_BASE_CONF, PLYMOUTH_THEMES, PLYMOUTH_CONF, EFI_VARIABLE, EFIVARS_DIR,
@@ -216,6 +223,22 @@ fn main() -> ExitCode {
             draw_files(kind, Path::new(out), selection, flags)
         }
         ["boot-select"] => boot_select(&config),
+        [
+            "cursor",
+            selection,
+            source,
+            target,
+            "--themes",
+            dir,
+            "--name",
+            title,
+        ] => make_cursor(
+            selection,
+            Path::new(source),
+            Path::new(target),
+            Path::new(dir),
+            title,
+        ),
         ["repos", "list"] => repos_list(&config),
         ["repos", "list", "--json"] => repos_list_json(&config),
         ["repos", "add", url] => repos_add(&config, url),
@@ -679,6 +702,24 @@ fn draw_files(kind: &str, out: &Path, selection: &str, flags: &[&str]) -> Result
         let script = fs::read_to_string(need("script")?).map_err(|e| e.to_string())?;
         draw::plymouth(out, variant, need("id")?, need("name")?, &script)?;
     }
+    Ok(true)
+}
+
+/// The pointer of one theme: its body a deep shade of the accent, its rim the text colour
+fn make_cursor(
+    text: &str,
+    source: &Path,
+    target: &Path,
+    themes: &Path,
+    title: &str,
+) -> Result<bool, String> {
+    let catalog = Catalog::load(themes)?;
+    let (_, variant) = catalog.resolve(&Selection::parse(text)?)?;
+    let paint = cursor::Paint {
+        body: variant.color("surface").mix(variant.color("accent"), 0.4),
+        rim: variant.color("text"),
+    };
+    cursor::recolor_theme(source, target, title, paint)?;
     Ok(true)
 }
 

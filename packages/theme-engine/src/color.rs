@@ -46,6 +46,18 @@ impl Rgb {
     pub fn hex(self) -> String {
         format!("#{:02x}{:02x}{:02x}", self.r, self.g, self.b)
     }
+
+    /// `amount` of the way from this color to `other` (0.0 is this one, 1.0 the other), in sRGB.
+    pub fn mix(self, other: Rgb, amount: f64) -> Rgb {
+        let t = amount.clamp(0.0, 1.0);
+        let channel =
+            |a: u8, b: u8| (f64::from(a) + (f64::from(b) - f64::from(a)) * t).round() as u8;
+        Rgb::new(
+            channel(self.r, other.r),
+            channel(self.g, other.g),
+            channel(self.b, other.b),
+        )
+    }
 }
 
 impl fmt::Display for Rgb {
