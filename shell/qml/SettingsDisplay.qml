@@ -1,5 +1,6 @@
-// Settings › Display: every screen with its scale, its resolution and refresh rate, where it stands
-// beside the others, whether it mirrors another one or is off, and the night light.
+// Settings › Display: every screen with its scale, its resolution and refresh rate, adaptive sync,
+// where it stands beside the others, whether it mirrors another one or is off, and the night
+// light.
 // The choices are written to ~/.config/strix/monitors.lua (one hl.monitor per screen, read by the
 // Hyprland configuration of Strix) and Hyprland reloads; monitors.json beside it keeps them for
 // this page, which is also how a screen that is off stays in the list.
@@ -102,6 +103,7 @@ Column {
                 "scale = " + (c.scale || (page.screens.find(m => m.name === output) || {}).scale || JSON.stringify("auto"))
             ]
             if (c.mirror) parts.push("mirror = " + JSON.stringify(c.mirror))
+            if (c.vrr !== undefined) parts.push("vrr = " + c.vrr)
             lines.push("pcall(hl.monitor, { " + parts.join(", ") + " })")
         }
         Quickshell.execDetached(["mkdir", "-p", page.dir])
@@ -193,6 +195,19 @@ Column {
                         page.set(screen.modelData.name, "size", page.sizeOf(screen.modelData))
                         page.set(screen.modelData.name, "rate", all[index])
                     }
+                }
+            }
+            SettingRow {
+                visible: !screen.off
+                width: parent.width
+                title: "Adaptive sync"
+                text: "The screen waits for the next picture: no tearing in games and videos, where the screen can do it"
+                Segmented {
+                    // Hyprland: 0 off, 2 only for a window in full screen, 1 always
+                    readonly property var values: [0, 2, 1]
+                    model: ["Off", "Full screen", "Always"]
+                    currentIndex: Math.max(0, values.indexOf(screen.own.vrr === undefined ? 0 : screen.own.vrr))
+                    onActivated: index => page.set(screen.modelData.name, "vrr", values[index])
                 }
             }
             SettingRow {

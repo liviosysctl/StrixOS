@@ -1,11 +1,15 @@
-//! The commands of the desktop that the shell and the keys start. One program under three names:
-//! `<id>-capture`, `<id>-idle` and `<id>-monitor`. The name it is started by says which command
-//! it is and what the distribution is called, so nothing here knows that name.
+//! The commands of the desktop that the shell, Settings and the keys start. One program under
+//! several names: `<id>-capture`, `<id>-idle`, `<id>-monitor`, `<id>-defaults`, `<id>-storage`
+//! and `<id>-printers`. The name it is started by says which command it is and what the
+//! distribution is called, so nothing here knows that name.
 
 mod capture;
+mod defaults;
 mod idle;
 mod monitor;
+mod printers;
 mod run;
+mod storage;
 
 use std::path::Path;
 use std::process::ExitCode;
@@ -46,7 +50,7 @@ fn main() -> ExitCode {
     let args: Vec<String> = args.collect();
     let Some(call) = Call::parse(&program) else {
         eprintln!(
-            "{program}: started under a name that is not <id>-capture, <id>-idle or <id>-monitor"
+            "{program}: started under a name that is not <id>-capture, <id>-idle, <id>-monitor, <id>-defaults, <id>-storage or <id>-printers"
         );
         return ExitCode::from(64);
     };
@@ -54,6 +58,9 @@ fn main() -> ExitCode {
         "capture" => capture::run(&call, &args),
         "idle" => idle::run(&call, &args),
         "monitor" => monitor::run(&call),
+        "defaults" => defaults::run(&call, &args),
+        "storage" => storage::run(&call, &args),
+        "printers" => printers::run(&call, &args),
         _ => {
             eprintln!("{program}: no such command");
             return ExitCode::from(64);

@@ -470,6 +470,13 @@ fn steps(job: &mut Install, opts: &Options) -> Result<(), String> {
         ],
     )?;
 
+    // The time zone is the machine's own (/etc/localtime, not machine.nix), so Settings ›
+    // Date and time changes it later without a rebuild
+    let localtime = Path::new("/mnt/etc/localtime");
+    let _ = fs::remove_file(localtime);
+    std::os::unix::fs::symlink(format!("/etc/zoneinfo/{}", answers.time_zone), localtime)
+        .map_err(|e| format!("Setting the time zone failed: {e}"))?;
+
     job.step(7);
     let line = format!("{}:{password}\n", answers.user_name);
     let args = in_target("chpasswd");

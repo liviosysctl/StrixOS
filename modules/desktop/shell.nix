@@ -55,6 +55,10 @@ let
     ]
   );
 
+  # For Settings: which app opens what, what the disk holds, the printers
+  defaultsCommand = desk.command "defaults" [ pkgs.uwsm ];
+  storageCommand = desk.command "storage" [ pkgs.snapper ];
+  printersCommand = desk.command "printers" [ pkgs.cups ];
   # Settings at a page and a row, for Search and people: <id>-settings [PAGE [ROW]]
   settingsCommand = pkgs.writeShellScriptBin "${id}-settings" ''
     exec ${lib.getExe' pkgs.quickshell "qs"} -c ${id} ipc call settings open "''${1:-home}" "''${2:-}"
@@ -63,7 +67,7 @@ let
   settingsEntry = pkgs.makeDesktopItem {
     name = "${id}-settings";
     desktopName = "Settings";
-    comment = "Themes, network, sound, display, input, power, hotkeys, versions";
+    comment = "Themes, network, sound, display, input, power, hotkeys, account, time, apps, storage, printers";
     exec = "${id}-settings";
     icon = "preferences-system";
     categories = [ "Settings" ];
@@ -96,6 +100,9 @@ in
         settingsEntry
         captureCommand
         monitorCommand
+        defaultsCommand
+        storageCommand
+        printersCommand
         btop
         libnotify
         quickshell

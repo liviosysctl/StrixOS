@@ -2,7 +2,8 @@
 {
   networking.hostName = "@hostName@";
 
-  time.timeZone = "@timeZone@";
+  # The time zone is the machine's own, kept in /etc/localtime: Settings › Date and time changes
+  # it without a rebuild. The installer set it.
   i18n.defaultLocale = "@locale@";
   console.keyMap = "@consoleKeyMap@";
   services.xserver.xkb = {

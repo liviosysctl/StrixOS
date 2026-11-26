@@ -2,7 +2,8 @@
 {
   networking.hostName = "@distroId@-test";
 
-  time.timeZone = "Europe/Zurich";
+  # The time zone is the machine's own, kept in /etc/localtime: Settings › Date and time changes
+  # it without a rebuild. The installer set it.
   i18n.defaultLocale = "en_US.UTF-8";
   console.keyMap = "sg";
   services.xserver.xkb = {

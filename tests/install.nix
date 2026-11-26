@@ -199,6 +199,8 @@ pkgs.testers.runNixOSTest {
 
     with subtest("the files in /etc/nixos"):
         installer.succeed("diff -u ${machineNix} /mnt/etc/nixos/machine.nix >&2")
+        # The time zone is the machine's own, for Settings to change
+        installer.succeed("test \"$(readlink /mnt/etc/localtime)\" = /etc/zoneinfo/Europe/Zurich")
         installer.succeed("cmp ${machineLock} /mnt/etc/nixos/flake.lock")
         installer.succeed("test \"$(stat -c '%U %a' /mnt/etc/nixos/machine.nix)\" = 'root 644'")
 

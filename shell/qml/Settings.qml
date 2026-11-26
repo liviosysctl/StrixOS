@@ -1,11 +1,8 @@
-// Settings (12-desktop, step 12): a window with the pages Themes, Network, Bluetooth, Sound,
-// Display, Power, Hotkeys and About; each page but Themes and About is its own file.
+// Settings (12-desktop, step 12): a window with a first page of cards and the pages Themes,
+// Network, Bluetooth, Sound, Display, Input, Power, Hotkeys, Account, Date and time, Default
+// apps, Storage, Printers, Versions and About; each page but About is its own file.
 // Opened by strix-settings [PAGE [ROW]] (ipc: settings open), from Search or the system menu.
-//
-// Themes: the machine's theme and Keep (the session's theme service, Backend "theme"), and the
-// theme repositories (strix-theme repos). Changes to repositories need root and a rebuild: they
-// run in Ghostty with sudo, where the progress stays readable, and the list is read again after.
-// Hotkeys: every key, from the search service (Backend "search", hotkeys), changed one by one.
+// What needs root runs in Ghostty with sudo (asRoot), where the progress stays readable.
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -21,11 +18,11 @@ Scope {
     /// "home" is the first page: every other page with a line about it
     property string page: "home"
     property string row: ""
-    property var themeState: null
+    /// The theme repositories, as the Themes page read them
     property var repos: []
     property string version: ""
     readonly property var pages: [
-        { id: "themes", title: "Themes", icon: "palette", about: "The god of the session, the change every ten minutes, theme repositories" },
+        { id: "themes", title: "Themes", icon: "palette", about: "The god of the session, the change every ten minutes, the clock of the desktop" },
         { id: "network", title: "Network", icon: "wifi", about: "Wi-Fi and wired networks" },
         { id: "bluetooth", title: "Bluetooth", icon: "bluetooth", about: "Devices to pair and connect" },
         { id: "sound", title: "Sound", icon: "volume-2", about: "Outputs, inputs and their volume" },
@@ -33,6 +30,11 @@ Scope {
         { id: "input", title: "Input", icon: "mouse", about: "Keyboard layouts, mouse and touchpad" },
         { id: "power", title: "Power", icon: "zap", about: "What happens when nobody is at the machine, and the lid" },
         { id: "hotkeys", title: "Hotkeys", icon: "keyboard", about: "Every key, and keys of your own" },
+        { id: "account", title: "Account", icon: "shield", about: "Your password, your name for Git, your SSH key" },
+        { id: "time", title: "Date and time", icon: "clock", about: "The time zone and the clock of the internet" },
+        { id: "apps", title: "Default apps", icon: "layout-grid", about: "Which app opens links, text, pictures, music" },
+        { id: "storage", title: "Storage", icon: "hard-drive", about: "What the disk holds, the trash, snapshots of your home" },
+        { id: "printers", title: "Printers", icon: "file", about: "The printers on this machine and the network" },
         { id: "versions", title: "Versions", icon: "history", about: "The versions still installed, what they changed, going back" },
         { id: "about", title: "About", icon: "info", about: "This machine and the distribution" }
     ]
@@ -42,13 +44,6 @@ Scope {
         root.row = row || ""
         root.used = true
         root.open = true
-        root.refresh()
-    }
-
-    function refresh() {
-        themes.call("state", {}, s => root.themeState = s)
-        reposList.running = true
-        groups.running = true
     }
 
     /// A command that needs root, in a terminal that stays open; the list is read again after
@@ -57,40 +52,12 @@ Scope {
         terminal.running = true
     }
 
-    function quoted(text) {
-        return "'" + text.replace(/'/g, "'\\''") + "'"
-    }
-
-    Backend {
-        id: themes
-        service: "theme"
-        onEvent: (name, data) => { if (name === "changed") root.themeState = data }
-    }
-
-    Process {
-        id: reposList
-        command: ["strix-theme", "repos", "list", "--json"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                try { root.repos = JSON.parse(text) } catch (e) { root.repos = [] }
-            }
-        }
-    }
+    /// The terminal of asRoot ended: the pages read what it changed again
+    signal ranAsRoot()
 
     Process {
         id: terminal
-        onExited: reposList.running = true
-    }
-
-    // Theme repositories change the machine: only an administrator (wheel) connects, updates,
-    // removes them or lets them into the change of gods
-    property bool admin: false
-    Process {
-        id: groups
-        command: ["id", "-nG"]
-        stdout: StdioCollector {
-            onStreamFinished: root.admin = text.trim().split(/\s+/).indexOf("wheel") >= 0
-        }
+        onExited: root.ranAsRoot()
     }
 
     FileView {
@@ -253,130 +220,14 @@ Scope {
                             }
                         }
 
-                        // ------------------------------------------------ Themes
-                        Column {
+                        SettingsThemes {
                             visible: root.page === "themes"
+                            active: root.open && visible
                             width: parent.width
-                            spacing: Theme.space2
-
-                            Label { textStyle: "title"; color: Theme.text; text: "Themes" }
-
-                            SettingRow {
-                                width: parent.width
-                                title: "Theme"
-                                text: root.themeState
-                                    ? "The machine starts with " + (root.themeState.system || "").split(":")[0]
-                                      + "; this session shows " + root.themeState.theme
-                                    : "The theme service of the session is not running"
-                                Button {
-                                    text: "Choose a theme"
-                                    onClicked: { root.open = false; if (root.picker) root.picker.show() }
-                                }
-                            }
-
-                            SettingRow {
-                                width: parent.width
-                                title: "Keep this theme"
-                                text: "No change to another god every 10 minutes"
-                                Switch {
-                                    checked: !!(root.themeState && root.themeState.keep)
-                                    enabled: root.themeState !== null
-                                    onToggled: themes.call("keep", { keep: checked }, s => root.themeState = s)
-                                }
-                            }
-
-                            Item { width: 1; height: Theme.space4 }
-                            Label { textStyle: "subtitle"; color: Theme.text; text: "Theme repositories" }
-                            Label {
-                                width: parent.width
-                                wrapMode: Text.WordWrap
-                                textStyle: "caption"
-                                color: Theme.textMuted
-                                text: "Themes from outside, in Git repositories with the layout of strix-theme-template. Every update fetches them; a commit that fails the check is not taken. They stay out of the change of gods until it is turned on for their repository."
-                                      + (root.admin ? "" : " Only an administrator can change them.")
-                            }
-
-                            Label {
-                                visible: root.repos.length === 0
-                                textStyle: "body"
-                                color: Theme.textFaint
-                                text: "No theme repository is connected."
-                            }
-
-                            Repeater {
-                                model: root.repos
-                                Card {
-                                    required property var modelData
-                                    width: content.width
-                                    title: modelData.name || modelData.url
-                                    text: modelData.url + "\n" + "commit " + (modelData.rev || "-").slice(0, 7)
-                                          + " · " + (modelData.themes || []).join(", ")
-                                    Column {
-                                        width: parent.width
-                                        spacing: Theme.space2
-                                        Label {
-                                            visible: !!modelData.problem
-                                            width: parent.width
-                                            wrapMode: Text.WordWrap
-                                            textStyle: "caption"
-                                            color: Theme.error
-                                            text: modelData.problem || ""
-                                        }
-                                        Row {
-                                            spacing: Theme.space2
-                                            Label {
-                                                anchors.verticalCenter: parent.verticalCenter
-                                                textStyle: "caption"
-                                                color: Theme.textMuted
-                                                text: "In the change of gods"
-                                            }
-                                            Switch {
-                                                checked: !!modelData.cycle
-                                                enabled: root.admin
-                                                onToggled: root.asRoot("sudo strix-theme repos cycle " + root.quoted(modelData.url)
-                                                    + (checked ? " on" : " off"))
-                                            }
-                                        }
-                                        Row {
-                                            visible: root.admin
-                                            spacing: Theme.space2
-                                            Button {
-                                                text: "Update now"
-                                                onClicked: root.asRoot("sudo strix-update --themes " + root.quoted(modelData.name || modelData.url))
-                                            }
-                                            Button {
-                                                variant: "danger"
-                                                text: "Remove"
-                                                onClicked: root.asRoot("sudo strix-theme repos remove " + root.quoted(modelData.url)
-                                                    + " && sudo strix-rebuild switch")
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            Row {
-                                visible: root.admin
-                                width: parent.width
-                                spacing: Theme.space2
-                                TextField {
-                                    id: address
-                                    width: parent.width - connect.width - Theme.space2
-                                    placeholderText: "owner/strix-theme-name or an https:// address"
-                                    onAccepted: connect.clicked()
-                                }
-                                Button {
-                                    id: connect
-                                    text: "Connect"
-                                    variant: "primary"
-                                    enabled: address.text.trim() !== ""
-                                    onClicked: {
-                                        root.asRoot("sudo strix-theme repos add " + root.quoted(address.text.trim())
-                                            + " && sudo strix-rebuild switch")
-                                        address.text = ""
-                                    }
-                                }
-                            }
+                            settings: root
+                            picker: root.picker
+                            onRun: script => root.asRoot(script)
+                            onReposChanged: root.repos = repos
                         }
 
                         SettingsNetwork { visible: root.page === "network"; active: root.open && visible; width: parent.width }
@@ -386,6 +237,26 @@ Scope {
                         SettingsInput { visible: root.page === "input"; width: parent.width }
                         SettingsPower { visible: root.page === "power"; active: root.open && visible; width: parent.width }
                         SettingsHotkeys { visible: root.page === "hotkeys"; active: root.open && visible; width: parent.width }
+                        SettingsAccount {
+                            visible: root.page === "account"
+                            active: root.open && visible
+                            width: parent.width
+                            onRun: script => root.asRoot(script)
+                        }
+                        SettingsTime {
+                            visible: root.page === "time"
+                            active: root.open && visible
+                            width: parent.width
+                            onRun: script => root.asRoot(script)
+                        }
+                        SettingsApps { visible: root.page === "apps"; active: root.open && visible; width: parent.width }
+                        SettingsStorage {
+                            visible: root.page === "storage"
+                            active: root.open && visible
+                            width: parent.width
+                            onRun: script => root.asRoot(script)
+                        }
+                        SettingsPrinters { visible: root.page === "printers"; active: root.open && visible; width: parent.width }
 
                         SettingsVersions {
                             visible: root.page === "versions"

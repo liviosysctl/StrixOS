@@ -52,6 +52,36 @@ symbol = "keyboard"
 words = ["keys", "shortcuts", "bindings", "keyboard"]
 
 [[page]]
+id = "account"
+title = "Account"
+symbol = "shield"
+words = ["password", "user", "login", "git", "ssh", "key", "email"]
+
+[[page]]
+id = "time"
+title = "Date and time"
+symbol = "clock"
+words = ["time zone", "timezone", "clock", "date", "ntp", "travel"]
+
+[[page]]
+id = "apps"
+title = "Default apps"
+symbol = "layout-grid"
+words = ["default", "open with", "browser", "editor", "mime", "associations"]
+
+[[page]]
+id = "storage"
+title = "Storage"
+symbol = "hard-drive"
+words = ["disk", "space", "full", "trash", "snapshots", "free space", "clean"]
+
+[[page]]
+id = "printers"
+title = "Printers"
+symbol = "file"
+words = ["printer", "print", "cups", "scanner", "queue"]
+
+[[page]]
 id = "versions"
 title = "Versions"
 symbol = "history"
@@ -155,6 +185,61 @@ title = "All hotkeys"
 description = "Every key of Strix; click one to change it"
 type = "keys"
 words = ["cheat sheet", "shortcuts", "bindings"]
+
+[[row]]
+id = "effect"
+page = "themes"
+title = "Effect of the terminal"
+description = "Fine lines in the accent behind the text of Ghostty"
+type = "switch"
+words = ["ghostty", "shader", "terminal", "background", "animation", "lines"]
+
+[[row]]
+id = "clock"
+page = "themes"
+title = "Clock on the desktop"
+description = "Time, date and what plays, beside the god"
+type = "switch"
+words = ["clock", "time", "desktop", "widget", "music", "visualizer", "cava"]
+
+[[row]]
+id = "vrr"
+page = "display"
+title = "Adaptive sync"
+type = "choice"
+words = ["vrr", "freesync", "g-sync", "tearing", "refresh"]
+
+[[row]]
+id = "password"
+page = "account"
+title = "Password"
+description = "Change the password of the login"
+type = "action"
+words = ["password", "passwd", "login", "keyring"]
+
+[[row]]
+id = "ssh-key"
+page = "account"
+title = "SSH key"
+description = "Copy your key or make one"
+type = "action"
+words = ["ssh", "key", "github", "public key"]
+
+[[row]]
+id = "timezone"
+page = "time"
+title = "Time zone"
+type = "choice"
+words = ["timezone", "zone", "travel", "city"]
+value = ["timedatectl", "show", "--property=Timezone", "--value"]
+
+[[row]]
+id = "trash"
+page = "storage"
+title = "Trash"
+description = "Open or empty it"
+type = "action"
+words = ["trash", "bin", "deleted", "empty"]
 
 [[row]]
 id = "version"
