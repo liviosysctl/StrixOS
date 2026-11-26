@@ -128,10 +128,7 @@ impl Places {
         let mut config = vec![config_home()];
         config.extend(list("XDG_CONFIG_DIRS", "/etc/xdg"));
         let mut data = vec![data_home];
-        data.extend(list(
-            "XDG_DATA_DIRS",
-            "/run/current-system/sw/share:/var/lib/flatpak/exports/share",
-        ));
+        data.extend(list("XDG_DATA_DIRS", "/run/current-system/sw/share"));
         Places { config, data }
     }
 

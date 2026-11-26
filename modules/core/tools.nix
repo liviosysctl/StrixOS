@@ -67,9 +67,6 @@ let
     // lib.optionalAttrs config.services.fwupd.enable {
       FWUPDMGR = "${pkgs.fwupd}/bin/fwupdmgr";
     }
-    // lib.optionalAttrs config.services.flatpak.enable {
-      FLATPAK = lib.getExe config.services.flatpak.package;
-    }
     # The theme repositories are fetched by the theme engine
     // lib.optionalAttrs config.${branding.id}.theme.enable {
       THEME_COMMAND = lib.getExe config.${branding.id}.theme.package;
