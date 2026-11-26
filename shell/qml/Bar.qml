@@ -1,7 +1,8 @@
 // The top bar (TopBar in StrixUI): no surface of its own, small text and symbols straight on the
 // wallpaper. Everything in it is a button that answers the pointer, and none needs a hint.
 // Left: search, the clock (a click shows the month under it), CPU and memory (the system
-// monitor). What is playing is in the dock.
+// monitor). While the clock of the desktop is in view (no window on the workspace), the bar leaves
+// the time to it and keeps only the symbol of the calendar. What is playing is in the dock.
 // Middle: the workspaces of Hyprland. Right: the network, Bluetooth, the volume (scrolling turns
 // it), the battery when there is one, the bell with its count and power. Network, Bluetooth,
 // volume, battery and power drop a quick panel under their symbol (WifiPanel, BluetoothPanel,
@@ -227,8 +228,10 @@ Scope {
                     Chip {
                         id: clockButton
                         open: bar.calendarHere
-                        text: Qt.formatDateTime(clock.date, "ddd d MMM  HH:mm")
+                        iconName: bar.clockOnDesktop ? "calendar" : ""
+                        text: bar.clockOnDesktop ? "" : Qt.formatDateTime(clock.date, "ddd d MMM  HH:mm")
                         onClicked: Popups.toggle("calendar", bar.modelData.name)
+                        Behavior on implicitWidth { NumberAnimation { duration: Theme.durBase; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOut } }
                     }
                     // CPU and memory are one button: the system monitor (btop, strix-monitor)
                     Chip {
@@ -386,6 +389,15 @@ Scope {
                         onClicked: Popups.toggle("session", bar.modelData.name)
                     }
                 }
+            }
+
+            /// The clock of the desktop shows the time and the date on this screen: it is switched on
+            /// and no window stands on the workspace (as DesktopClock.bare)
+            readonly property bool clockOnDesktop: {
+                if (!Desktop.clock) return false
+                const monitor = Hyprland.monitorFor(bar.modelData)
+                const workspace = monitor ? monitor.activeWorkspace : null
+                return !workspace || workspace.toplevels.values.length === 0
             }
 
             // The calendar under the clock, folded back like a quick panel
