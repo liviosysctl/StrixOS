@@ -4,6 +4,11 @@
 # flat subvolumes. Needs disko: the flake imports disko.nixosModules.disko
 # together with this module.
 #
+# The two partitions take the whole disk, or a part of it next to another
+# system (wholeDisk = false): then the installer made them where a partition
+# or free space was, and they are found by their labels. Windows keeps its
+# own ESP; this one is 1 GiB like on a whole disk.
+#
 # No snapshots of "/": the system itself can be rolled back through NixOS
 # generations, and /nix never belongs in a snapshot. Only /home is backed up,
 # where the data lives that Nix cannot rebuild.
@@ -60,6 +65,16 @@ let
     inherit subvolumes;
   };
 
+  espLabel = "${branding.id}-esp-${cfg.labelSuffix}";
+  systemLabel = "${branding.id}-system-${cfg.labelSuffix}";
+
+  espContent = {
+    type = "filesystem";
+    format = "vfat";
+    mountpoint = "/boot";
+    mountOptions = [ "umask=0077" ];
+  };
+
   systemPartitionContent =
     if cfg.encrypt then
       {
@@ -84,6 +99,18 @@ in
       description = ''
         Whole disk that is overwritten during installation.
         A path under /dev/disk/by-id is more stable than /dev/nvme0n1.
+        With wholeDisk = false only the disk the two partitions are on.
+      '';
+    };
+
+    wholeDisk = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = ''
+        The ESP and the system partition take the whole disk. false: they are
+        two partitions among others on it (next to Windows), made by the
+        installer and found by their labels, so labelSuffix must be set.
+        Formatting then only touches those two.
       '';
     };
 
@@ -142,38 +169,56 @@ in
         message = "${branding.id}.storage.hibernation needs a swap file: swapSize must not be null.";
       }
       {
+        assertion = !cfg.wholeDisk -> cfg.labelSuffix != "";
+        message = "${branding.id}.storage.wholeDisk = false finds the partitions by their labels: labelSuffix must be set.";
+      }
+      {
         # With this protection the kernel refuses to hibernate.
         assertion = cfg.hibernation -> !config.security.protectKernelImage;
         message = "${branding.id}.storage.hibernation does not work together with security.protectKernelImage.";
       }
     ];
 
-    disko.devices.disk.main = {
-      type = "disk";
-      inherit (cfg) device;
-      content = {
-        type = "gpt";
-        partitions = {
-          ESP = {
-            # 1 GiB holds many kernel generations and the boot menu theme.
-            size = "1G";
-            label = lib.mkIf (cfg.labelSuffix != "") "${branding.id}-esp-${cfg.labelSuffix}";
-            type = "EF00";
+    disko.devices.disk =
+      if cfg.wholeDisk then
+        {
+          main = {
+            type = "disk";
+            inherit (cfg) device;
             content = {
-              type = "filesystem";
-              format = "vfat";
-              mountpoint = "/boot";
-              mountOptions = [ "umask=0077" ];
+              type = "gpt";
+              partitions = {
+                ESP = {
+                  # 1 GiB holds many kernel generations and the boot menu theme.
+                  size = "1G";
+                  label = lib.mkIf (cfg.labelSuffix != "") espLabel;
+                  type = "EF00";
+                  content = espContent;
+                };
+                system = {
+                  size = "100%";
+                  label = lib.mkIf (cfg.labelSuffix != "") systemLabel;
+                  content = systemPartitionContent;
+                };
+              };
             };
           };
+        }
+      else
+        # Each partition as a disk of its own, so formatting stays inside it: the installer
+        # partitions (installer/src/layout.rs), disko only formats and mounts
+        {
+          esp = {
+            type = "disk";
+            device = "/dev/disk/by-partlabel/${espLabel}";
+            content = espContent;
+          };
           system = {
-            size = "100%";
-            label = lib.mkIf (cfg.labelSuffix != "") "${branding.id}-system-${cfg.labelSuffix}";
+            type = "disk";
+            device = "/dev/disk/by-partlabel/${systemLabel}";
             content = systemPartitionContent;
           };
         };
-      };
-    };
 
     # journald should write to disk from early boot on.
     fileSystems."/var/log".neededForBoot = true;
