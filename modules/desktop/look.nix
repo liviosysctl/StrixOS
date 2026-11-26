@@ -44,7 +44,10 @@ in
     fonts.packages = [
       pkgs.noto-fonts
       pkgs.nerd-fonts.blex-mono
-    ];
+    ]
+    # Chinese, Japanese and Korean, which Noto keeps apart: without them a page in those scripts is
+    # boxes. Large, so not on the ISO.
+    ++ lib.optionals (!cfg.live) [ pkgs.noto-fonts-cjk-sans ];
 
     environment.systemPackages =
       with pkgs;
