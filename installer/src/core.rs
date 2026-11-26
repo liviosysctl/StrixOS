@@ -14,6 +14,7 @@
 
 use crate::checks::{self, Answers, MIN_DISK_BYTES, MIN_RAM_GIB};
 use crate::facts;
+use crate::layout::{self, Plan};
 use std::fs::{self, File, OpenOptions};
 use std::io::{BufRead, BufReader, Read, Write};
 use std::os::unix::fs::{FileTypeExt, OpenOptionsExt, PermissionsExt};
@@ -232,6 +233,31 @@ fn label_suffix() -> String {
     format!("{:04x}", u16::from_le_bytes(b))
 }
 
+/// The labels of the ESP and the system partition, as modules/storage/btrfs.nix names them
+fn partition_labels(id: &str, suffix: &str) -> [String; 2] {
+    ["esp", "system"].map(|kind| format!("{id}-{kind}-{suffix}"))
+}
+
+fn by_partlabel(label: &str) -> PathBuf {
+    Path::new("/dev/disk/by-partlabel").join(label)
+}
+
+/// A suffix no partition of this computer carries yet: next to an earlier installation on the
+/// same disk, the labels must not point at its partitions
+fn unused_label_suffix(id: &str) -> String {
+    let mut suffix = label_suffix();
+    for _ in 0..100 {
+        if partition_labels(id, &suffix)
+            .iter()
+            .all(|l| !by_partlabel(l).exists())
+        {
+            break;
+        }
+        suffix = label_suffix();
+    }
+    suffix
+}
+
 /// A random code from 1000 to 9999, for MokManager
 fn mok_code() -> u16 {
     let mut b = [0u8; 2];
@@ -329,8 +355,9 @@ fn steps(job: &mut Install, opts: &Options) -> Result<(), String> {
     answers.check(&env.id)?;
     // Q6: the partition labels end with something of this machine alone
     if answers.label_suffix.is_none() {
-        answers.label_suffix = Some(label_suffix());
+        answers.label_suffix = Some(unused_label_suffix(&env.id));
     }
+    let labels = partition_labels(&env.id, answers.label_suffix.as_deref().unwrap_or(""));
     if user_exists(&answers.user_name) {
         return Err(format!("Not a valid user name: {}", answers.user_name));
     }
@@ -351,14 +378,48 @@ fn steps(job: &mut Install, opts: &Options) -> Result<(), String> {
             answers.disk
         ));
     }
-    let bytes = facts::disk_bytes(&device.to_string_lossy()).unwrap_or(0);
+    let device = device.to_string_lossy().into_owned();
+    // Into a part of the disk: the space must still be there as the window was shown it, and
+    // free to use. The plan says what is deleted and what is made in its place.
+    let (bytes, plan, place) = match answers.space {
+        None => (
+            facts::disk_bytes(&device).unwrap_or(0),
+            None,
+            answers.disk.clone(),
+        ),
+        Some(space) => {
+            let (table, spaces) = facts::disk_spaces(&device).ok_or(format!(
+                "{} has no GPT partition table to install next to.",
+                answers.disk
+            ))?;
+            let chosen = spaces
+                .iter()
+                .find(|s| s.start == space.start && s.end == space.end)
+                .ok_or("The disk changed since the installer read it. Open the installer again.")?;
+            let place = if chosen.kind == "free" {
+                format!("the free space of {device}")
+            } else {
+                chosen.path.clone()
+            };
+            if !chosen.blocked.is_empty() {
+                return Err(format!("{place} cannot be used ({}).", chosen.blocked));
+            }
+            if let Some(taken) = labels.iter().find(|l| by_partlabel(l).exists()) {
+                return Err(format!(
+                    "A partition labelled {taken} is already on this computer."
+                ));
+            }
+            let plan = layout::plan(&table, space.start, space.end)?;
+            (chosen.bytes, Some(plan), place)
+        }
+    };
     if bytes < MIN_DISK_BYTES {
-        return Err(format!("{} is smaller than 32 GiB.", answers.disk));
+        return Err(format!("{place} is smaller than 32 GiB."));
     }
     let ram = facts::ram_gib();
     if answers.hibernation && !checks::hibernation_fits(bytes / (1 << 30), ram) {
         return Err(format!(
-            "The disk is too small for hibernation with {ram} GiB of RAM."
+            "{place} is too small for hibernation with {ram} GiB of RAM."
         ));
     }
     let luks_key = env.luks_key_file();
@@ -378,8 +439,15 @@ fn steps(job: &mut Install, opts: &Options) -> Result<(), String> {
     }
     let swap = checks::swap_size(ram, answers.hibernation);
     job.log.line(&format!(
-        "Installing on {}, swap {swap}, encryption {}, hibernation {}",
-        answers.disk, answers.encrypt, answers.hibernation
+        "Installing on {place} ({} GiB{}), swap {swap}, encryption {}, hibernation {}",
+        bytes >> 30,
+        if plan.is_some() {
+            ", the rest of the disk stays"
+        } else {
+            ""
+        },
+        answers.encrypt,
+        answers.hibernation
     ));
 
     job.step(2);
@@ -438,16 +506,22 @@ fn steps(job: &mut Install, opts: &Options) -> Result<(), String> {
     job.step(4);
     job.mounted = true;
     let flake = format!("{stage_s}#{}", env.id);
-    job.run(
-        "disko",
-        &[
-            "--mode",
-            "destroy,format,mount",
-            "--yes-wipe-all-disks",
-            "--flake",
-            &flake,
-        ],
-    )?;
+    match &plan {
+        None => job.run(
+            "disko",
+            &[
+                "--mode",
+                "destroy,format,mount",
+                "--yes-wipe-all-disks",
+                "--flake",
+                &flake,
+            ],
+        )?,
+        Some(plan) => {
+            partition(job, plan, &device, &labels)?;
+            job.run("disko", &["--mode", "format,mount", "--flake", &flake])?;
+        }
+    }
     // The passphrase is only needed while formatting
     shred(&luks_key);
 
@@ -507,6 +581,46 @@ fn steps(job: &mut Install, opts: &Options) -> Result<(), String> {
         code.map(|c| c.to_string()).unwrap_or_else(|| "-".into()),
         u8::from(from_disk)
     ));
+    Ok(())
+}
+
+/// Deletes the chosen partition (if any) and makes the ESP and the system partition in its
+/// place; the other partitions stay as they are. Both are left empty, for disko to format: it
+/// keeps a file system it finds (the NTFS of the partition that was there).
+fn partition(
+    job: &mut Install,
+    plan: &Plan,
+    disk: &str,
+    labels: &[String; 2],
+) -> Result<(), String> {
+    let args = plan.sgdisk_args(disk, &labels[0], &labels[1]);
+    job.run(
+        "sgdisk",
+        &args.iter().map(String::as_str).collect::<Vec<_>>(),
+    )?;
+    // sgdisk tells the kernel itself; partx is for a disk the kernel kept busy
+    let _ = Command::new("partx")
+        .args(["--update", disk])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status();
+    job.run("udevadm", &["settle"])?;
+    let links = labels.each_ref().map(|l| by_partlabel(l));
+    for _ in 0..40 {
+        if links.iter().all(|l| l.exists()) {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(250));
+    }
+    for link in &links {
+        if !link.exists() {
+            return Err(format!(
+                "{} did not appear after partitioning.",
+                link.display()
+            ));
+        }
+        job.run("wipefs", &["--all", "--force", &link.to_string_lossy()])?;
+    }
     Ok(())
 }
 
@@ -603,6 +717,11 @@ mod tests {
         for _ in 0..20 {
             assert!(checks::valid_label_suffix(&label_suffix()));
         }
+        assert_eq!(
+            partition_labels("strix", "4f2a"),
+            ["strix-esp-4f2a", "strix-system-4f2a"]
+        );
+        assert!(checks::valid_label_suffix(&unused_label_suffix("strix")));
     }
 
     #[test]

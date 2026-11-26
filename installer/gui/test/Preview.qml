@@ -15,12 +15,16 @@ Item {
         ["0-language-de", "ui.pickLanguage('de_CH.UTF-8')"],
         ["1-network-offline", "ui.online = false; ui.networks = [ {ssid:'Fibernet',signal:82,secure:true}, {ssid:'Guest',signal:54,secure:false} ]; ui.page = 1"],
         ["2-timezone", "ui.online = true; ui.page = 2"],
-        ["3-disk", "ui.page = 3; ui.diskIndex = 0; ui.passphrase = 'correct horse'; ui.passphrase2 = 'correct'"],
-        ["4-you", "ui.page = 4; ui.fullName = 'Livio Müller'; ui.password = 'secret'; ui.password2 = 'secret'"],
-        ["5-summary", "ui.passphrase2 = 'correct horse'; ui.password = 'secret12'; ui.password2 = 'secret12'; ui.page = 5"],
-        ["6-installing", "ui.erase = true; ui.install(); mock.event('step', {n: 6, total: 9}); for (let i = 0; i < 12; i++) mock.event('line', {text: 'copying path /nix/store/' + i + '-something'})"],
-        ["7-done", "mock.event('done', {ok: true, error: '', mokCode: '4821', mokFromDisk: false})"],
-        ["7-failed", "ui.page = 6; mock.event('done', {ok: false, error: 'nixos-install failed: no space left on device', mokCode: '', mokFromDisk: false}); ui.showLog = true"]
+        ["3-disk", "ui.page = 3; ui.diskIndex = 0"],
+        ["3-disk-partition", "ui.spaceIndex = 3"],
+        ["3-disk-free", "ui.diskIndex = 1; ui.spaceIndex = 1"],
+        ["4-encryption", "ui.page = 4; ui.passphrase = 'correct horse'; ui.passphrase2 = 'correct'"],
+        ["5-you", "ui.page = 5; ui.fullName = 'Livio Müller'; ui.password = 'secret'; ui.password2 = 'secret'"],
+        ["6-summary-free", "ui.passphrase2 = 'correct horse'; ui.password = 'secret12'; ui.password2 = 'secret12'; ui.page = 6"],
+        ["6-summary", "ui.diskIndex = 0; ui.spaceIndex = 3"],
+        ["7-installing", "ui.erase = true; ui.install(); mock.event('step', {n: 6, total: 9}); for (let i = 0; i < 12; i++) mock.event('line', {text: 'copying path /nix/store/' + i + '-something'})"],
+        ["8-done", "mock.event('done', {ok: true, error: '', mokCode: '4821', mokFromDisk: false})"],
+        ["8-failed", "ui.page = 7; mock.event('done', {ok: false, error: 'nixos-install failed: no space left on device', mokCode: '', mokFromDisk: false}); ui.showLog = true"]
     ]
     property int shot: 0
 

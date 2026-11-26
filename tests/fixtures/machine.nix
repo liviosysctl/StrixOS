@@ -19,6 +19,8 @@
   @distroId@.storage = {
     enable = true;
     device = "/dev/vda";
+    # false: only the two partitions with the labels below, next to the other systems on the disk
+    wholeDisk = true;
     encrypt = true;
     swapSize = "6G";
     hibernation = true;

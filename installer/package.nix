@@ -9,9 +9,11 @@
   cryptsetup,
   curl,
   disko,
+  gptfdisk,
   networkmanager,
   nix,
   nixos-install-tools,
+  ntfs3g,
   systemd,
   util-linux,
   version,
@@ -60,8 +62,12 @@ rustPlatform.buildRustPackage {
           cryptsetup
           curl
           disko
+          # sgdisk: the two partitions next to Windows
+          gptfdisk
           nix
           nixos-install-tools
+          # ntfsls: which NTFS partition holds Windows, read without mounting it
+          ntfs3g
           systemd
           util-linux
         ]

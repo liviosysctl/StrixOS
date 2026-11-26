@@ -117,10 +117,20 @@ pub struct Answers {
     pub user_name: String,
     pub full_name: String,
     pub disk: String,
+    /// Where on the disk: None for the whole disk, else the first and last sector of a partition
+    /// (deleted for the system) or of free space, as the facts list them
+    pub space: Option<Space>,
     pub encrypt: bool,
     pub hibernation: bool,
     /// Ends the partition labels (Q6): given by the answers, else chosen at random by the core
     pub label_suffix: Option<String>,
+}
+
+/// A part of the disk, by its first and last sector
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Space {
+    pub start: u64,
+    pub end: u64,
 }
 
 impl Answers {
@@ -156,6 +166,16 @@ impl Answers {
             user_name: text(&["user", "name"])?,
             full_name: text(&["user", "fullName"])?,
             disk: text(&["disk"])?,
+            space: match json.get("space") {
+                None | Some(serde_json::Value::Null) => None,
+                Some(space) => {
+                    let sector = |k: &str| space.get(k).and_then(serde_json::Value::as_u64);
+                    match (sector("start"), sector("end")) {
+                        (Some(start), Some(end)) if end > start => Some(Space { start, end }),
+                        _ => return Err("space needs a start and an end sector".into()),
+                    }
+                }
+            },
             encrypt: flag("encrypt")?,
             hibernation: flag("hibernation")?,
             label_suffix: text(&["labelSuffix"]).ok(),
@@ -219,6 +239,14 @@ pub fn render_machine_nix(
         ("xkbVariant", kb.xkb_variant),
         ("userName", &answers.user_name),
         ("disk", &answers.disk),
+        (
+            "wholeDisk",
+            if answers.space.is_none() {
+                "true"
+            } else {
+                "false"
+            },
+        ),
         ("encrypt", if answers.encrypt { "true" } else { "false" }),
         ("swapSize", swap),
         (
@@ -304,6 +332,28 @@ mod tests {
     }
 
     #[test]
+    fn space_on_the_disk() {
+        let with = |space: serde_json::Value| {
+            Answers::parse(&json!({
+                "hostName": "x", "timeZone": "Europe/Zurich", "locale": "de_CH.UTF-8",
+                "keyboard": "ch", "user": { "name": "livio", "fullName": "Livio" },
+                "disk": "/dev/nvme0n1", "space": space, "encrypt": true, "hibernation": false
+            }))
+        };
+        assert_eq!(
+            with(json!({ "start": 2048, "end": 4096 })).unwrap().space,
+            Some(Space {
+                start: 2048,
+                end: 4096
+            })
+        );
+        assert_eq!(with(serde_json::Value::Null).unwrap().space, None);
+        assert!(with(json!({ "start": 2048 })).is_err());
+        assert!(with(json!({ "start": 4096, "end": 2048 })).is_err());
+        assert!(with(json!("nvme0n1p5")).is_err());
+    }
+
+    #[test]
     fn host_names() {
         assert!(valid_host_name("livio-laptop"));
         assert!(!valid_host_name("livio_laptop"));
@@ -371,6 +421,7 @@ mod tests {
         }))
         .unwrap();
         assert!(!a.encrypt && !a.hibernation);
+        assert_eq!(a.space, None);
         assert!(a.check("strix").is_ok());
         let missing = Answers::parse(&json!({ "hostName": "x" }));
         assert!(missing.unwrap_err().contains(".timeZone"));
@@ -388,6 +439,13 @@ mod tests {
         assert!(out.contains("layout = \"ch\";"));
         assert!(out.contains("swapSize = \"17G\";"));
         assert!(out.contains("encrypt = true;"));
+        assert!(out.contains("wholeDisk = true;"));
+        a.space = Some(Space {
+            start: 2048,
+            end: 99999,
+        });
+        let next_to = render_machine_nix(&template, &a, "17G", "26.11").unwrap();
+        assert!(next_to.contains("wholeDisk = false;"));
         assert!(out.contains("system.stateVersion = \"26.11\";"));
         let without_name: String = out.lines().filter(|l| !l.contains("description")).collect();
         assert!(placeholder_left(&without_name).is_none());

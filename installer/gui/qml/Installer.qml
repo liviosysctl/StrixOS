@@ -68,6 +68,11 @@ Item {
     property string password2: ""
     property string hostName: facts.id
     property int diskIndex: facts.disks.length === 1 ? 0 : -1
+    /// Where on the disk: -1 the whole disk, else one of its spaces (a partition or free space)
+    property int spaceIndex: -1
+    onDiskIndexChanged: { spaceIndex = -1; erase = false }
+    // The confirmation on the summary is for one place on one disk
+    onSpaceIndexChanged: erase = false
     property bool encrypt: true
     property string passphrase: ""
     property string passphrase2: ""
@@ -75,8 +80,18 @@ Item {
     property bool erase: false
 
     readonly property var disk: diskIndex >= 0 && diskIndex < facts.disks.length ? facts.disks[diskIndex] : null
+    // Without root the back end knows no partitions: then the disk is only used whole
+    readonly property var spaces: disk && disk.spaces ? disk.spaces : []
+    readonly property var space: spaceIndex >= 0 && spaceIndex < spaces.length ? spaces[spaceIndex] : null
+    readonly property bool freeSpace: space !== null && space.kind === "free"
+    /// The partition or the disk whose content is deleted
+    readonly property string erased: space ? space.path : disk ? disk.path : ""
+    readonly property bool nextToWindows: spaces.some(s => s.blocked === "windows" || s.blocked === "bitlocker")
+    readonly property bool roomNextToWindows: spaces.some(s => s.blocked === "")
     function gib(bytes) { return Math.floor(bytes / 1073741824) }
-    readonly property bool hibernationFits: disk !== null && gib(disk.bytes) - facts.ramGib - 1 >= facts.minFreeGib
+    function size(bytes) { return bytes >= 1073741824 ? gib(bytes) + " GiB" : Math.round(bytes / 1048576) + " MiB" }
+    function short(path) { return path.replace("/dev/", "") }
+    readonly property bool hibernationFits: disk !== null && gib(space ? space.bytes : disk.bytes) - facts.ramGib - 1 >= facts.minFreeGib
 
     function pickLanguage(code) {
         locale = code
@@ -111,16 +126,19 @@ Item {
 
     // ---------------------------------------------------------------- pages
 
-    // 0 language, 1 network, 2 time zone, 3 disk, 4 you, 5 summary, 6 installing, 7 done or failed
+    // 0 language, 1 network, 2 time zone, 3 disk, 4 encryption, 5 you, 6 summary, 7 installing,
+    // 8 done or failed
     property int page: 0
-    readonly property var steps: ["s_language", "s_network", "s_timezone", "s_disk", "s_you", "s_summary"]
-    readonly property bool installing: page >= 6
+    readonly property var steps: ["s_language", "s_network", "s_timezone", "s_disk", "s_encryption", "s_you", "s_summary"]
+    readonly property int summary: 6
+    readonly property bool installing: page > summary
 
     readonly property bool pageOk: [
         true,
         online,
         timeZone !== "",
-        disk !== null && passphraseOk,
+        disk !== null && (space === null || space.blocked === ""),
+        passphraseOk,
         fullNameOk && userNameOk && passwordOk && hostNameOk,
         erase,
         false, false
@@ -128,7 +146,7 @@ Item {
 
     function go(n) {
         if (installing) return
-        page = Math.max(0, Math.min(5, n))
+        page = Math.max(0, Math.min(summary, n))
         if (page === 1) checkNetwork()
     }
 
@@ -149,10 +167,12 @@ Item {
             user: { name: userName, fullName: fullName },
             disk: disk.stablePath, encrypt: encrypt, hibernation: hibernationFits && hibernation
         }
+        // A partition or free space, by its sectors; without it the whole disk
+        if (space) answers.space = { start: space.start, end: space.end }
         step = 0
         lines = []
         error = ""
-        page = 6
+        page = summary + 1
         backend.call("install", { answers: answers, password: password, passphrase: encrypt ? passphrase : "" }, () => {
             password = password2 = passphrase = passphrase2 = ""
         })
@@ -171,7 +191,7 @@ Item {
             root.mokCode = s.mokCode
             root.mokFromDisk = s.mokFromDisk
             root.ok = s.phase === "done"
-            root.page = s.phase === "installing" ? 6 : 7
+            root.page = s.phase === "installing" ? root.summary + 1 : root.summary + 2
         })
         checkNetwork()
     }
@@ -198,7 +218,7 @@ Item {
                 root.error = data.error
                 root.mokCode = data.mokCode
                 root.mokFromDisk = data.mokFromDisk
-                root.page = 7
+                root.page = root.summary + 2
             }
         }
     }
@@ -212,6 +232,17 @@ Item {
     }
 
     // ---------------------------------------------------------------- layout
+
+    /// An icon and a line of text that wraps
+    component Hint: Row {
+        id: hint
+        property string iconName: "info"
+        property color tone: Theme.textMuted
+        property alias text: hintText.text
+        spacing: Theme.space2
+        Icon { id: hintIcon; name: hint.iconName; color: hint.tone; y: 1 }
+        Label { id: hintText; width: hint.width - hintIcon.width - hint.spacing; wrapMode: Text.WordWrap; color: hint.tone }
+    }
 
     Rectangle { anchors.fill: parent; color: Theme.background }
 
@@ -239,7 +270,7 @@ Item {
                     id: row
                     required property int index
                     required property string modelData
-                    readonly property bool current: root.page === index || (index === 5 && root.installing)
+                    readonly property bool current: root.page === index || (index === root.summary && root.installing)
                     readonly property bool done: root.page > index
                     width: parent.width
                     height: Theme.control
@@ -314,8 +345,8 @@ Item {
                 textStyle: "title-lg"
                 color: Theme.text
                 text: root.page === 0 ? root.tf("g_welcome", root.facts.name)
-                    : root.page === 6 ? root.t("s_installing")
-                    : root.page === 7 ? (root.ok ? root.t("s_done") : root.t("f_title"))
+                    : root.page === 7 ? root.t("s_installing")
+                    : root.page === 8 ? (root.ok ? root.t("s_done") : root.t("f_title"))
                     : root.t(root.steps[root.page])
             }
             Label {
@@ -323,8 +354,8 @@ Item {
                 wrapMode: Text.WordWrap
                 color: Theme.textMuted
                 text: [root.tf("g_intro", root.facts.name), root.online ? root.t("g_online") : root.t("g_offline"),
-                       root.t("q_timezone"), root.tf("q_disk", root.facts.name), "", root.t("q_summary"),
-                       "",
+                       root.t("q_timezone"), root.tf("q_disk", root.facts.name), root.t("g_encryption"), "",
+                       root.t("q_summary"), "",
                        root.ok ? root.tf("d_title", root.facts.name) : root.error][root.page]
             }
         }
@@ -477,32 +508,93 @@ Item {
                 }
             }
 
-            // 3: disk, encryption, hibernation
+            // 3: the disk, and where on it
             Column {
                 visible: root.page === 3
                 width: parent.width
                 spacing: Theme.space3
                 Label { visible: root.facts.disks.length === 0; color: Theme.error; text: root.t("e_no_disk") }
-                Repeater {
-                    model: root.facts.disks
-                    ListRow {
-                        required property var modelData
-                        required property int index
-                        width: parent.width
-                        height: Theme.control
-                        iconName: modelData.transport === "usb" ? "usb" : "hard-drive"
-                        text: modelData.path.replace("/dev/", "") + "   " + root.gib(modelData.bytes) + " GiB   " + modelData.model
-                        detail: modelData.transport
-                        selected: root.diskIndex === index
-                        onClicked: root.diskIndex = index
+                Column {
+                    width: parent.width
+                    spacing: Theme.space1
+                    Repeater {
+                        model: root.facts.disks
+                        ListRow {
+                            required property var modelData
+                            required property int index
+                            width: parent.width
+                            iconName: modelData.transport === "usb" ? "usb" : "hard-drive"
+                            text: root.short(modelData.path) + "   " + root.gib(modelData.bytes) + " GiB   " + modelData.model
+                            detail: modelData.transport
+                            selected: root.diskIndex === index
+                            onClicked: root.diskIndex = index
+                        }
                     }
                 }
-                Row {
-                    spacing: Theme.space2
-                    Icon { name: "triangle-alert"; color: Theme.warning; anchors.verticalCenter: parent.verticalCenter }
-                    Label { text: root.t("h_disk_whole"); color: Theme.warning; anchors.verticalCenter: parent.verticalCenter }
+                // The whole disk, or one of its partitions or free spaces in the order on the disk.
+                // Windows, its ESP and what it keeps for itself show, but cannot be picked.
+                Column {
+                    visible: root.spaces.length > 0
+                    width: parent.width
+                    spacing: Theme.space1
+                    Label { textStyle: "micro"; color: Theme.textFaint; text: root.t("g_where").toUpperCase(); bottomPadding: Theme.space1 }
+                    ListRow {
+                        width: parent.width
+                        iconName: "hard-drive"
+                        text: root.t("v_whole")
+                        detail: root.disk ? root.size(root.disk.bytes) : ""
+                        selected: root.spaceIndex === -1
+                        onClicked: root.spaceIndex = -1
+                    }
+                    ListView {
+                        id: spaceList
+                        width: parent.width
+                        height: Math.min(contentHeight, 6 * (Theme.control + spacing))
+                        clip: true
+                        spacing: Theme.space1
+                        model: root.spaces
+                        delegate: ListRow {
+                            required property var modelData
+                            required property int index
+                            width: spaceList.width
+                            enabled: modelData.blocked === ""
+                            iconName: modelData.blocked !== "" ? "lock" : modelData.kind === "free" ? "plus" : "square"
+                            text: modelData.kind === "free" ? root.t("v_free") + "   " + root.size(modelData.bytes)
+                                : [root.short(modelData.path), root.size(modelData.bytes), modelData.blocked === "bitlocker" ? "" : modelData.fsType,
+                                   modelData.label].filter(x => x !== "").join("   ")
+                            detail: modelData.blocked !== "" ? root.t("x_" + modelData.blocked) : ""
+                            selected: root.spaceIndex === index
+                            onClicked: root.spaceIndex = index
+                        }
+                    }
                 }
-                Item { width: 1; height: Theme.space3 }
+                Hint {
+                    visible: root.disk !== null
+                    width: parent.width
+                    iconName: root.freeSpace ? "info" : "triangle-alert"
+                    tone: root.freeSpace ? Theme.textMuted : Theme.warning
+                    text: !root.space ? root.t("h_disk_whole")
+                        : root.freeSpace ? root.tf("h_disk_free", root.facts.name)
+                        : root.tf("h_disk_part", root.short(root.space.path))
+                }
+                Hint {
+                    visible: root.space !== null && root.disk.bitlocker
+                    width: parent.width
+                    iconName: "lock"
+                    text: root.t("h_bitlocker")
+                }
+                Hint {
+                    visible: root.space === null && root.nextToWindows && !root.roomNextToWindows
+                    width: parent.width
+                    text: root.tf("h_shrink", root.facts.name)
+                }
+            }
+
+            // 4: encryption and hibernation
+            Column {
+                visible: root.page === 4
+                width: parent.width
+                spacing: Theme.space3
                 Switch {
                     text: root.t("q_encrypt")
                     checked: root.encrypt
@@ -547,9 +639,9 @@ Item {
                 }
             }
 
-            // 4: you and the computer
+            // 5: you and the computer
             Grid {
-                visible: root.page === 4
+                visible: root.page === 5
                 columns: 2
                 columnSpacing: Theme.space5
                 rowSpacing: Theme.space4
@@ -596,9 +688,9 @@ Item {
                 }
             }
 
-            // 5: summary
+            // 6: summary
             Column {
-                visible: root.page === 5
+                visible: root.page === root.summary
                 width: parent.width
                 spacing: Theme.space5
                 InfoBlock {
@@ -610,7 +702,10 @@ Item {
                         [root.t("l_name"), root.fullName],
                         [root.t("l_user"), root.userName],
                         [root.t("l_computer"), root.hostName],
-                        [root.t("l_disk"), root.disk ? root.disk.path.replace("/dev/", "") + ", " + root.gib(root.disk.bytes) + " GiB, " + root.disk.model : ""],
+                        [root.t("l_disk"), !root.disk ? ""
+                            : root.freeSpace ? root.t("v_free") + " (" + root.short(root.disk.path) + "), " + root.size(root.space.bytes)
+                            : root.space ? [root.short(root.space.path), root.size(root.space.bytes), root.space.label].filter(x => x !== "").join(", ")
+                            : root.short(root.disk.path) + ", " + root.gib(root.disk.bytes) + " GiB, " + root.disk.model],
                         [root.t("l_encryption"), root.encrypt ? root.t("v_on") : root.t("v_off")],
                         [root.t("l_hibernation"), root.hibernationFits && root.hibernation ? root.t("v_on") : root.t("v_off")]
                     ]
@@ -624,26 +719,31 @@ Item {
                 }
                 Column {
                     spacing: Theme.space3
+                    // Free space: nothing is deleted, but the partition table is written
                     Row {
                         spacing: Theme.space2
-                        Icon { name: "triangle-alert"; color: Theme.error; anchors.verticalCenter: parent.verticalCenter }
-                        Label { text: root.tf("w_deleted", root.disk ? root.disk.path : ""); color: Theme.error; anchors.verticalCenter: parent.verticalCenter }
+                        Icon { name: "triangle-alert"; color: root.freeSpace ? Theme.warning : Theme.error; anchors.verticalCenter: parent.verticalCenter }
+                        Label {
+                            text: root.freeSpace ? root.tf("w_free", root.disk.path) : root.tf("w_deleted", root.erased)
+                            color: root.freeSpace ? Theme.warning : Theme.error
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
                     }
                     CheckBox {
-                        text: root.tf("g_erase", root.disk ? root.disk.path : "")
+                        text: root.freeSpace ? root.tf("g_free", root.disk.path) : root.tf("g_erase", root.erased)
                         checked: root.erase
                         onToggled: root.erase = checked
                     }
                 }
             }
 
-            // 6: installing, 7: done or failed
+            // 7: installing, 8: done or failed
             Column {
-                visible: root.page >= 6
+                visible: root.installing
                 width: parent.width
                 spacing: Theme.space4
                 ProgressBar {
-                    visible: root.page === 6
+                    visible: root.page === 7
                     width: parent.width
                     from: 0
                     to: root.total
@@ -653,7 +753,7 @@ Item {
                     Behavior on value { NumberAnimation { duration: Theme.durSlow; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.easeOut } }
                 }
                 Column {
-                    visible: root.page === 6
+                    visible: root.page === 7
                     spacing: 2
                     Repeater {
                         model: root.total
@@ -676,7 +776,7 @@ Item {
 
                 // Done: what comes at the next start
                 Column {
-                    visible: root.page === 7 && root.ok
+                    visible: root.page === 8 && root.ok
                     width: parent.width
                     spacing: Theme.space3
                     Label { width: parent.width; wrapMode: Text.WordWrap; color: Theme.text; text: root.t("d_remove") }
@@ -704,7 +804,7 @@ Item {
 
                 // Failed: the error is under the heading; the disk may be half written
                 Label {
-                    visible: root.page === 7 && !root.ok
+                    visible: root.page === 8 && !root.ok
                     width: parent.width
                     wrapMode: Text.WordWrap
                     color: Theme.textMuted
@@ -746,38 +846,38 @@ Item {
                 anchors { left: parent.left; leftMargin: Theme.space7; verticalCenter: parent.verticalCenter }
                 spacing: Theme.space3
                 Button {
-                    visible: root.page > 0 && root.page < 6
+                    visible: root.page > 0 && root.page <= root.summary
                     variant: "quiet"
                     iconName: "chevron-left"
                     text: root.t("b_back")
                     onClicked: root.go(root.page - 1)
                 }
                 Button {
-                    visible: root.page === 7 && !root.ok
+                    visible: root.page === 8 && !root.ok
                     variant: "quiet"
                     iconName: "chevron-left"
                     text: root.t("b_retry")
-                    onClicked: { root.page = 5; root.erase = false }
+                    onClicked: { root.page = root.summary; root.erase = false }
                 }
             }
             Row {
                 anchors { right: parent.right; rightMargin: Theme.space7; verticalCenter: parent.verticalCenter }
                 spacing: Theme.space3
                 Button {
-                    visible: root.page === 7 && root.ok
+                    visible: root.page === 8 && root.ok
                     variant: "quiet"
                     text: root.t("b_stay")
                     onClicked: root.closeRequested()
                 }
                 Button {
-                    visible: root.page === 7 && root.ok
+                    visible: root.page === 8 && root.ok
                     variant: "primary"
                     iconName: "power"
                     text: root.t("b_restart")
                     onClicked: root.backend.call("reboot", {}, () => {})
                 }
                 Button {
-                    visible: root.page < 5
+                    visible: root.page < root.summary
                     variant: "primary"
                     enabled: root.pageOk
                     text: root.t("b_next")
@@ -785,10 +885,10 @@ Item {
                     onClicked: root.go(root.page + 1)
                 }
                 Button {
-                    visible: root.page === 5
+                    visible: root.page === root.summary
                     variant: "danger"
                     enabled: root.pageOk
-                    text: root.t("b_install")
+                    text: root.freeSpace ? root.t("b_install_free") : root.t("b_install")
                     iconName: "hard-drive-download"
                     onClicked: root.install()
                 }

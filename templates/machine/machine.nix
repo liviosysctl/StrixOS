@@ -19,6 +19,8 @@
   @distroId@.storage = {
     enable = true;
     device = "@disk@";
+    # false: only the two partitions with the labels below, next to the other systems on the disk
+    wholeDisk = @wholeDisk@;
     encrypt = @encrypt@;
     swapSize = "@swapSize@";
     hibernation = @hibernation@;

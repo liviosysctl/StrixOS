@@ -7,7 +7,7 @@
 //! (`<id>-install --core`), with the answers and the secrets in files only it and root can read.
 //!
 //! ```text
-//! facts                the computer: memory, disks, Secure Boot
+//! facts                the computer: memory, disks with their partitions, Secure Boot
 //! timezones            the time zones of tzdata
 //! network              {online}: whether cache.nixos.org answers
 //! wifi.list            the Wi-Fi networks NetworkManager sees
@@ -197,11 +197,7 @@ impl Service {
 
     fn call(self: &Arc<Self>, method: &str, params: &Value) -> Result<Value, String> {
         match method {
-            "facts" => Ok(facts::facts(
-                &self.cfg.name,
-                &self.cfg.id,
-                &self.cfg.version,
-            )),
+            "facts" => Ok(self.facts()),
             "timezones" => {
                 let out = run("timedatectl", &["list-timezones", "--no-pager"])?;
                 Ok(json!(
@@ -246,6 +242,25 @@ impl Service {
             "reboot" => run("systemctl", &["reboot"]).map(|_| json!({})),
             _ => Err(format!("unknown method {method}")),
         }
+    }
+
+    /// As root through sudo, so each disk's partitions are known; else only the disks, which
+    /// can then only be used whole
+    fn facts(&self) -> Value {
+        let as_root = Command::new(&self.cfg.sudo)
+            .arg("-n")
+            .arg(&self.cfg.install_command)
+            .arg("--facts")
+            .stdin(Stdio::null())
+            .stderr(Stdio::null())
+            .output();
+        if let Ok(out) = as_root
+            && out.status.success()
+            && let Ok(facts) = serde_json::from_slice(&out.stdout)
+        {
+            return facts;
+        }
+        facts::facts(&self.cfg.name, &self.cfg.id, &self.cfg.version)
     }
 
     fn install(self: &Arc<Self>, params: &Value) -> Result<Value, String> {
